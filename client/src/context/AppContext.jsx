@@ -21,7 +21,7 @@ const ROLE_NAMES = {
 };
 
 export function AppProvider({ children }) {
-  const [role, setRole] = useState(null); // null = logged out, "user" | "mod" | "admin"
+  const [role, setRole] = useState(() => window.localStorage.getItem("tidetrace-role"));
   const [toast, setToast] = useState("");
 
   const [traces, setTraces] = useState(initialTraces);
@@ -43,9 +43,13 @@ export function AppProvider({ children }) {
 
   const login = useCallback((chosenRole) => {
     setRole(chosenRole);
+    window.localStorage.setItem("tidetrace-role", chosenRole);
   }, []);
 
-  const logout = useCallback(() => setRole(null), []);
+  const logout = useCallback(() => {
+    setRole(null);
+    window.localStorage.removeItem("tidetrace-role");
+  }, []);
 
   const addTrace = useCallback((trace) => {
     const id = "t" + (Math.floor(Math.random() * 90000) + 10000);

@@ -8,7 +8,7 @@ import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.jsx";
 import UserDashboard from "./pages/user/Dashboard.jsx";
-import ViewTraces from "./pages/user/traces/ViewTraces..jsx";
+import ViewTraces from "./pages/user/traces/ViewTraces.jsx";
 import ViewTrace from "./pages/user/traces/ViewTrace.jsx";
 import UploadTrace from "./pages/user/traces/UploadTrace.jsx";
 import MyContributions from "./pages/user/contributions/MyContributions.jsx";
@@ -16,15 +16,26 @@ import ViewSubmission from "./pages/user/contributions/ViewSubmission.jsx";
 import EditSubmission from "./pages/user/contributions/EditSubmission.jsx";
 import Tides from "./pages/user/tides/Tides.jsx";
 import ViewTide from "./pages/user/tides/ViewTide.jsx";
-import Notifications from "./pages/user/notifications/Notification.jsx";
+import Notifications from "./pages/user/notifications/Notifications.jsx";
 import Profile from "./pages/user/profile/Profile.jsx";
+
+import ModDashboard from "./pages/moderator/Dashboard.jsx";
+import ReviewTraces from "./pages/moderator/ReviewTraces.jsx";
+import ManageComments from "./pages/moderator/ManageComments.jsx";
+import ManageReports from "./pages/moderator/ManageReports.jsx";
+
+import AdminDashboard from "./pages/admin/Dashboard.jsx";
+import ManageUsers from "./pages/admin/ManageUsers.jsx";
+import ManageModerators from "./pages/admin/ManageModerators.jsx";
+import ManageTides from "./pages/admin/ManageTides.jsx";
+import ManageCategories from "./pages/admin/ManageCategories.jsx";
 
 const WAVE = (
   <svg width={24} height={24} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
     <path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0" />
     <path d="M2 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0" />
   </svg>
-);
+);  
 
 function Home() {
   const navigate = useNavigate();
@@ -225,6 +236,56 @@ function Toast() {
   return <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>;
 }
 
+const USER_SECTIONS = {
+  dashboard: { title: "Your dashboard", description: "A quick view of your community activity." },
+  traces: { title: "Community traces", description: "Explore observations shared by coastal communities." },
+  tides: { title: "Tides learning", description: "Learn about the ecosystems connected to every tide." },
+  contributions: { title: "Your contributions", description: "Review the traces you have shared with the community." },
+  notifications: { title: "Notifications", description: "Stay up to date with your TideTrace activity." },
+  profile: { title: "Settings", description: "Manage your community profile." },
+};
+
+function UserSection({ section }) {
+  const { traces, tides, notifications } = useApp();
+  const content = USER_SECTIONS[section];
+  const userTraces = traces.filter((trace) => trace.author === "Ana Ramos");
+
+  return (
+    <section className="page-wrap">
+      <div className="sh">
+        <span className="tagline">TideTrace community</span>
+        <h1>{content.title}</h1>
+        <p>{content.description}</p>
+      </div>
+
+      {section === "dashboard" && (
+        <div className="igrid">
+          <div className="istat"><b>{userTraces.length}</b><span>Your traces</span></div>
+          <div className="istat"><b>{userTraces.filter((trace) => trace.status === "approved").length}</b><span>Approved</span></div>
+          <div className="istat"><b>{tides.filter((tide) => tide.progress === 100).length}</b><span>Lessons completed</span></div>
+          <div className="istat"><b>{notifications.filter((notification) => notification.unread).length}</b><span>Unread updates</span></div>
+        </div>
+      )}
+
+      {section === "traces" && <div className="pgrid">{traces.map((trace) => <TraceCard key={trace.id} trace={trace} />)}</div>}
+      {section === "tides" && <div className="pgrid">{tides.map((tide) => <TideCard key={tide.id} tide={tide} />)}</div>}
+      {section === "contributions" && <div className="pgrid">{userTraces.map((trace) => <TraceCard key={trace.id} trace={trace} />)}</div>}
+      {section === "notifications" && (
+        <div className="stack-list">
+          {notifications.map((notification) => <div className="list-row" key={notification.id}><b>{notification.text}</b><span>{notification.when}</span></div>)}
+        </div>
+      )}
+      {section === "profile" && (
+        <div className="auth-card profile-panel">
+          <h2>Ana Ramos</h2>
+          <p>ana@tidetrace.app</p>
+          <p>Brgy. Lawis community member</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function RequireRole({ role: required, children }) {
   const { role } = useApp();
   if (role !== required) return <Navigate to="/login" replace />;
@@ -254,6 +315,17 @@ function AppShell() {
           <Route path="/user/tides/:id" element={<RequireRole role="user"><div className="view"><ViewTide /></div></RequireRole>} />
           <Route path="/user/notifications" element={<RequireRole role="user"><div className="view"><Notifications /></div></RequireRole>} />
           <Route path="/user/profile" element={<RequireRole role="user"><div className="view"><Profile /></div></RequireRole>} />
+
+          <Route path="/moderator/dashboard" element={<RequireRole role="mod"><div className="view"><ModDashboard /></div></RequireRole>} />
+          <Route path="/moderator/review" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
+          <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
+          <Route path="/moderator/reports" element={<RequireRole role="mod"><div className="view"><ManageReports /></div></RequireRole>} />
+
+          <Route path="/admin/dashboard" element={<RequireRole role="admin"><div className="view"><AdminDashboard /></div></RequireRole>} />
+          <Route path="/admin/users" element={<RequireRole role="admin"><div className="view"><ManageUsers /></div></RequireRole>} />
+          <Route path="/admin/moderators" element={<RequireRole role="admin"><div className="view"><ManageModerators /></div></RequireRole>} />
+          <Route path="/admin/tides" element={<RequireRole role="admin"><div className="view"><ManageTides /></div></RequireRole>} />
+          <Route path="/admin/categories" element={<RequireRole role="admin"><div className="view"><ManageCategories /></div></RequireRole>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
