@@ -115,3 +115,12 @@ Before adding credentials, define the required variable names in the environment
 4. Connect frontend routing, API modules, and role-specific pages.
 5. Build shared components and choose the styling setup.
 6. Add backend linting and tests for implemented behavior.
+
+## UPDATES ##
+A. Foundation & Architecture
+v1.0 — The core build
+
+Shared simulated data layer — TRACES, CONTRIBS, QUEUE, FLAGGED, REPORTS, USERS, MODS, TIDES, CATS, MODLOG, LOGS, NOTIFS all in one state; actions in one role visibly ripple into others (the signature feature)
+Hash-free client-side router — go(view) with NAVPARENT mapping so detail pages highlight the right nav item
+Modal + toast system — reusable confirmBox() promise-style confirmation, global toast feedback on every meaningful action
+Role-based view access — user/mod/admin each see only their sections
