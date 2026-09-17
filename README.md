@@ -117,10 +117,13 @@ Before adding credentials, define the required variable names in the environment
 6. Add backend linting and tests for implemented behavior.
 
 ## UPDATES ##
-A. Foundation & Architecture
-v1.0 — The core build
+## A. Foundation & Architecture ##
+## v1.0 — Initial Prototype ##
 
-Shared simulated data layer — TRACES, CONTRIBS, QUEUE, FLAGGED, REPORTS, USERS, MODS, TIDES, CATS, MODLOG, LOGS, NOTIFS all in one state; actions in one role visibly ripple into others (the signature feature)
-Hash-free client-side router — go(view) with NAVPARENT mapping so detail pages highlight the right nav item
-Modal + toast system — reusable confirmBox() promise-style confirmation, global toast feedback on every meaningful action
-Role-based view access — user/mod/admin each see only their sections
+Built the clickable 3-role prototype (User, Moderator, Admin) from the approved flowcharts. It covers the full journey: login, dashboard, traces, tides, contributions, notifications, and settings. All roles share one simulated data layer, so actions in one role visibly affect the others. For example, a user's submitted trace appears instantly in the moderator's review queue. A confirmation modal and toast system gives feedback for every action.
+
+## v1.1 — Homepage & Navigation ##
+Added the homepage directly into it so the flow starts from a public landing page. It includes the hero, mission, feature pillars, impact stats, and call-to-action sections. The navigation bar was upgraded with icons next to each link and stays centered at the top. When logged out, visitors see the public nav with Log in and Join buttons. The homepage CTAs are flow-aware, sending users to login or straight into the app depending on their state.
+
+## v1.2 — Complete Role Flows ##
+Built out the full Moderator and Admin experiences to match the flowcharts. Moderators get a review queue, decision cards, flagged comments, reports, and analytics. Admins manage users, moderators, Tides content, moderation history, system settings, and platform analytics. Every decision updates the shared data, so the user sees status changes and notifications immediately. Admin actions like publishing content also trigger notifications for users.
