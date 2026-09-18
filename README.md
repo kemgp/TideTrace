@@ -1,4 +1,4 @@
- TideTrace
+TideTrace
 
 TideTrace is an application scaffold with a React frontend, a Node.js backend structure, and SQL placeholders for Supabase. The planned modules cover tides, traces, contributions, notifications, moderation, and administration.
 
@@ -125,10 +125,11 @@ Before adding credentials, define the required variable names in the environment
 ## Admin flow diagram
 <img width="11592" height="5542" alt="Tide Trace_adminflow" src="https://github.com/user-attachments/assets/91089c27-a687-4e64-b97a-1486f845c59a" />
 
-
 ## Entity-Relationship Diagram
-<img width="7822" height="5900" alt="Tide Trace_erd" src="https://github.com/user-attachments/assets/37153f92-72a4-4a36-9f61-c7c8694677eb" />
+<img width="7822" height="5792" alt="Database ERD Diagram" src="https://github.com/user-attachments/assets/984b36d1-d11c-4b57-8865-3d44b24876c1" />
 
+## System Architecture Diagram
+<img width="15185" height="6833" alt="System Architecture" src="https://github.com/user-attachments/assets/42473242-d54a-4fa4-986a-de661b3f1204" />
 
 
 ## UPDATES ##
