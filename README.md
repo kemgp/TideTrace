@@ -116,6 +116,16 @@ Before adding credentials, define the required variable names in the environment
 5. Build shared components and choose the styling setup.
 6. Add backend linting and tests for implemented behavior.
 
+## User flow diagram
+<img width="10471" height="5822" alt="Tide Trace_userflow" src="https://github.com/user-attachments/assets/c45946a1-d19d-4206-ac75-3bc93f1c68ca" />
+
+## Moderator flow diagram 
+<img width="11642" height="5948" alt="Tide Trace_moderatorflow" src="https://github.com/user-attachments/assets/a7cfc215-6886-4aaa-bd38-b4e0be2e2e6e" />
+
+## Entity-Relationship Diagram
+<img width="7822" height="5900" alt="Tide Trace_erd" src="https://github.com/user-attachments/assets/37153f92-72a4-4a36-9f61-c7c8694677eb" />
+
+
 ## UPDATES ##
 ## A. Foundation & Architecture ##
 ## v1.0 — Initial Prototype ##
