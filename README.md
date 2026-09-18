@@ -127,3 +127,9 @@ Added the homepage directly into it so the flow starts from a public landing pag
 
 ## v1.2 — Complete Role Flows ##
 Built out the full Moderator and Admin experiences to match the flowcharts. Moderators get a review queue, decision cards, flagged comments, reports, and analytics. Admins manage users, moderators, Tides content, moderation history, system settings, and platform analytics. Every decision updates the shared data, so the user sees status changes and notifications immediately. Admin actions like publishing content also trigger notifications for users.
+
+##v1.3 — Animations ##
+Added smooth fade-in animations across the entire prototype. Every page opens with a gentle fade and a staggered content cascade. Wizard steps, settings tabs, and modals also transition cleanly. The animations are CSS-only, so they replay each time a page opens without extra JavaScript. A reduced-motion setting is respected for accessibility.
+
+##v1.4 — Security Features ##
+Added 6-digit email verification (OTP) when logging in or registering. The code appears in a simulated inbox for demo purposes, with a live 5-minute expiry timer and resend option. The input boxes auto-advance, support pasting, and auto-submit when complete. Also added a change-password feature in Settings with a live strength meter and full validation. Every password change is recorded in the Admin's system logs.
