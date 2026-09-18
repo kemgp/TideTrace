@@ -122,8 +122,13 @@ Before adding credentials, define the required variable names in the environment
 ## Moderator flow diagram 
 <img width="11642" height="5948" alt="Tide Trace_moderatorflow" src="https://github.com/user-attachments/assets/a7cfc215-6886-4aaa-bd38-b4e0be2e2e6e" />
 
+## Admin flow diagram
+<img width="11592" height="5542" alt="Tide Trace_adminflow" src="https://github.com/user-attachments/assets/91089c27-a687-4e64-b97a-1486f845c59a" />
+
+
 ## Entity-Relationship Diagram
 <img width="7822" height="5900" alt="Tide Trace_erd" src="https://github.com/user-attachments/assets/37153f92-72a4-4a36-9f61-c7c8694677eb" />
+
 
 
 ## UPDATES ##
