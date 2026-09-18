@@ -2,7 +2,7 @@
 
 TideTrace is an application scaffold with a React frontend, a Node.js backend structure, and SQL placeholders for Supabase. The planned modules cover tides, traces, contributions, notifications, moderation, and administration.
 
-## Current status
+## Current status.
 
 The frontend currently renders a **TideTrace** heading. Most feature files are empty placeholders:
 
