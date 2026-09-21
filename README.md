@@ -1,120 +1,84 @@
-TideTrace
+# TideTrace
 
-TideTrace is an application scaffold with a React frontend, a Node.js backend structure, and SQL placeholders for Supabase. The planned modules cover tides, traces, contributions, notifications, moderation, and administration.
+TideTrace is a community conservation application with a React frontend and a Node.js API backed by Supabase PostgreSQL, Auth and Storage.
 
-## Current status.
+## Current status
 
-The frontend currently renders a **TideTrace** heading. Most feature files are empty placeholders:
+- The frontend includes public, member, moderator and admin screens. It still uses demo authentication and in-memory mock data in `client/src/context/AppContext.jsx`.
+- The backend implements authentication, profiles, categories, Traces, evidence uploads, comments, reports, notifications, Tides, moderation and account administration.
+- The existing Supabase schema supplies row-level security, guarded workflow functions and audit records. Configure a Supabase project before using persistent data.
+- Frontend integration with the API remains separate work. The Vite `/api` development proxy is ready; demo role selection does not grant backend permissions.
 
-- Authentication, user, moderator, and admin pages are not implemented.
-- Frontend API modules and route protection are not connected.
-- Backend routes, controllers, middleware, and services are not implemented. The server entry point calls a placeholder function and does not start an HTTP server.
-- The Supabase client is `null`; migrations, seed data, and storage policies are empty.
-- Shared component, hook, and utility directories are reserved for future implementation.
+## Getting started
 
-## Technology
+Use Node.js 22.12+ (or a newer supported Node release). Install dependencies from the repository root:
 
-- **Frontend:** React 19 and Vite 8, with React Compiler configured.
-- **Linting:** ESLint with React Hooks and React Refresh rules.
-- **Backend:** Node.js using ES modules; no backend dependencies are declared yet.
-- **Database and storage:** Supabase is planned but not connected.
-- **Styling:** Plain CSS is present. A Tailwind configuration exists, but Tailwind dependencies and build integration are not set up.
+```sh
+npm ci
+```
 
-## Project structure
+Start the frontend:
+
+```sh
+npm run dev
+```
+
+Open the local URL printed by Vite on port **5173**. If the port is occupied, Vite reports an error. To open a browser automatically, run `npm run dev -- --open`.
+
+For the API, copy `server/.env.example` to `server/.env` and set your Supabase project URL and publishable key. Follow [the database setup](supabase/README.md), then start a second terminal:
+
+```sh
+npm run dev:server
+```
+
+The API listens at `http://127.0.0.1:3001/api`. `GET /api/health` works without credentials; data endpoints return a setup message until Supabase is configured. The frontend proxies `/api` to port 3001.
+
+See [the backend guide](server/README.md) for the endpoint contract, authentication, upload flow, environment settings and integration limitations.
+
+## Technology and structure
+
+- **Frontend:** React 19, React Router and Vite 8, with existing CSS styling.
+- **Backend:** Node.js ES modules, Express 5, Zod validation and the Supabase JavaScript client.
+- **Data:** Supabase PostgreSQL, Auth and a private evidence Storage bucket.
+- **Tests:** Node's test runner and Supertest for the API; separate PostgreSQL access-control checks in `supabase/tests/`.
 
 ```text
 TideTrace/
 ├── client/
-│   ├── public/                 Static assets
-│   ├── src/
-│   │   ├── api/                Auth, admin, tides, traces, notifications
-│   │   ├── components/
-│   │   │   ├── admin/
-│   │   │   ├── common/
-│   │   │   ├── moderation/
-│   │   │   ├── tides/
-│   │   │   └── traces/
-│   │   ├── hooks/              Shared React hooks
-│   │   ├── pages/
-│   │   │   ├── admin/
-│   │   │   ├── auth/
-│   │   │   ├── moderator/
-│   │   │   └── user/
-│   │   ├── routes/             App routing and protected routes
-│   │   ├── utils/              Frontend utilities
-│   │   ├── App.jsx             Root component
-│   │   ├── main.jsx            React entry point
-│   │   └── index.css           Global styles
-│   ├── index.html
-│   ├── tailwind.config.js
-│   └── vite.config.js
+│   ├── src/                 React pages, components and demo state
+│   ├── public/              Static assets
+│   └── vite.config.js       Port 5173 and /api proxy
 ├── server/
-│   ├── src/
-│   │   ├── config/             Supabase client placeholder
-│   │   ├── controllers/        Request handling by domain
-│   │   ├── middleware/         Auth, roles, errors, uploads
-│   │   ├── routes/             API route modules
-│   │   ├── services/           Notifications and storage
-│   │   ├── utils/              Backend utilities
-│   │   ├── app.js              Application factory placeholder
-│   │   └── server.js           Backend entry point
-│   └── package.json
+│   ├── src/                 API routes, validation, auth and server startup
+│   ├── test/                HTTP tests with a mocked Supabase transport
+│   ├── .env.example         Backend configuration template
+│   └── README.md            API and setup guide
 ├── supabase/
-│   ├── migrations/             Ten SQL placeholders
-│   ├── seed.sql
-│   └── storage-policies.sql
-├── .env.example
-├── .gitignore
-├── eslint.config.js
-├── package-lock.json
-├── package.json                Frontend dependencies and scripts
-└── README.md
+│   ├── migrations/          Initial schema and access policies
+│   ├── tests/               Database workflow/security checks
+│   └── bootstrap-first-admin.sql
+├── package.json             npm workspace commands
+└── package-lock.json        Reproducible workspace dependencies
 ```
 
-Frontend dependencies are declared in `client/package.json` and installed from the project root using npm workspaces. The root development, build, and preview commands run in `client/`, where Vite's configuration and HTML entry point live. Build output is generated in `client/dist/`.
-
-The SQL placeholders cover `profiles`, `tides`, `traces`, `trace_media`, `categories`, `comments`, `reports`, `trace_reviews`, `notifications`, and `settings`. They do not yet define a database schema or migration execution order.
-
-## Getting started
-
-Install Node.js and npm using versions compatible with the dependencies in `package-lock.json`. Run these commands from the project root:
-
-```sh
-npm ci
-npm run dev
-```
-
-Open the local URL printed by Vite (usually `http://localhost:5173/`) to view the TideTrace homepage. The development command keeps running in the terminal; it does not automatically open a browser. To open one automatically, run `npm run dev -- --open`.
+Frontend and backend dependencies are declared in their workspace manifests. Run installation commands from the repository root. Frontend build output goes to `client/dist/`.
 
 ## Available commands
 
-Run these commands from the project root:
-
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start the frontend development server. |
+| `npm run dev` | Start the frontend on port 5173. |
+| `npm run dev:server` | Start the API with file watching on port 3001. |
+| `npm run start:server` | Start the API without file watching. |
 | `npm run build` | Build the frontend into `client/dist/`. |
-| `npm run preview` | Preview an existing frontend build locally. |
-| `npm run lint` | Run ESLint against `client/`. |
-| `npm --prefix server run dev` | Run the backend placeholder in Node.js watch mode. |
-| `npm --prefix server start` | Execute the backend placeholder once. |
+| `npm run preview` | Preview the frontend build; start the API separately for `/api` requests. |
+| `npm test` | Run backend HTTP and validation tests. |
 
-Backend commands do not currently expose an API. No automated test scripts are configured, and the root lint command does not cover the backend.
+## Environment and remaining integration
 
-## Environment configuration
+`server/.env` is ignored by Git. The backend accepts a Supabase publishable or legacy anon key and rejects privileged service-role/secret keys. It uses the caller's verified identity and database permissions. See [server/.env.example](server/.env.example).
 
-`.env.example` currently contains only a comment; no required environment variables have been defined. Supabase configuration and environment loading still need implementation.
-
-Before adding credentials, define the required variable names in the environment template and configure ignore rules for local secret files. The current `.gitignore` does not exclude `.env`.
-
-## Next implementation steps
-
-1. Define the database schema, migration order, and access policies.
-2. Configure backend dependencies, environment loading, and the Supabase client.
-3. Implement API routes, authentication, authorization, and error handling.
-4. Connect frontend routing, API modules, and role-specific pages.
-5. Build shared components and choose the styling setup.
-6. Add backend linting and tests for implemented behavior.
+Connect the frontend forms and state to the API before expecting persistent app behavior. Hosted email confirmation/recovery and Storage uploads need validation against your configured development Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the backend guide for details.
 
 ## User Flow Diagram ##
 <img width="10471" height="5822" alt="Tide Trace_userflow" src="https://github.com/user-attachments/assets/c45946a1-d19d-4206-ac75-3bc93f1c68ca" />
