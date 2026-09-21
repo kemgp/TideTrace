@@ -71,7 +71,7 @@ TideTrace/
 └── README.md
 ```
 
-Frontend dependencies are managed from the project root. The backend has a separate package manifest under `server/`. Vite uses `client/` as its root and generates build output in `client/dist/`.
+Frontend dependencies are declared in `client/package.json` and installed from the project root using npm workspaces. The root development, build, and preview commands run in `client/`, where Vite's configuration and HTML entry point live. Build output is generated in `client/dist/`.
 
 The SQL placeholders cover `profiles`, `tides`, `traces`, `trace_media`, `categories`, `comments`, `reports`, `trace_reviews`, `notifications`, and `settings`. They do not yet define a database schema or migration execution order.
 
@@ -84,7 +84,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. The current application displays the TideTrace heading.
+Open the local URL printed by Vite (usually `http://localhost:5173/`) to view the TideTrace homepage. The development command keeps running in the terminal; it does not automatically open a browser. To open one automatically, run `npm run dev -- --open`.
 
 ## Available commands
 
