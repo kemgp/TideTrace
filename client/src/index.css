@@ -175,6 +175,10 @@ main{min-height:70vh;flex:1;}
 .auth-tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px;gap:4px;margin-bottom:20px;}
 .auth-tabs button{flex:1;border:none;background:none;font-size:12.5px;font-weight:600;color:var(--soft);padding:9px;border-radius:8px;}
 .auth-tabs button.on{background:#fff;color:var(--navy);border:1px solid var(--line);}
+.auth-tabs .auth-tab{flex:1;text-align:center;font-size:12.5px;font-weight:600;color:var(--soft);padding:9px;border-radius:8px;text-decoration:none;border:1px solid transparent;}
+.auth-tabs .auth-tab.on{background:#fff;color:var(--navy);border-color:var(--line);}
+.verification-code{letter-spacing:.2em;text-align:center;}
+.demo-notice{padding:10px 20px;background:#fff4dc;color:var(--navy);font-size:12px;text-align:center;}
 .role-tabs{margin-bottom:16px;}
 .role-tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;padding:10px 4px;}
 .role-tabs button small{font-weight:500;font-size:9px;color:var(--soft);}

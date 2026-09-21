@@ -28,7 +28,7 @@ export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
     catch { throw new HttpError(503, "NOT_READY", "Supabase is unavailable or the schema is not installed."); }
     res.json({ data: { status: "ready" } });
   });
-  app.use("/api/auth", authRoutes(gateway));
+  app.use("/api/auth", authRoutes(gateway, config));
   app.use("/api", contentRoutes(gateway));
   app.use("/api", mediaRoutes(gateway));
   app.use("/api/moderation", staffRoutes(gateway));

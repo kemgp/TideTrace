@@ -1,91 +1,59 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const RESEND_DELAY = 30;
 
-export default function VerificationCode({ email, code, onVerified, onBack, onResend }) {
-  const [digits, setDigits] = useState(Array(6).fill(""));
+export default function VerificationCode({ email, onVerify, onBack, onResend, initiallySent = true }) {
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
-  const [resendIn, setResendIn] = useState(RESEND_DELAY);
-  const inputRefs = useRef([]);
-  const enteredCode = digits.join("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [resendIn, setResendIn] = useState(initiallySent ? RESEND_DELAY : 0);
 
   useEffect(() => {
     if (resendIn === 0) return undefined;
-    const timer = window.setInterval(() => {
-      setResendIn((seconds) => Math.max(0, seconds - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
+    const timer = window.setTimeout(() => setResendIn((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
   }, [resendIn]);
 
-  const setDigit = (index, value) => {
-    if (!/^\d?$/.test(value)) return;
-    const next = [...digits];
-    next[index] = value;
-    setDigits(next);
-    if (value && index < 5) inputRefs.current[index + 1]?.focus();
-  };
-
-  const handleKeyDown = (index, event) => {
-    if (event.key === "Backspace" && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const verify = (event) => {
+  async function verify(event) {
     event.preventDefault();
-    if (enteredCode === code) {
-      onVerified();
-      return;
-    }
-    setError("That code is incorrect. Try again or request a new code.");
-    setDigits(Array(6).fill(""));
-    inputRefs.current[0]?.focus();
-  };
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try { await onVerify(code); }
+    catch (failure) { setError(failure.message); }
+    finally { setBusy(false); }
+  }
 
-  return (
-    <div className="auth-verification fade-in">
-      <h1>Verify your account</h1>
-      <p className="sub">Enter the 6-digit code sent to {email}.</p>
-      <form onSubmit={verify}>
-        <div className="code-inputs" aria-label="6-digit verification code">
-          {digits.map((digit, index) => (
-            <input
-              key={index}
-              ref={(element) => { inputRefs.current[index] = element; }}
-              className="code-input"
-              inputMode="numeric"
-              maxLength={1}
-              type="text"
-              value={digit}
-              autoFocus={index === 0}
-              aria-invalid={Boolean(error)}
-              aria-label={`Verification digit ${index + 1}`}
-              onChange={(event) => setDigit(index, event.target.value)}
-              onKeyDown={(event) => handleKeyDown(index, event)}
-            />
-          ))}
-        </div>
-        {error && <p className="auth-code-error" role="alert">{error}</p>}
-        <p className="auth-code-hint">Demo code: {code}</p>
-        <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={enteredCode.length !== 6}>
-          Verify code
-        </button>
-      </form>
-      <button
-        className="btn ghost sm"
-        type="button"
-        disabled={resendIn > 0}
-        onClick={() => {
-          onResend();
-          setDigits(Array(6).fill(""));
-          setError("");
-          setResendIn(RESEND_DELAY);
-          inputRefs.current[0]?.focus();
-        }}
-      >
-        {resendIn > 0 ? `Resend code in ${resendIn}s` : "Resend code"}
-      </button>
-      <button className="btn ghost sm" type="button" onClick={onBack}>Back</button>
-    </div>
-  );
+  async function resend() {
+    if (busy || resendIn > 0) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onResend();
+      setCode("");
+      setNotice("If confirmation is required, a new email will arrive shortly. Check your spam folder too.");
+      setResendIn(RESEND_DELAY);
+    } catch (failure) { setError(failure.message); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="auth-verification fade-in">
+    <h1>Confirm your email</h1>
+    <p className="sub">Check {email} for a confirmation email. Follow its link, or enter the verification code if your email includes one.</p>
+    <form onSubmit={verify} aria-busy={busy}>
+      <div className="fgroup">
+        <label htmlFor="signup-code">Verification code</label>
+        <input id="signup-code" className="input verification-code" type="text" inputMode="numeric" autoComplete="one-time-code"
+          pattern="[0-9]{6,10}" minLength={6} maxLength={10} required value={code} disabled={busy}
+          onChange={(event) => setCode(event.target.value.replace(/[^0-9]/g, ""))} aria-invalid={Boolean(error)} />
+      </div>
+      {error && <p className="auth-code-error" role="alert">{error}</p>}
+      {notice && <p className="auth-code-hint" role="status">{notice}</p>}
+      <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy || code.length < 6}>{busy ? "Please wait…" : "Verify email"}</button>
+    </form>
+    <button className="btn ghost sm" type="button" disabled={busy || resendIn > 0} onClick={resend}>{resendIn > 0 ? `Resend email in ${resendIn}s` : "Resend confirmation email"}</button>
+    <button className="btn ghost sm" type="button" disabled={busy} onClick={onBack}>Back to log in</button>
+  </div>;
 }

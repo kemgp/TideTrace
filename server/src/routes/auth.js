@@ -5,15 +5,17 @@ import { authenticate } from "../middleware.js";
 import { credentials, registration } from "../validation.js";
 import { sessionResponse } from "../supabase.js";
 
-export function authRoutes(gateway) {
+export function authRoutes(gateway, config) {
   const router = Router();
+  // Origin was checked by the CORS middleware. Never accept a body-supplied redirect.
+  const confirmationPath = (req, endpoint) => `${endpoint}?${new URLSearchParams({ redirect_to: `${req.get("Origin") || config.origins[0]}/auth/callback` })}`;
   router.use(rateLimit({
     windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false,
     handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Too many authentication requests. Try again later.", request_id: req.requestId } }),
   }));
   router.post("/register", async (req, res) => {
     const { email, password, display_name } = registration.parse(req.body);
-    const data = await gateway.auth("signup", { body: { email, password, data: { display_name } } });
+    const data = await gateway.auth(confirmationPath(req, "signup"), { body: { email, password, data: { display_name } } });
     res.status(201).json({ data: sessionResponse(data) });
   });
   router.post("/login", async (req, res) => {
@@ -30,7 +32,7 @@ export function authRoutes(gateway) {
   });
   router.post("/resend", async (req, res) => {
     const body = z.object({ email: z.email().max(254) }).strict().parse(req.body);
-    await gateway.auth("resend", { body: { ...body, type: "signup" } });
+    await gateway.auth(confirmationPath(req, "resend"), { body: { ...body, type: "signup" } });
     res.json({ data: { message: "If confirmation is required, an email will be sent." } });
   });
   router.post("/forgot-password", async (req, res) => {

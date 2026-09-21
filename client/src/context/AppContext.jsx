@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ApiError, authRequest, loadAccount } from "../api/auth.js";
 import {
   categories as seedCategories,
   users as seedUsers,
@@ -21,7 +22,10 @@ const ROLE_NAMES = {
 };
 
 export function AppProvider({ children }) {
-  const [role, setRole] = useState(() => window.localStorage.getItem("tidetrace-role"));
+  const [account, setAccount] = useState(null);
+  const authAttempt = useRef(0);
+  const role = account?.role || null;
+  const profile = account?.profile || null;
   const [toast, setToast] = useState("");
 
   const [traces, setTraces] = useState(initialTraces);
@@ -41,15 +45,59 @@ export function AppProvider({ children }) {
     showToast._t = window.setTimeout(() => setToast(""), 2600);
   }, []);
 
-  const login = useCallback((chosenRole) => {
-    setRole(chosenRole);
-    window.localStorage.setItem("tidetrace-role", chosenRole);
+  useEffect(() => {
+    try { window.localStorage.removeItem("tidetrace-role"); } catch { /* Storage may be unavailable. */ }
   }, []);
 
-  const logout = useCallback(() => {
-    setRole(null);
-    window.localStorage.removeItem("tidetrace-role");
+  const authenticate = useCallback(async (getSession) => {
+    const attempt = ++authAttempt.current;
+    const session = await getSession();
+    if (!session) return null;
+    const next = await loadAccount(session);
+    if (attempt !== authAttempt.current) throw new ApiError("Sign-in was cancelled. Please try again.", "CANCELLED");
+    setAccount(next);
+    return next.role;
   }, []);
+
+  const login = useCallback((email, password) => authenticate(async () => {
+    const data = await authRequest("login", { body: { email: email.trim(), password } });
+    if (!data.session) throw new ApiError("No sign-in session was returned. Please try again.", "MISSING_SESSION");
+    return data.session;
+  }), [authenticate]);
+
+  const register = useCallback((fields) => authenticate(async () => {
+    const data = await authRequest("register", { body: fields });
+    return data.session;
+  }), [authenticate]);
+
+  const verifySignup = useCallback((email, token) => authenticate(async () => {
+    const data = await authRequest("verify", { body: { email, token, type: "signup" } });
+    if (!data.session) throw new ApiError("No sign-in session was returned. Please log in again.", "MISSING_SESSION");
+    return data.session;
+  }), [authenticate]);
+
+  const confirmSession = useCallback((session) => authenticate(() => session), [authenticate]);
+  const resendConfirmation = useCallback((email) => authRequest("resend", { body: { email } }), []);
+
+  const logout = useCallback(async () => {
+    ++authAttempt.current;
+    setAccount(null);
+    if (!account?.accessToken) return;
+    try { await authRequest("logout", { token: account.accessToken, method: "POST" }); }
+    catch (error) {
+      if (error.status !== 401) showToast("Signed out here. The server could not confirm sign-out; your session will expire automatically.");
+    }
+  }, [account, showToast]);
+
+  useEffect(() => {
+    if (!account) return undefined;
+    const timer = window.setTimeout(() => {
+      ++authAttempt.current;
+      setAccount(null);
+      showToast("Your session expired. Please log in again.");
+    }, Math.min(2147483647, Math.max(0, account.expiresAt * 1000 - Date.now())));
+    return () => window.clearTimeout(timer);
+  }, [account, showToast]);
 
   const addTrace = useCallback((trace) => {
     const id = "t" + (Math.floor(Math.random() * 90000) + 10000);
@@ -125,7 +173,12 @@ export function AppProvider({ children }) {
   const value = useMemo(
     () => ({
       role,
+      profile,
       login,
+      register,
+      verifySignup,
+      confirmSession,
+      resendConfirmation,
       logout,
       toast,
       showToast,
@@ -153,8 +206,8 @@ export function AppProvider({ children }) {
       addCategory,
     }),
     [
-      role, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
-      login, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
+      role, profile, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
+      login, register, verifySignup, confirmSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
       resolveFlaggedComment, resolveReport, markAllNotificationsRead, suspendUser, editUser, addModerator, addCategory,
     ]
   );

@@ -34,7 +34,7 @@ const adminLinks = [
 ];
 
 export default function Navbar() {
-  const { role, logout, notifications } = useApp();
+  const { role, profile, logout, notifications } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -43,7 +43,7 @@ export default function Navbar() {
   const unread = notifications?.filter((n) => n.unread).length || 0;
   const isAuthPage = ["/login", "/register", "/forgot-password"].includes(location.pathname);
   const avatarClass = role === "mod" ? "avatar-btn mod" : role === "admin" ? "avatar-btn admin" : "avatar-btn";
-  const avatarLetter = role === "mod" ? "R" : role === "admin" ? "D" : "A";
+  const avatarLetter = profile?.display_name?.trim().charAt(0).toUpperCase() || "?";
   const homeLink = role === "mod" ? "/moderator/dashboard" : role === "admin" ? "/admin/dashboard" : role === "user" ? "/user/dashboard" : "/";
 
   return (
@@ -106,7 +106,7 @@ export default function Navbar() {
           ) : (
             <>
               <button className="btn ghost sm" onClick={() => navigate("/login")}>Log in</button>
-              <button className="btn clay sm" onClick={() => navigate("/login")}>Join TideTrace</button>
+              <button className="btn clay sm" onClick={() => navigate("/register")}>Join TideTrace</button>
             </>
           )}
           <button className="menu-btn" aria-label="Menu" onClick={() => setOpen((o) => !o)}>

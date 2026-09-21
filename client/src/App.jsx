@@ -1,5 +1,7 @@
 import React from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { ROLE_HOME } from "./api/auth.js";
+import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { impactStats } from "./data/mockData.js";
 import Navbar from "./components/Navbar.jsx";
@@ -288,19 +290,26 @@ function UserSection({ section }) {
 
 function RequireRole({ role: required, children }) {
   const { role } = useApp();
-  if (role !== required) return <Navigate to="/login" replace />;
+  if (role !== required) return <Navigate to={ROLE_HOME[role] || "/login"} replace />;
   return children;
 }
 
 function AppShell() {
+  const { role, profile } = useApp();
+  const location = useLocation();
+  if (location.pathname !== "/auth/callback" && /(?:^#|&)(access_token|error_code|error)=/.test(location.hash)) {
+    return <Navigate to={{ pathname: "/auth/callback", hash: location.hash }} replace />;
+  }
   return (
     <div className="app-shell">
       <Navbar />
+      {role && <div className="demo-notice">Signed in as {profile.display_name}. Dashboard data is still a demo; changes there are not saved.</div>}
       <main>
         <Routes>
           <Route path="/" element={<div className="view"><Home /></div>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
           <Route path="/user" element={<RequireRole role="user"><div className="view"><UserDashboard /></div></RequireRole>} />

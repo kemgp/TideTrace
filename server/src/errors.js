@@ -6,7 +6,11 @@ export class HttpError extends Error {
 }
 
 export function upstreamError(error) {
-  const code = String(error.code || error.error_code || "UPSTREAM_ERROR");
+  const code = String(error.error_code || error.code || "UPSTREAM_ERROR");
+  if (code === "invalid_credentials") return new HttpError(401, "INVALID_CREDENTIALS", "The email or password is incorrect.");
+  if (code === "email_not_confirmed") return new HttpError(403, "EMAIL_NOT_CONFIRMED", "Confirm your email before signing in.");
+  if (code === "otp_expired") return new HttpError(400, "INVALID_VERIFICATION_CODE", "That verification code is invalid or expired. Request a new email and try again.");
+  if (code === "weak_password") return new HttpError(400, "WEAK_PASSWORD", "Choose a stronger password that meets the account password requirements.");
   if (code === "40001") return new HttpError(409, "STALE_VERSION", "This record changed. Reload it before retrying.");
   if (code === "42501") return new HttpError(403, "FORBIDDEN", "You do not have permission to perform this action.");
   if (code === "23505") return new HttpError(409, "ALREADY_EXISTS", "This record already exists.");
