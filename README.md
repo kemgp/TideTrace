@@ -152,3 +152,9 @@ Added smooth fade-in animations across the entire prototype. Every page opens wi
 
 ## v1.4 — Security Features ##
 Added 6-digit email verification (OTP) when logging in or registering. The code appears in a simulated inbox for demo purposes, with a live 5-minute expiry timer and resend option. The input boxes auto-advance, support pasting, and auto-submit when complete. Also added a change-password feature in Settings with a live strength meter and full validation. Every password change is recorded in the Admin's system logs.
+
+## v1.5 — Responsive & Access Control ##
+Made the entire prototype responsive across seven breakpoints, from small phones to large desktops. Menus collapse into hamburgers, grids stack, and touch targets grow on mobile. Added logout buttons to all three role navbars in the same top-right position. The Home link was removed from logged-in navs to keep them role-scoped. The logo still returns to the homepage at any time.
+
+## v1.6 — Documentation Alignment ##
+Applied all 8 PRD fixes directly into the product. Users can now report comments with a reason, which feeds the moderator's flagged queue and reports page. Rejected traces are now visibly final and cannot be resubmitted. Wording across the app matches the documented rules for moderator-only review and permissions. Docs, prototype, and database policies now all tell the same story.
