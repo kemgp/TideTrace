@@ -288,14 +288,24 @@ function UserSection({ section }) {
   );
 }
 
-function RequireRole({ role: required, children }) {
-  const { role } = useApp();
-  if (role !== required) return <Navigate to={ROLE_HOME[role] || "/login"} replace />;
+function SessionGate({ children }) {
+  const { role, sessionReady, sessionError, retrySession, clearSession } = useApp();
+  if (!sessionReady) return <div className="wrap" role="status">Restoring your session…</div>;
+  if (!role && sessionError) return <div className="wrap">
+    <p role="alert">{sessionError}</p>
+    <button className="btn blue" onClick={retrySession}>Retry connection</button>
+    <button className="btn ghost" onClick={() => clearSession()}>Back to log in</button>
+  </div>;
   return children;
 }
 
+function RequireRole({ role: required, children }) {
+  const { role } = useApp();
+  return <SessionGate>{role !== required ? <Navigate to={ROLE_HOME[role] || "/login"} replace /> : children}</SessionGate>;
+}
+
 function AppShell() {
-  const { role, profile } = useApp();
+  const { role, profile, sessionError, sessionNotice, retrySession } = useApp();
   const location = useLocation();
   if (location.pathname !== "/auth/callback" && /(?:^#|&)(access_token|error_code|error)=/.test(location.hash)) {
     return <Navigate to={{ pathname: "/auth/callback", hash: location.hash }} replace />;
@@ -303,12 +313,14 @@ function AppShell() {
   return (
     <div className="app-shell">
       <Navbar />
+      {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
+      {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
       {role && <div className="demo-notice">Signed in as {profile.display_name}. Dashboard data is still a demo; changes there are not saved.</div>}
       <main>
         <Routes>
           <Route path="/" element={<div className="view"><Home /></div>} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<SessionGate><Login /></SessionGate>} />
+          <Route path="/register" element={<SessionGate><Register /></SessionGate>} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 

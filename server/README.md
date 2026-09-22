@@ -2,7 +2,7 @@
 
 Node.js/Express API for the existing Supabase schema. Supabase provides persistent PostgreSQL data, Auth and private evidence Storage. The API validates inputs, checks the current user's database role, and runs queries under that user's JWT so row-level security still applies. It never uses a service-role key.
 
-The React authentication screens call this API through the Vite `/api` proxy. They support password login, signup, email link/code confirmation, password recovery, current-profile role checks and logout. Tokens are held in memory until reload or expiry; persistent sessions and automatic refresh remain deferred. Dashboard data/actions still use mock state in `client/src/context/AppContext.jsx` and are labeled as a demo.
+The React authentication screens call this API through the Vite `/api` proxy. They support password login, signup, email link/code confirmation, password recovery, current-profile role checks and logout. Login sessions persist in browser storage and renew through `/api/auth/refresh`. Restoration and periodic session checks fetch the current profile through `/api/auth/me`. Recovery sessions remain memory-only. Dashboard data/actions still use mock state in `client/src/context/AppContext.jsx` and are labeled as a demo.
 
 ## Local setup
 
@@ -56,6 +56,8 @@ The API listens at `http://127.0.0.1:3001/api`. The frontend stays on port **517
 | `POST /api/auth/logout` | Bearer token; revoke the current session's refresh token. |
 
 Register/login/verify/refresh return `{ user, session }` inside `data`. When confirmation is required, registration returns `session: null`. Sessions contain `access_token`, `refresh_token`, `expires_in`, `expires_at`, and `token_type`. Keep token values out of URLs and logs; replace both tokens after refreshing. Clear the client session on logout. Existing access JWTs may remain valid until their expiry after logout; suspension is enforced from the database on protected operations.
+
+The frontend stores only access/refresh tokens and expiry. Web Locks serialize refresh-token rotation across tabs; browsers without Web Locks use tab-scoped storage, and blocked storage falls back to memory. The app checks sessions every 30 seconds, refreshes when within 60 seconds of expiry, and revalidates the profile about once a minute or on restoration. Focus/online events also trigger checks when due. Rotated tokens are saved before profile loading so a transient profile failure does not discard the new refresh token. Temporary failures allow retry without deleting credentials; invalid sessions and unsupported/suspended profiles clear them. Stale requests cannot restore an account after logout. Browser role checks remain UX only: backend permissions and RLS apply to every protected operation.
 
 For email signup and recovery links, configure Supabase's Site URL as your frontend origin and allow `/auth/callback` on that origin. Locally, allow both `http://localhost:5173/auth/callback` and `http://127.0.0.1:5173/auth/callback`. Registration, resend and recovery use the CORS-validated request origin (or the first configured origin for requests without an Origin header) to choose that callback. Arbitrary redirect URLs in request bodies are rejected.
 
@@ -165,6 +167,6 @@ API tests exercise real HTTP routing with a mocked Supabase transport. They veri
 
 The server defaults to loopback. Set `HOST` explicitly for your deployment and expose the API through HTTPS. `CLIENT_ORIGIN` accepts comma-separated exact frontend origins. Requests use Bearer tokens rather than cookies; tokens are not logged. API JSON bodies are limited to 256 KiB, with 15-second upstream timeouts.
 
-Limits per IP: 300 API requests/minute, 30 authentication requests/15 minutes, and 20 uploads/15 minutes. Counters are in memory and reset on restart. Configure an external rate-limit store for multiple instances and explicit trusted proxy hops for your deployment; arbitrary `X-Forwarded-For` headers are not trusted. Supabase's direct endpoints also need their own Auth/Storage abuse controls because clients can contact them independently.
+Limits per IP: 300 API requests/minute, 30 authentication attempts/15 minutes, 120 session-maintenance requests (`/me`, `/refresh`, `/logout`)/15 minutes, and 20 uploads/15 minutes. Session maintenance has a separate budget so routine checks do not exhaust login/email attempts. Counters are in memory and reset on restart. Configure an external rate-limit store for multiple instances and explicit trusted proxy hops for your deployment; arbitrary `X-Forwarded-For` headers are not trusted. Supabase's direct endpoints also need their own Auth/Storage abuse controls because clients can contact them independently.
 
 Implementation references: [Supabase Auth REST endpoints](https://github.com/supabase/auth#endpoints), [client initialization and session settings](https://supabase.com/docs/reference/javascript/initializing), [row-level security](https://supabase.com/docs/guides/database/postgres/row-level-security), [private Storage access](https://supabase.com/docs/guides/storage/serving/downloads).

@@ -7,7 +7,7 @@ TideTrace is a community conservation application with a React frontend and a No
 - The frontend includes public, member, moderator and admin screens. Login, registration, email confirmation and logout use the backend. Dashboard data and actions still use in-memory mock data in `client/src/context/AppContext.jsx`.
 - The backend implements authentication, profiles, categories, Traces, evidence uploads, comments, reports, notifications, Tides, moderation and account administration.
 - The existing Supabase schema supplies row-level security, guarded workflow functions and audit records. Configure a Supabase project before using persistent data.
-- Dashboard access is determined by the current database profile returned by `/api/auth/me`; the old demo role picker is removed. Sign-in is held in memory until reload or token expiry. Persistent sessions and automatic refresh remain a later step.
+- Dashboard access is determined by the current database profile returned by `/api/auth/me`; the old demo role picker is removed. Sessions survive reloads and refresh automatically. Saved roles are never trusted; the backend checks the current account before dashboard access is restored.
 
 ## Getting started
 
@@ -50,7 +50,23 @@ To recover an account (including the first admin), click **Forgot password?** on
 
 If sending recovery email is rate limited, check your inbox/spam for the latest message and wait before retrying. Supabase defaults to a 60-second recovery cooldown; its built-in email provider allows only two auth emails per hour across the project. An exhausted hourly quota must reset, or the project owner must configure custom SMTP for higher sending limits. Restarting the local API does not reset Supabase's quota. See [Supabase Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits).
 
-Access tokens are held only in memory; reloading the page or reaching token expiry requires signing in again. Recovery sessions are checked by the backend and do not automatically sign the browser into a dashboard. If the reset page is reloaded, request a new recovery email. Profile preferences, Traces and other dashboard actions remain a clearly labeled demo.
+Login sessions persist across reloads and browser restarts on browsers with Web Locks and available local storage. The app checks the database profile on restoration, renews access tokens before expiry, and coordinates refresh and sign-out across tabs on the same origin. Use the same address consistently: `localhost:5173` and `127.0.0.1:5173` have separate browser storage.
+
+Without Web Locks, sessions use per-tab session storage and survive reloads within that tab. When storage is blocked, login still works in memory, but a reload requires signing in again. Only the access token, refresh token, and expiry are saved under `tidetrace-session-v1`; passwords and profile/role data are not saved there. These are browser-readable bearer credentials, so production must use HTTPS and protect against script injection.
+
+Expired/revoked refresh tokens or suspended accounts clear the saved session. Temporary network/server errors retain the token pair and offer a retry; expired accounts cannot open protected pages while reconnecting. Logging out clears browser state immediately, then asks Supabase to revoke the session. If the server cannot be reached, local sign-out succeeds but server revocation is not confirmed.
+
+Recovery sessions remain in memory, separate from saved login sessions, and do not automatically open a dashboard. Opening a recovery link clears the existing saved login. If the reset page is reloaded, request a new recovery email. Profile preferences, Traces and other dashboard actions remain a clearly labeled demo.
+
+To check session management locally:
+
+1. Keep both development servers running and log in at `http://localhost:5173/login`.
+2. Open a dashboard subpage, then reload; you should stay on that page after the account check.
+3. Open a second tab at the same address; it should restore the same account on supported browsers.
+4. Log out in one tab; the other tab should also sign out. Reload to confirm it stays signed out.
+5. With a saved session, stop the API and reload a protected page; it should offer a connection retry. Restart the API and retry to restore access.
+
+Automated tests also cover token rotation, revoked sessions, profile changes, concurrent refreshes, and logout during pending requests. Hosted session behavior still needs verification with your development Supabase account.
 
 ## Technology and structure
 

@@ -11,7 +11,13 @@ export function authRoutes(gateway, config) {
   const confirmationPath = (req, endpoint) => `${endpoint}?${new URLSearchParams({ redirect_to: `${req.get("Origin") || config.origins[0]}/auth/callback` })}`;
   router.use(rateLimit({
     windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false,
+    skip: (req) => ["/me", "/refresh", "/logout"].includes(req.path),
     handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Too many authentication requests to this app. Wait up to 15 minutes before trying again.", request_id: req.requestId } }),
+  }));
+  // Routine session checks must not consume the login/email attempt budget.
+  router.use(["/me", "/refresh", "/logout"], rateLimit({
+    windowMs: 15 * 60 * 1000, limit: 120, standardHeaders: "draft-8", legacyHeaders: false,
+    handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Too many session requests. Wait a few minutes before trying again.", request_id: req.requestId } }),
   }));
   router.post("/register", async (req, res) => {
     const { email, password, display_name } = registration.parse(req.body);

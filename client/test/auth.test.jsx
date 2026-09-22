@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { BrowserRouter, MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import App from "../src/App.jsx";
 import { authRequest, loadAccount } from "../src/api/auth.js";
+import { SESSION_KEY } from "../src/api/session.js";
 
 const email = "member@example.test";
 const password = "correct-password";
@@ -62,7 +63,7 @@ describe("backend authentication", () => {
     expect(calls.mock.calls[1][1].headers.Authorization).toBe("Bearer test-access-token");
     expect(screen.getByText(/Signed in as Test Member/)).toBeTruthy();
     expect(window.localStorage.length).toBe(0);
-    expect(window.sessionStorage.length).toBe(0);
+    expect(JSON.parse(window.sessionStorage.getItem(SESSION_KEY))).toEqual({ access_token: "test-access-token", refresh_token: "test-refresh-token", expires_at: expect.any(Number) });
   });
 
   it("ignores an old or forged saved role", async () => {
@@ -203,7 +204,7 @@ describe("backend authentication", () => {
 
   it("also handles confirmation links redirected to the site root", async () => {
     mockApi((url) => url === "/api/auth/me" ? response(profile()) : undefined);
-    window.history.replaceState({}, "", "/#access_token=test-access-token&expires_in=3600&type=signup");
+    window.history.replaceState({}, "", "/#access_token=test-access-token&refresh_token=private&expires_in=3600&type=signup");
     render(<BrowserRouter><App /><RouteProbe /></BrowserRouter>);
     await waitFor(() => expect(screen.getByTestId("route").textContent).toBe("/user/dashboard"));
     expect(window.location.hash).toBe("");

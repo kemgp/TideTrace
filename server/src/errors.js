@@ -7,6 +7,7 @@ export class HttpError extends Error {
 
 export function upstreamError(error) {
   const code = String(error.error_code || error.code || "UPSTREAM_ERROR");
+  if (["refresh_token_not_found", "refresh_token_already_used", "session_not_found", "session_expired"].includes(code)) return new HttpError(401, "SESSION_EXPIRED", "Your session has ended. Please log in again.");
   if (code === "over_email_send_rate_limit") return new HttpError(429, "EMAIL_RATE_LIMITED", "Supabase's email sending limit has been reached. Check your inbox and spam folder for the latest email. Wait before requesting another; if the hourly quota is exhausted, it must reset first.");
   if (code === "over_request_rate_limit") return new HttpError(429, "AUTH_RATE_LIMITED", "Supabase received too many authentication requests. Wait a few minutes before trying again.");
   if (code === "invalid_credentials") return new HttpError(401, "INVALID_CREDENTIALS", "The email or password is incorrect.");

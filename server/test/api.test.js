@@ -254,6 +254,22 @@ test("authentication endpoints are rate limited", async () => {
   assert.equal(response.body.error.code, "RATE_LIMITED");
 });
 
+test("routine session checks do not consume the login budget and remain rate limited", async () => {
+  const { app } = fixture();
+  for (let i = 0; i < 120; i++) await bearer(request(app).get("/api/auth/me")).expect(200);
+  await bearer(request(app).get("/api/auth/me")).expect(429);
+  await request(app).post("/api/auth/login").send({}).expect(400);
+});
+
+test("revoked refresh tokens return a session-expired error without exposing tokens", async () => {
+  for (const error_code of ["refresh_token_not_found", "refresh_token_already_used", "session_not_found", "session_expired"]) {
+    const { app } = fixture({ handler: () => json({ code: 400, error_code, msg: "private-refresh-token" }, 400) });
+    const response = await request(app).post("/api/auth/refresh").send({ refresh_token: "private-refresh-token" }).expect(401);
+    assert.equal(response.body.error.code, "SESSION_EXPIRED");
+    assert.doesNotMatch(JSON.stringify(response.body), /private-refresh-token/);
+  }
+});
+
 test("file type checks reject empty and mismatched data", () => {
   assert.equal(matchesFileType(Buffer.alloc(0), "image/png"), false);
   assert.equal(matchesFileType(Buffer.from("abcdefghijklmnop"), "image/jpeg"), false);

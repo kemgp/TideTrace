@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, authRequest, loadAccount } from "../api/auth.js";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { ApiError, authRequest } from "../api/auth.js";
+import { createSessionManager } from "../api/session.js";
 import {
   categories as seedCategories,
   users as seedUsers,
@@ -22,8 +23,10 @@ const ROLE_NAMES = {
 };
 
 export function AppProvider({ children }) {
-  const [account, setAccount] = useState(null);
-  const authAttempt = useRef(0);
+  const [sessions] = useState(createSessionManager);
+  const { account, ready: sessionReady, error: sessionError, notice: sessionNotice } = useSyncExternalStore(sessions.subscribe, sessions.getSnapshot);
+  const { authenticate, clearSession, retrySession } = sessions;
+  useEffect(() => sessions.start(), [sessions]);
   const role = account?.role || null;
   const profile = account?.profile || null;
   const [toast, setToast] = useState("");
@@ -43,20 +46,6 @@ export function AppProvider({ children }) {
     setToast(msg);
     window.clearTimeout(showToast._t);
     showToast._t = window.setTimeout(() => setToast(""), 2600);
-  }, []);
-
-  useEffect(() => {
-    try { window.localStorage.removeItem("tidetrace-role"); } catch { /* Storage may be unavailable. */ }
-  }, []);
-
-  const authenticate = useCallback(async (getSession) => {
-    const attempt = ++authAttempt.current;
-    const session = await getSession();
-    if (!session) return null;
-    const next = await loadAccount(session);
-    if (attempt !== authAttempt.current) throw new ApiError("Sign-in was cancelled. Please try again.", "CANCELLED");
-    setAccount(next);
-    return next.role;
   }, []);
 
   const login = useCallback((email, password) => authenticate(async () => {
@@ -79,29 +68,12 @@ export function AppProvider({ children }) {
   const confirmSession = useCallback((session) => authenticate(() => session), [authenticate]);
   const resendConfirmation = useCallback((email) => authRequest("resend", { body: { email } }), []);
 
-  const clearSession = useCallback(() => {
-    ++authAttempt.current;
-    setAccount(null);
-  }, []);
-
   const logout = useCallback(async () => {
-    clearSession();
-    if (!account?.accessToken) return;
-    try { await authRequest("logout", { token: account.accessToken, method: "POST" }); }
+    try { await sessions.logout(); }
     catch (error) {
       if (error.status !== 401) showToast("Signed out here. The server could not confirm sign-out; your session will expire automatically.");
     }
-  }, [account, clearSession, showToast]);
-
-  useEffect(() => {
-    if (!account) return undefined;
-    const timer = window.setTimeout(() => {
-      ++authAttempt.current;
-      setAccount(null);
-      showToast("Your session expired. Please log in again.");
-    }, Math.min(2147483647, Math.max(0, account.expiresAt * 1000 - Date.now())));
-    return () => window.clearTimeout(timer);
-  }, [account, showToast]);
+  }, [sessions, showToast]);
 
   const addTrace = useCallback((trace) => {
     const id = "t" + (Math.floor(Math.random() * 90000) + 10000);
@@ -178,6 +150,10 @@ export function AppProvider({ children }) {
     () => ({
       role,
       profile,
+      sessionReady,
+      sessionError,
+      sessionNotice,
+      retrySession,
       login,
       register,
       verifySignup,
@@ -211,7 +187,7 @@ export function AppProvider({ children }) {
       addCategory,
     }),
     [
-      role, profile, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
+      role, profile, sessionReady, sessionError, sessionNotice, retrySession, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
       login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
       resolveFlaggedComment, resolveReport, markAllNotificationsRead, suspendUser, editUser, addModerator, addCategory,
     ]

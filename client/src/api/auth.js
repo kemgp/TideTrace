@@ -44,7 +44,7 @@ export async function loadAccount(session) {
   if (!role || !profile.id) throw new ApiError("Your account does not have a supported role. Contact an administrator.", "INVALID_PROFILE");
   const expiresAt = Number(session.expires_at) || Math.floor(Date.now() / 1000) + Number(session.expires_in);
   if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() / 1000) throw new ApiError("Your sign-in session has expired. Please log in again.", "SESSION_EXPIRED");
-  // The first auth integration keeps only the access token in memory.
+  // Profile and permissions always come from the backend, never browser storage.
   return { profile, role, accessToken: session.access_token, expiresAt };
 }
 
@@ -53,7 +53,7 @@ export function readConfirmation(location) {
   if (params.has("error") || params.has("error_code")) return { error: "This email link is invalid or expired. Request a new email and try again." };
   const access_token = params.get("access_token");
   if (!access_token) return null;
-  return { type: params.get("type"), session: { access_token, expires_at: params.get("expires_at"), expires_in: params.get("expires_in") } };
+  return { type: params.get("type"), session: { access_token, refresh_token: params.get("refresh_token"), expires_at: params.get("expires_at"), expires_in: params.get("expires_in") } };
 }
 
 export async function loadRecoverySession(session) {
