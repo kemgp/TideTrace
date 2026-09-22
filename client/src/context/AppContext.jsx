@@ -79,15 +79,19 @@ export function AppProvider({ children }) {
   const confirmSession = useCallback((session) => authenticate(() => session), [authenticate]);
   const resendConfirmation = useCallback((email) => authRequest("resend", { body: { email } }), []);
 
-  const logout = useCallback(async () => {
+  const clearSession = useCallback(() => {
     ++authAttempt.current;
     setAccount(null);
+  }, []);
+
+  const logout = useCallback(async () => {
+    clearSession();
     if (!account?.accessToken) return;
     try { await authRequest("logout", { token: account.accessToken, method: "POST" }); }
     catch (error) {
       if (error.status !== 401) showToast("Signed out here. The server could not confirm sign-out; your session will expire automatically.");
     }
-  }, [account, showToast]);
+  }, [account, clearSession, showToast]);
 
   useEffect(() => {
     if (!account) return undefined;
@@ -178,6 +182,7 @@ export function AppProvider({ children }) {
       register,
       verifySignup,
       confirmSession,
+      clearSession,
       resendConfirmation,
       logout,
       toast,
@@ -207,7 +212,7 @@ export function AppProvider({ children }) {
     }),
     [
       role, profile, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
-      login, register, verifySignup, confirmSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
+      login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
       resolveFlaggedComment, resolveReport, markAllNotificationsRead, suspendUser, editUser, addModerator, addCategory,
     ]
   );

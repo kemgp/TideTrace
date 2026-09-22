@@ -4,10 +4,10 @@ TideTrace is a community conservation application with a React frontend and a No
 
 ## Current status
 
-- The frontend includes public, member, moderator and admin screens. It still uses demo authentication and in-memory mock data in `client/src/context/AppContext.jsx`.
+- The frontend includes public, member, moderator and admin screens. Login, registration, email confirmation and logout use the backend. Dashboard data and actions still use in-memory mock data in `client/src/context/AppContext.jsx`.
 - The backend implements authentication, profiles, categories, Traces, evidence uploads, comments, reports, notifications, Tides, moderation and account administration.
 - The existing Supabase schema supplies row-level security, guarded workflow functions and audit records. Configure a Supabase project before using persistent data.
-- Frontend integration with the API remains separate work. The Vite `/api` development proxy is ready; demo role selection does not grant backend permissions.
+- Dashboard access is determined by the current database profile returned by `/api/auth/me`; the old demo role picker is removed. Sign-in is held in memory until reload or token expiry. Persistent sessions and automatic refresh remain a later step.
 
 ## Getting started
 
@@ -34,6 +34,23 @@ npm run dev:server
 The API listens at `http://127.0.0.1:3001/api`. `GET /api/health` works without credentials; data endpoints return a setup message until Supabase is configured. The frontend proxies `/api` to port 3001.
 
 See [the backend guide](server/README.md) for the endpoint contract, authentication, upload flow, environment settings and integration limitations.
+
+## Try real authentication
+
+Keep both development servers running, then open `http://localhost:5173/login` and use the real account created in Supabase. Members, moderators and admins are sent to their own dashboards based on their database role. Invalid credentials and suspended accounts do not grant dashboard access.
+
+For signup confirmation and password recovery links, configure Supabase **Authentication → URL Configuration**:
+
+- Site URL: `http://localhost:5173`
+- Allowed Redirect URLs: `http://localhost:5173/auth/callback` and `http://127.0.0.1:5173/auth/callback`
+
+Use the standard signup email template with `{{ .ConfirmationURL }}`. If you prefer entering a code in the app, include `{{ .Token }}` in that template. The app accepts 6–10 digit signup codes and checks them with Supabase. Email confirmation and delivery still depend on your project's Auth settings and SMTP configuration. For deployment, use your HTTPS frontend URL in both these settings and `CLIENT_ORIGIN`.
+
+To recover an account (including the first admin), click **Forgot password?** on the login page or open `http://localhost:5173/forgot-password`. Enter the account email, open the newest recovery link, choose a new password and log in again. The account's role and history are preserved. Keep the standard Reset Password email template's `{{ .ConfirmationURL }}` link; optionally include `{{ .Token }}` to support entering a recovery code in the app. Recovery uses the same callback URLs listed above. No database migration or admin deletion is needed.
+
+If sending recovery email is rate limited, check your inbox/spam for the latest message and wait before retrying. Supabase defaults to a 60-second recovery cooldown; its built-in email provider allows only two auth emails per hour across the project. An exhausted hourly quota must reset, or the project owner must configure custom SMTP for higher sending limits. Restarting the local API does not reset Supabase's quota. See [Supabase Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits).
+
+Access tokens are held only in memory; reloading the page or reaching token expiry requires signing in again. Recovery sessions are checked by the backend and do not automatically sign the browser into a dashboard. If the reset page is reloaded, request a new recovery email. Profile preferences, Traces and other dashboard actions remain a clearly labeled demo.
 
 ## Technology and structure
 
@@ -72,13 +89,13 @@ Frontend and backend dependencies are declared in their workspace manifests. Run
 | `npm run start:server` | Start the API without file watching. |
 | `npm run build` | Build the frontend into `client/dist/`. |
 | `npm run preview` | Preview the frontend build; start the API separately for `/api` requests. |
-| `npm test` | Run backend HTTP and validation tests. |
+| `npm test` | Run backend HTTP tests and frontend auth interaction tests. |
 
 ## Environment and remaining integration
 
 `server/.env` is ignored by Git. The backend accepts a Supabase publishable or legacy anon key and rejects privileged service-role/secret keys. It uses the caller's verified identity and database permissions. See [server/.env.example](server/.env.example).
 
-Connect the frontend forms and state to the API before expecting persistent app behavior. Hosted email confirmation/recovery and Storage uploads need validation against your configured development Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the backend guide for details.
+Authentication is connected. Dashboard forms and data still need API integration before expecting persistent changes. Hosted email delivery and Storage uploads need validation against your configured development Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the backend guide for details.
 
 ## User Flow Diagram ##
 <img width="10471" height="5822" alt="Tide Trace_userflow" src="https://github.com/user-attachments/assets/c45946a1-d19d-4206-ac75-3bc93f1c68ca" />

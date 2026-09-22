@@ -87,7 +87,7 @@ export default function Navbar() {
                   <span className="role-tag" style={{ background: role === "mod" ? "var(--teal)" : "var(--blue)" }}>
                     {role === "mod" ? "Moderator" : "Admin"}
                   </span>
-                  <button className="btn ghost sm nav-logout" onClick={() => { logout(); navigate("/"); }}>
+                  <button className="btn ghost sm nav-logout" onClick={() => { logout(); navigate("/login", { replace: true }); }}>
                     Log out
                   </button>
                 </>
@@ -97,7 +97,7 @@ export default function Navbar() {
                 title="Profile"
                 onClick={() => {
                   if (role === "user") navigate("/user/profile");
-                  else { logout(); navigate("/"); }
+                  else { logout(); navigate("/login", { replace: true }); }
                 }}
               >
                 {avatarLetter}

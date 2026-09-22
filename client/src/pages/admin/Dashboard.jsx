@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 
 export default function Dashboard() {
-  const { users, traces, moderators, logs } = useApp();
+  const { profile, users, traces, moderators, logs } = useApp();
   const navigate = useNavigate();
   const pending = traces.filter((t) => t.status === "pending").length;
 
@@ -12,7 +12,7 @@ export default function Dashboard() {
     <div className="wrap">
       <div className="banner admin">
         <div>
-          <b>Welcome, Admin Doy — platform overview</b>
+          <b>Welcome, {profile?.display_name} — platform overview</b>
           <div className="s">Manage. Configure. Sustain the platform.</div>
         </div>
         <svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8">

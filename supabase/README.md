@@ -6,9 +6,9 @@ This is an initial schema for a **new Supabase project**, aligned with the suppl
 
 1. Create/select your Supabase project. Open **SQL Editor → New query**.
 2. Paste and run all of `migrations/20260921000100_initial_schema.sql` as the project database owner (`postgres`). Run it once. It includes its own transaction, tables, policies, functions, private Storage bucket, and six initial categories.
-3. Create your personal account through Supabase Authentication or a real signup integration. The frontend currently uses demo authentication, so its existing registration form does not yet do this.
+3. Configure the backend environment and create your personal account through the app's registration form or Supabase Authentication. The frontend now uses real backend authentication. Follow the repository README for confirmation email redirect URLs.
 4. Open `bootstrap-first-admin.sql`, replace `REPLACE_WITH_YOUR_AUTH_USER_UUID` with your account ID from **Authentication → Users**, and run it as `postgres`. It refuses to bootstrap if an active admin already exists.
-5. Configure Auth site URL, allowed redirect URLs, email confirmation and email delivery in the Supabase dashboard. SQL does not configure these or connect the frontend.
+5. Configure Auth site URL, allowed redirect URLs, email confirmation and email delivery in the Supabase dashboard. SQL does not configure these settings. For local signup confirmation, allow `http://localhost:5173/auth/callback` and `http://127.0.0.1:5173/auth/callback`.
 6. Run `tests/access-control.sql` in a separate freshly migrated disposable development project, before creating any real Auth users or bootstrapping an admin. The test refuses to run if Auth users already exist. It creates temporary test accounts/data within a transaction and ends with `ROLLBACK`. Successful execution means all assertions passed. If it errors, issue `ROLLBACK` before retrying. Do not run against production.
 
 No password is stored in application tables. Supabase Auth manages credentials. No live Supabase project was modified by generating these files.

@@ -2,7 +2,7 @@
 
 Node.js/Express API for the existing Supabase schema. Supabase provides persistent PostgreSQL data, Auth and private evidence Storage. The API validates inputs, checks the current user's database role, and runs queries under that user's JWT so row-level security still applies. It never uses a service-role key.
 
-The React screens currently use `client/src/context/AppContext.jsx` and mock data. This backend does not silently replace that demo authentication or its in-memory state. The Vite `/api` proxy is configured for frontend integration; the API is independently runnable and testable.
+The React authentication screens call this API through the Vite `/api` proxy. They support password login, signup, email link/code confirmation, password recovery, current-profile role checks and logout. Tokens are held in memory until reload or expiry; persistent sessions and automatic refresh remain deferred. Dashboard data/actions still use mock state in `client/src/context/AppContext.jsx` and are labeled as a demo.
 
 ## Local setup
 
@@ -35,7 +35,7 @@ The API listens at `http://127.0.0.1:3001/api`. The frontend stays on port **517
 
 - Successful JSON responses use `{ "data": ... }`. Deletes, logout, password changes and void workflow operations return HTTP 204.
 - Failures use `{ "error": { "code", "message", "request_id", "details"? } }`. Validation details identify invalid fields. Internal Supabase payloads and credentials are not returned.
-- Protected requests use `Authorization: Bearer <access_token>`. Roles come from the database, never request metadata or the frontend's `tidetrace-role` localStorage value. The database role is `moderator`; the demo frontend calls it `mod`.
+- Protected requests use `Authorization: Bearer <access_token>`. Roles come from the database, never request metadata or localStorage. The frontend maps the database role `moderator` to its internal `mod` route value.
 - Send JSON with `Content-Type: application/json`, except media uploads. Unknown body fields are rejected. UUIDs, lengths, statuses and numeric ranges are checked.
 - List routes accept `limit` (1–100, default 25) and `offset` (0–100000, default 0). Categories are returned as one active list. Lists return arrays rather than total counts.
 - `409 STALE_VERSION` means reload the Trace before retrying. Do not automatically replay edits or moderation decisions. Database-owned workflows also enforce ownership, status transitions, no self-review and last-admin protection.
@@ -57,7 +57,11 @@ The API listens at `http://127.0.0.1:3001/api`. The frontend stays on port **517
 
 Register/login/verify/refresh return `{ user, session }` inside `data`. When confirmation is required, registration returns `session: null`. Sessions contain `access_token`, `refresh_token`, `expires_in`, `expires_at`, and `token_type`. Keep token values out of URLs and logs; replace both tokens after refreshing. Clear the client session on logout. Existing access JWTs may remain valid until their expiry after logout; suspension is enforced from the database on protected operations.
 
-For code-based email confirmation/recovery, configure Supabase email templates to include `{{ .Token }}`. The existing frontend's locally generated demo OTP is not accepted by this API. Supabase's default link templates require a frontend Auth callback, which is not part of this backend. CAPTCHA, MFA, OAuth and the UI for password reauthentication are not implemented here.
+For email signup and recovery links, configure Supabase's Site URL as your frontend origin and allow `/auth/callback` on that origin. Locally, allow both `http://localhost:5173/auth/callback` and `http://127.0.0.1:5173/auth/callback`. Registration, resend and recovery use the CORS-validated request origin (or the first configured origin for requests without an Origin header) to choose that callback. Arbitrary redirect URLs in request bodies are rejected.
+
+The frontend handles Supabase's standard implicit-flow confirmation link, removes its tokens from the URL, validates the access token through `/api/auth/me`, then opens the account's dashboard. It also handles fallback redirects to the site root. For code-based signup confirmation, include `{{ .Token }}` in the Confirm signup email template; codes are verified by the backend, never compared against a browser-generated value.
+
+Password recovery starts at `/forgot-password` with a generic response that does not confirm account existence. Keep `{{ .ConfirmationURL }}` in Supabase's Reset Password email template; optionally add `{{ .Token }}` for code entry. Recovery links (`type=recovery`) and verified recovery codes open a separate password form after checking the JWT through `/api/auth/me`. They do not establish a dashboard session. Password updates call `PUT /api/auth/password`, preserve the profile/role/history, then clear local state and attempt to revoke the recovery session before returning the user to login. Invalid/expired sessions require a fresh recovery email. No additional migration or privileged key is needed. CAPTCHA, MFA and OAuth UI flows remain unimplemented.
 
 Example login from a connected frontend:
 

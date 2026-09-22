@@ -50,9 +50,19 @@ export async function loadAccount(session) {
 
 export function readConfirmation(location) {
   const params = new URLSearchParams(location.hash.replace(/^#/, ""));
-  if (params.has("error") || params.has("error_code")) return { error: "This confirmation link is invalid or expired. Request a new email from the login page." };
+  if (params.has("error") || params.has("error_code")) return { error: "This email link is invalid or expired. Request a new email and try again." };
   const access_token = params.get("access_token");
   if (!access_token) return null;
-  if (params.get("type") === "recovery") return { error: "Password recovery is not available in the app yet. Contact an administrator for help." };
-  return { session: { access_token, expires_at: params.get("expires_at"), expires_in: params.get("expires_in") } };
+  return { type: params.get("type"), session: { access_token, expires_at: params.get("expires_at"), expires_in: params.get("expires_in") } };
+}
+
+export async function loadRecoverySession(session) {
+  const expiresAt = Number(session?.expires_at) || Math.floor(Date.now() / 1000) + Number(session?.expires_in);
+  if (!session?.access_token || !Number.isFinite(expiresAt) || expiresAt <= Date.now() / 1000) {
+    throw new ApiError("Your recovery session has expired. Request a new recovery email.", "RECOVERY_EXPIRED");
+  }
+  // A valid recovery JWT is checked by the backend. Never set an app role here.
+  const profile = await authRequest("me", { token: session.access_token });
+  if (!profile?.id || !profile.email) throw new ApiError("Unable to verify your account. Request a new recovery email.", "INVALID_PROFILE");
+  return { accessToken: session.access_token, expiresAt, email: profile.email };
 }

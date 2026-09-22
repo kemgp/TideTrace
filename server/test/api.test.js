@@ -258,3 +258,75 @@ test("file type checks reject empty and mismatched data", () => {
   assert.equal(matchesFileType(Buffer.alloc(0), "image/png"), false);
   assert.equal(matchesFileType(Buffer.from("abcdefghijklmnop"), "image/jpeg"), false);
 });
+
+test("auth errors preserve actionable codes even when GoTrue supplies a numeric code", async () => {
+  for (const [source, expected, status] of [
+    ["invalid_credentials", "INVALID_CREDENTIALS", 401],
+    ["email_not_confirmed", "EMAIL_NOT_CONFIRMED", 403],
+    ["otp_expired", "INVALID_VERIFICATION_CODE", 400],
+  ]) {
+    const { app } = fixture({ handler: () => json({ code: 400, error_code: source, msg: "Internal provider details" }, 400) });
+    const response = await request(app).post("/api/auth/login").send({ email: "member@example.test", password: "password" }).expect(status);
+    assert.equal(response.body.error.code, expected);
+    assert.doesNotMatch(JSON.stringify(response.body), /Internal provider details/);
+  }
+});
+
+test("signup and resend use a configured frontend callback, never an arbitrary redirect", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => ["/auth/v1/signup", "/auth/v1/resend"].includes(url.pathname) ? json({ id: userId }) : undefined });
+  await request(app).post("/api/auth/register").set("Origin", "http://127.0.0.1:5173")
+    .send({ email: "member@example.test", password: "long-password", display_name: "Member" }).expect(201);
+  assert.equal(calls[0].url.searchParams.get("redirect_to"), "http://127.0.0.1:5173/auth/callback");
+  await request(app).post("/api/auth/resend").send({ email: "member@example.test" }).expect(200);
+  assert.equal(calls[1].url.searchParams.get("redirect_to"), "http://localhost:5173/auth/callback");
+  await request(app).post("/api/auth/resend").send({ email: "member@example.test", redirect_to: "https://attacker.example" }).expect(400);
+  await request(app).post("/api/auth/resend").set("Origin", "https://attacker.example").send({ email: "member@example.test" }).expect(403);
+  assert.equal(calls.length, 2);
+});
+
+test("password recovery sends a trusted callback and a generic account-existence response", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/auth/v1/recover" ? json({}) : undefined });
+  const response = await request(app).post("/api/auth/forgot-password").set("Origin", "http://127.0.0.1:5173")
+    .send({ email: "member@example.test" }).expect(200);
+  assert.equal(calls[0].url.searchParams.get("redirect_to"), "http://127.0.0.1:5173/auth/callback");
+  assert.deepEqual(calls[0].body, { email: "member@example.test" });
+  assert.match(response.body.data.message, /If the account exists/);
+  await request(app).post("/api/auth/forgot-password").send({ email: "member@example.test", redirect_to: "https://attacker.example" }).expect(400);
+  await request(app).post("/api/auth/forgot-password").set("Origin", "https://attacker.example").send({ email: "member@example.test" }).expect(403);
+  assert.equal(calls.length, 1);
+});
+
+test("recovery distinguishes Supabase email quotas from request limits", async () => {
+  for (const [source, expected, message] of [
+    ["over_email_send_rate_limit", "EMAIL_RATE_LIMITED", /email sending limit/],
+    ["over_request_rate_limit", "AUTH_RATE_LIMITED", /Wait a few minutes/],
+  ]) {
+    const { app } = fixture({ handler: () => json({ code: 429, error_code: source, msg: "Internal provider details" }, 429) });
+    const response = await request(app).post("/api/auth/forgot-password").send({ email: "member@example.test" }).expect(429);
+    assert.equal(response.body.error.code, expected);
+    assert.match(response.body.error.message, message);
+    assert.doesNotMatch(JSON.stringify(response.body), /Internal provider details/);
+  }
+});
+
+test("password changes require a verified session and never mutate the account profile or role", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url, method }) => url.pathname === "/auth/v1/user" && method === "PUT" ? json({ id: userId }) : undefined });
+  const body = { password: "a-new-strong-password-42" };
+  await request(app).put("/api/auth/password").send(body).expect(401);
+  await bearer(request(app).put("/api/auth/password"), "expired").send(body).expect(401);
+  await bearer(request(app).put("/api/auth/password")).send({ ...body, role: "admin" }).expect(400);
+  await bearer(request(app).put("/api/auth/password")).send(body).expect(204);
+  const writes = calls.filter(({ method }) => method === "PUT");
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0].body, body);
+  assert.equal(writes[0].headers.get("authorization"), "Bearer member-token");
+  assert.equal(calls.some(({ url }) => /admin_set_account|profiles$/.test(url.pathname)), false);
+});
+
+test("password policy and reauthentication errors remain actionable", async () => {
+  for (const [source, expected, status] of [["weak_password", "WEAK_PASSWORD", 400], ["same_password", "SAME_PASSWORD", 400], ["reauthentication_needed", "RECOVERY_EXPIRED", 401]]) {
+    const { app } = fixture({ handler: ({ url, method }) => url.pathname === "/auth/v1/user" && method === "PUT" ? json({ code: 422, error_code: source }, 422) : undefined });
+    const response = await bearer(request(app).put("/api/auth/password")).send({ password: "a-new-strong-password-42" }).expect(status);
+    assert.equal(response.body.error.code, expected);
+  }
+});

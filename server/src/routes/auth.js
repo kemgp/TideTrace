@@ -11,7 +11,7 @@ export function authRoutes(gateway, config) {
   const confirmationPath = (req, endpoint) => `${endpoint}?${new URLSearchParams({ redirect_to: `${req.get("Origin") || config.origins[0]}/auth/callback` })}`;
   router.use(rateLimit({
     windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false,
-    handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Too many authentication requests. Try again later.", request_id: req.requestId } }),
+    handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Too many authentication requests to this app. Wait up to 15 minutes before trying again.", request_id: req.requestId } }),
   }));
   router.post("/register", async (req, res) => {
     const { email, password, display_name } = registration.parse(req.body);
@@ -37,7 +37,7 @@ export function authRoutes(gateway, config) {
   });
   router.post("/forgot-password", async (req, res) => {
     const body = z.object({ email: z.email().max(254) }).strict().parse(req.body);
-    await gateway.auth("recover", { body });
+    await gateway.auth(confirmationPath(req, "recover"), { body });
     res.json({ data: { message: "If the account exists, recovery instructions will be sent." } });
   });
   // Suspended users can inspect their account, change their password and sign out.

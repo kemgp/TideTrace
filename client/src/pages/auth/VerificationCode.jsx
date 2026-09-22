@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 
-const RESEND_DELAY = 30;
+const RESEND_DELAY = 60;
 
-export default function VerificationCode({ email, onVerify, onBack, onResend, initiallySent = true }) {
+export default function VerificationCode({ email, onVerify, onBack, onResend, initiallySent = true, recovery = false }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -33,15 +33,15 @@ export default function VerificationCode({ email, onVerify, onBack, onResend, in
     try {
       await onResend();
       setCode("");
-      setNotice("If confirmation is required, a new email will arrive shortly. Check your spam folder too.");
+      setNotice(recovery ? "If the account exists, a new recovery email will arrive shortly. Check your spam folder too." : "If confirmation is required, a new email will arrive shortly. Check your spam folder too.");
       setResendIn(RESEND_DELAY);
     } catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   }
 
   return <div className="auth-verification fade-in">
-    <h1>Confirm your email</h1>
-    <p className="sub">Check {email} for a confirmation email. Follow its link, or enter the verification code if your email includes one.</p>
+    <h1>{recovery ? "Check your email" : "Confirm your email"}</h1>
+    <p className="sub">{recovery ? `If an account exists for ${email}, recovery instructions will be sent. Open the newest link, or enter the code if your email includes one.` : `Check ${email} for a confirmation email. Follow its link, or enter the verification code if your email includes one.`}</p>
     <form onSubmit={verify} aria-busy={busy}>
       <div className="fgroup">
         <label htmlFor="signup-code">Verification code</label>
@@ -51,9 +51,9 @@ export default function VerificationCode({ email, onVerify, onBack, onResend, in
       </div>
       {error && <p className="auth-code-error" role="alert">{error}</p>}
       {notice && <p className="auth-code-hint" role="status">{notice}</p>}
-      <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy || code.length < 6}>{busy ? "Please wait…" : "Verify email"}</button>
+      <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy || code.length < 6}>{busy ? "Please wait…" : recovery ? "Verify recovery code" : "Verify email"}</button>
     </form>
-    <button className="btn ghost sm" type="button" disabled={busy || resendIn > 0} onClick={resend}>{resendIn > 0 ? `Resend email in ${resendIn}s` : "Resend confirmation email"}</button>
-    <button className="btn ghost sm" type="button" disabled={busy} onClick={onBack}>Back to log in</button>
+    <button className="btn ghost sm" type="button" disabled={busy || resendIn > 0} onClick={resend}>{resendIn > 0 ? `Resend email in ${resendIn}s` : recovery ? "Resend recovery email" : "Resend confirmation email"}</button>
+    <button className="btn ghost sm" type="button" disabled={busy} onClick={onBack}>{recovery ? "Use a different email" : "Back to log in"}</button>
   </div>;
 }

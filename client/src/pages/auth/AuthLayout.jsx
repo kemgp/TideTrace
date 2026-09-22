@@ -18,15 +18,15 @@ export function AuthLayout({ title, children, tab }) {
   </div></div>;
 }
 
-export function PasswordField({ id, value, onChange, busy, newPassword = false }) {
+export function PasswordField({ id, value, onChange, busy, newPassword = false, label = "Password" }) {
   const [visible, setVisible] = useState(false);
   return <div className="fgroup">
-    <label htmlFor={id}>Password</label>
+    <label htmlFor={id}>{label}</label>
     <div className="password-wrap">
       <input id={id} className="input" type={visible ? "text" : "password"} autoComplete={newPassword ? "new-password" : "current-password"}
         placeholder={newPassword ? "At least 8 characters" : "Your password"} required minLength={newPassword ? 8 : undefined} maxLength={128}
         disabled={busy} value={value} onChange={onChange} />
-      <button className="toggle-password" type="button" aria-label={visible ? "Hide password" : "Show password"} aria-pressed={visible} onClick={() => setVisible((previous) => !previous)}>
+      <button className="toggle-password" type="button" aria-label={`${visible ? "Hide" : "Show"} ${label.toLowerCase()}`} aria-pressed={visible} onClick={() => setVisible((previous) => !previous)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="2.5" />{!visible && <path d="M3 3l18 18" />}</svg>
       </button>
     </div>

@@ -5,7 +5,7 @@ import TraceStatusBadge from "../../components/TraceStatusBadge.jsx";
 import Button from "../../components/Button.jsx";
 
 export default function Dashboard() {
-  const { traces, comments, reports } = useApp();
+  const { profile, traces, comments, reports } = useApp();
   const navigate = useNavigate();
 
   const pending = traces.filter((t) => t.status === "pending");
@@ -17,7 +17,7 @@ export default function Dashboard() {
     <div className="wrap">
       <div className="banner mod">
         <div>
-          <b>Magandang umaga, Mod Rica — review queue</b>
+          <b>Magandang umaga, {profile?.display_name} — review queue</b>
           <div className="s">Review. Verify. Keep the community safe.</div>
         </div>
         <svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8">

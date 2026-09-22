@@ -7,7 +7,7 @@ import Card from "../../components/Card.jsx";
 import Button from "../../components/Button.jsx";
 
 export default function Dashboard() {
-  const { traces, tides } = useApp();
+  const { profile, traces, tides } = useApp();
   const navigate = useNavigate();
 
   const mine = traces.filter((t) => t.author === "Ana Ramos");
@@ -20,7 +20,7 @@ export default function Dashboard() {
     <div className="wrap">
       <div className="banner">
         <div>
-          <b>Kumusta, Ana — this month's impact</b>
+          <b>Kumusta, {profile?.display_name} — this month's impact</b>
           <div className="s">Brgy. Lawis and neighboring communities</div>
         </div>
         <svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8">

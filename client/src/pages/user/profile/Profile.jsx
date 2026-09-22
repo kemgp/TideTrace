@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../../context/AppContext.jsx";
 import Sidebar from "../../../components/Sidebar.jsx";
 
@@ -131,7 +131,8 @@ export default function Profile() {
           {pane === "security" && (
             <div className="card security-card">
               <h3>Account security</h3>
-              <p>Password changes are not available in the app yet. Contact an administrator for help.</p>
+              <p>Use an email recovery link to choose a new password for your account.</p>
+              <Link className="btn blue" to="/forgot-password">Reset password</Link>
             </div>
           )}
 
@@ -144,7 +145,7 @@ export default function Profile() {
               <button
                 className="btn outline sm"
                 style={{ marginTop: 16, color: "var(--clay)", borderColor: "var(--clay)" }}
-                onClick={() => { logout(); navigate("/"); }}
+                onClick={() => { logout(); navigate("/login", { replace: true }); }}
               >
                 Log out
               </button>

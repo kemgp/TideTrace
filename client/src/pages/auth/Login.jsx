@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import { ROLE_HOME } from "../../api/auth.js";
 import { AuthLayout, PasswordField } from "./AuthLayout.jsx";
@@ -53,6 +53,7 @@ export default function Login() {
         <input id="login-email" className="input" type="email" autoComplete="email" required maxLength={254} disabled={busy} value={email} onChange={(event) => setEmail(event.target.value)} />
       </div>
       <PasswordField id="login-password" value={password} busy={busy} onChange={(event) => setPassword(event.target.value)} />
+      <div className="auth-forgot"><Link to="/forgot-password">Forgot password?</Link></div>
       <button className="btn clay" style={{ width: "100%" }} type="submit" disabled={busy}>{busy ? "Signing in…" : "Log in"}</button>
     </form>
     <p className="auth-note">Sign in with your TideTrace account. Your account determines which dashboard opens.</p>

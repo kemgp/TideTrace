@@ -7,10 +7,14 @@ export class HttpError extends Error {
 
 export function upstreamError(error) {
   const code = String(error.error_code || error.code || "UPSTREAM_ERROR");
+  if (code === "over_email_send_rate_limit") return new HttpError(429, "EMAIL_RATE_LIMITED", "Supabase's email sending limit has been reached. Check your inbox and spam folder for the latest email. Wait before requesting another; if the hourly quota is exhausted, it must reset first.");
+  if (code === "over_request_rate_limit") return new HttpError(429, "AUTH_RATE_LIMITED", "Supabase received too many authentication requests. Wait a few minutes before trying again.");
   if (code === "invalid_credentials") return new HttpError(401, "INVALID_CREDENTIALS", "The email or password is incorrect.");
   if (code === "email_not_confirmed") return new HttpError(403, "EMAIL_NOT_CONFIRMED", "Confirm your email before signing in.");
   if (code === "otp_expired") return new HttpError(400, "INVALID_VERIFICATION_CODE", "That verification code is invalid or expired. Request a new email and try again.");
   if (code === "weak_password") return new HttpError(400, "WEAK_PASSWORD", "Choose a stronger password that meets the account password requirements.");
+  if (code === "same_password") return new HttpError(400, "SAME_PASSWORD", "Choose a password different from your current password.");
+  if (["reauthentication_needed", "reauthentication_not_valid"].includes(code)) return new HttpError(401, "RECOVERY_EXPIRED", "Request a new password recovery email, then try again using its newest link or code.");
   if (code === "40001") return new HttpError(409, "STALE_VERSION", "This record changed. Reload it before retrying.");
   if (code === "42501") return new HttpError(403, "FORBIDDEN", "You do not have permission to perform this action.");
   if (code === "23505") return new HttpError(409, "ALREADY_EXISTS", "This record already exists.");
