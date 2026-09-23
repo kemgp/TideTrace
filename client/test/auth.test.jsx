@@ -105,6 +105,16 @@ describe("backend authentication", () => {
     expect(screen.getByTestId("route").textContent).toBe("/login");
   });
 
+  it("explains a missing application profile without granting access or saving the session", async () => {
+    mockApi((url) => url === "/api/auth/login" ? response({ session: session() }) : failure("PROFILE_MISSING", "Your login was verified, but your TideTrace profile could not be loaded.", 403));
+    openApp();
+    await submitLogin(userEvent.setup());
+    expect((await screen.findByRole("alert")).textContent).toMatch(/profile could not be loaded/);
+    expect(screen.getByTestId("route").textContent).toBe("/login");
+    expect(window.sessionStorage.getItem(SESSION_KEY)).toBeNull();
+    expect(window.localStorage.getItem(SESSION_KEY)).toBeNull();
+  });
+
   it("prevents members from entering the admin route", async () => {
     mockApi((url) => url === "/api/auth/login" ? response({ session: session() }) : response(profile()));
     openApp();

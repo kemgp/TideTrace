@@ -1,6 +1,7 @@
 import React from "react";
 
 const LABELS = {
+  draft: "Draft",
   pending: "Pending review",
   approved: "Approved",
   revision: "Needs revision",

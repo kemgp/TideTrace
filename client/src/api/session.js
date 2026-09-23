@@ -128,7 +128,7 @@ export function createSessionManager() {
         const permanent = [400, 401, 403, 404].includes(error.status) ||
           ["ACCOUNT_SUSPENDED", "INVALID_PROFILE", "MISSING_SESSION", "SESSION_EXPIRED"].includes(error.code);
         if (permanent) {
-          clearSession(error.code === "ACCOUNT_SUSPENDED" ? error.message : "Your session has ended. Please log in again.");
+          clearSession(["ACCOUNT_SUSPENDED", "PROFILE_MISSING"].includes(error.code) ? error.message : "Your session has ended. Please log in again.");
         } else {
           const account = snapshot.account?.expiresAt > now() ? snapshot.account : null;
           publish({ account, ready: true, error: "We couldn’t reconnect to your account. Check your connection and try again." });

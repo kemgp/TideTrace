@@ -87,6 +87,16 @@ test("suspended users can inspect their profile but cannot write", async () => {
   assert.equal(businessCalls(calls).length, 0);
 });
 
+test("a verified Auth account without a profile gets an actionable error and cannot write", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_my_profile" ? json([]) : undefined });
+  const response = await bearer(request(app).get("/api/auth/me")).expect(403);
+  assert.equal(response.body.error.code, "PROFILE_MISSING");
+  assert.match(response.body.error.message, /login was verified/);
+  await bearer(request(app).post("/api/traces")).send(draft).expect(403);
+  assert.equal(calls.some(({ url }) => url.pathname === "/rest/v1/rpc/save_trace_draft"), false);
+  assert.equal(calls.filter(({ url }) => url.pathname === "/rest/v1/rpc/get_my_profile").every(({ headers }) => headers.get("authorization") === "Bearer member-token"), true);
+});
+
 test("member and moderator tokens cannot perform admin operations", async () => {
   for (const role of ["user", "moderator"]) {
     const { app, calls } = fixture({ role });

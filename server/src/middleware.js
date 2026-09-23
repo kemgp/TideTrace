@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
-import { HttpError, first, result } from "./errors.js";
+import { HttpError, result } from "./errors.js";
 
 export function security(config) {
   return (req, res, next) => {
@@ -36,7 +36,9 @@ export function authenticate(gateway, { active = true, roles } = {}) {
     const user = await gateway.auth("user", { token: req.token, method: "GET" });
     if (!user?.id) throw new HttpError(401, "UNAUTHENTICATED", "Your session is invalid or expired.");
     req.user = user;
-    req.profile = first(await result(req.db.rpc("get_my_profile")));
+    const profiles = await result(req.db.rpc("get_my_profile"));
+    req.profile = Array.isArray(profiles) ? profiles[0] : profiles;
+    if (!req.profile) throw new HttpError(403, "PROFILE_MISSING", "Your login was verified, but your TideTrace profile could not be loaded. Contact the project administrator to check your account profile.");
     if (req.profile.id !== user.id) throw new HttpError(403, "FORBIDDEN", "Profile does not match your session.");
     if (active && req.profile.status !== "active") throw new HttpError(403, "ACCOUNT_SUSPENDED", "Your account is suspended.");
     if (roles && !roles.includes(req.profile.role)) throw new HttpError(403, "FORBIDDEN", "Your account cannot perform this action.");

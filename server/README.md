@@ -33,6 +33,8 @@ The API listens at `http://127.0.0.1:3001/api`. The frontend stays on port **517
 
 ## API conventions
 
+The frontend's archive and contribution pages now consume `GET /api/categories`, `GET /api/traces`, `GET /api/traces/:id`, `GET /api/contributions`, and `GET /api/contributions/:id`. Requests use the current access token, renew an expiring session, and discard results after navigation or account changes. Category filters use category UUIDs. Public detail and private owner-scoped detail remain separate. These pages are read-only; submission/edit/upload/moderation UI integration is still pending.
+
 - Successful JSON responses use `{ "data": ... }`. Deletes, logout, password changes and void workflow operations return HTTP 204.
 - Failures use `{ "error": { "code", "message", "request_id", "details"? } }`. Validation details identify invalid fields. Internal Supabase payloads and credentials are not returned.
 - Protected requests use `Authorization: Bearer <access_token>`. Roles come from the database, never request metadata or localStorage. The frontend maps the database role `moderator` to its internal `mod` route value.

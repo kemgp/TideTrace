@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ApiError, authRequest } from "../api/auth.js";
 import { createSessionManager } from "../api/session.js";
+import { getData } from "../api/data.js";
 import {
   categories as seedCategories,
   users as seedUsers,
@@ -74,6 +75,29 @@ export function AppProvider({ children }) {
       if (error.status !== 401) showToast("Signed out here. The server could not confirm sign-out; your session will expire automatically.");
     }
   }, [sessions, showToast]);
+
+  const readData = useCallback(async (path, { signal } = {}) => {
+    const owner = sessions.getSnapshot().account?.profile.id;
+    let current = sessions.getSnapshot().account;
+    if (!owner) throw new ApiError("Sign in to continue.", "UNAUTHENTICATED", 401);
+    if (current.expiresAt <= Date.now() / 1000 + 60) {
+      await sessions.retrySession();
+      current = sessions.getSnapshot().account;
+    }
+    if (!current || current.profile.id !== owner || current.expiresAt <= Date.now() / 1000) throw new ApiError("Reconnect to your account and try again.", "SESSION_EXPIRED", 401);
+    let data;
+    try { data = await getData(path, { token: current.accessToken, signal }); }
+    catch (error) {
+      if (error.status === 403) { await sessions.retrySession(); throw error; }
+      if (error.status !== 401 || signal?.aborted) throw error;
+      await sessions.retrySession();
+      current = sessions.getSnapshot().account;
+      if (!current || current.profile.id !== owner || signal?.aborted) throw error;
+      data = await getData(path, { token: current.accessToken, signal });
+    }
+    if (sessions.getSnapshot().account?.profile.id !== owner) throw new ApiError("Request cancelled.", "CANCELLED");
+    return data;
+  }, [sessions]);
 
   const addTrace = useCallback((trace) => {
     const id = "t" + (Math.floor(Math.random() * 90000) + 10000);
@@ -150,6 +174,7 @@ export function AppProvider({ children }) {
     () => ({
       role,
       profile,
+      readData,
       sessionReady,
       sessionError,
       sessionNotice,
@@ -188,7 +213,7 @@ export function AppProvider({ children }) {
     }),
     [
       role, profile, sessionReady, sessionError, sessionNotice, retrySession, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
-      login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
+      readData, login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
       resolveFlaggedComment, resolveReport, markAllNotificationsRead, suspendUser, editUser, addModerator, addCategory,
     ]
   );

@@ -19,6 +19,7 @@ function api(handler = () => undefined) {
     if (result) return result;
     if (url === "/api/auth/me") return response(profile());
     if (url === "/api/auth/logout") return response(null, 204);
+    if (url.startsWith("/api/contributions?")) return response([]);
     throw new Error(`Unexpected request ${url}`);
   });
   vi.stubGlobal("fetch", mock);
@@ -45,13 +46,13 @@ it("restores a protected deep link on reload without redirecting to login", asyn
   saves(session());
   let finish;
   const pending = new Promise((resolve) => { finish = resolve; });
-  const calls = api(() => pending);
+  const calls = api((url) => url === "/api/auth/me" ? pending : undefined);
   const view = open();
   expect(screen.getByText("Restoring your session…").getAttribute("role")).toBe("status");
   expect(screen.getByTestId("route").textContent).toBe("/user/contributions");
   await act(async () => finish(response(profile())));
   expect(await screen.findByText(/Signed in as Session Member/)).toBeTruthy();
-  expect(calls).toHaveBeenCalledTimes(1);
+  expect(calls.mock.calls.filter(([url]) => url === "/api/auth/me")).toHaveLength(1);
   view.unmount();
   open();
   expect(await screen.findByText(/Signed in as Session Member/)).toBeTruthy();
@@ -198,7 +199,7 @@ it("clears other tabs on sign-out and rejects their late profile responses", asy
   saves(session(), window.localStorage);
   let finish;
   const pending = new Promise((resolve) => { finish = resolve; });
-  const calls = api(() => pending);
+  const calls = api((url) => url === "/api/auth/me" ? pending : undefined);
   const manager = createSessionManager();
   stops.push(manager.start());
   await waitFor(() => expect(calls).toHaveBeenCalledTimes(1));

@@ -5,6 +5,7 @@ TideTrace is a community conservation application with a React frontend and a No
 ## Current status
 
 - The frontend includes public, member, moderator and admin screens. Login, registration, email confirmation and logout use the backend. Dashboard data and actions still use in-memory mock data in `client/src/context/AppContext.jsx`.
+- Community archive categories and approved Traces, My Contributions, and their detail pages now read saved records through the API. Contributions are scoped to the authenticated account by the backend. Lists have loading/error/empty states, retry controls, and pagination; they do not fall back to mock records.
 - The backend implements authentication, profiles, categories, Traces, evidence uploads, comments, reports, notifications, Tides, moderation and account administration.
 - The existing Supabase schema supplies row-level security, guarded workflow functions and audit records. Configure a Supabase project before using persistent data.
 - Dashboard access is determined by the current database profile returned by `/api/auth/me`; the old demo role picker is removed. Sessions survive reloads and refresh automatically. Saved roles are never trusted; the backend checks the current account before dashboard access is restored.
@@ -111,7 +112,11 @@ Frontend and backend dependencies are declared in their workspace manifests. Run
 
 `server/.env` is ignored by Git. The backend accepts a Supabase publishable or legacy anon key and rejects privileged service-role/secret keys. It uses the caller's verified identity and database permissions. See [server/.env.example](server/.env.example).
 
-Authentication is connected. Dashboard forms and data still need API integration before expecting persistent changes. Hosted email delivery and Storage uploads need validation against your configured development Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the backend guide for details.
+Authentication, sessions, and Trace reading are connected. Open `/user/traces` for the approved archive and live category filters, or `/user/contributions` for your saved submissions (including drafts and revision requests). Detail links fetch the record directly, so they also work after reload. Pages load 25 records at a time; archive text search and contribution status filters apply to the current page, while archive category selection filters on the server.
+
+No additional migration is needed. An empty database correctly shows empty lists. With existing records in a development project, verify that a member sees only approved/public records in the archive and only their own submissions in My Contributions. Reload a detail link and check that it still loads. API failures should show retry controls instead of demo records. Automated frontend tests mock the API; live reads still need verification against your configured project.
+
+Submission forms, editing, uploads, media viewing, comments, dashboard statistics, moderation and other actions still need frontend integration. The list pages label links to the existing submission form as demo previews, and saved detail pages do not offer fake save/comment actions. Hosted email delivery and Storage uploads need validation against your configured development Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the backend guide for details.
 
 ## User Flow Diagram ##
 <img width="10471" height="5822" alt="Tide Trace_userflow" src="https://github.com/user-attachments/assets/c45946a1-d19d-4206-ac75-3bc93f1c68ca" />

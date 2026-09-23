@@ -1,18 +1,21 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "../../../context/AppContext.jsx";
+import useRemoteData from "../../../hooks/useRemoteData.js";
+import { displayTrace } from "../../../api/data.js";
+import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
 import TraceStatusBadge from "../../../components/TraceStatusBadge.jsx";
 import Button from "../../../components/Button.jsx";
 
-const FILTERS = ["All", "pending", "approved", "revision", "rejected"];
-const FILTER_LABELS = { All: "All", pending: "Pending", approved: "Approved", revision: "Needs revision", rejected: "Rejected" };
+const FILTERS = ["All", "draft", "pending", "approved", "revision", "rejected"];
+const FILTER_LABELS = { All: "All", draft: "Draft", pending: "Pending", approved: "Approved", revision: "Needs revision", rejected: "Rejected" };
 
 export default function MyContributions() {
-  const { traces } = useApp();
+  const [offset, setOffset] = useState(0);
+  const result = useRemoteData(`contributions?limit=25&offset=${offset}`, { collection: true });
   const navigate = useNavigate();
   const [filter, setFilter] = useState("All");
 
-  const mine = traces.filter((t) => t.author === "Ana Ramos");
+  const mine = (result.data || []).map(displayTrace);
   const filtered = filter === "All" ? mine : mine.filter((t) => t.status === filter);
 
   return (
@@ -22,9 +25,9 @@ export default function MyContributions() {
           <div>
             <span className="eyebrow">My contributions</span>
             <h2>Your traces &amp; their status</h2>
-            <p>Status mirrors the moderator's latest decision — pending, approved, needs revision, or rejected.</p>
+            <p>Your saved submissions, including drafts. Status filters apply to the current page.</p>
           </div>
-          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>＋ Upload Trace</Button>
+          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>Preview submission form (demo)</Button>
         </div>
       </div>
 
@@ -34,7 +37,8 @@ export default function MyContributions() {
         ))}
       </div>
 
-      {filtered.length > 0 ? (
+      <RemoteState {...result} />
+      {!result.loading && !result.error && (filtered.length > 0 ? (
         <div className="card">
           {filtered.map((t) => (
             <div className="lrow click" key={t.id} onClick={() => navigate(`/user/contributions/${t.id}`)}>
@@ -52,8 +56,9 @@ export default function MyContributions() {
           ))}
         </div>
       ) : (
-        <div className="ph" style={{ marginTop: 10 }}>Nothing here yet — upload your first trace.</div>
-      )}
+        <div className="ph" style={{ marginTop: 10 }}>{filter === "All" ? "No saved contributions on this page." : "No contributions on this page match this status."}</div>
+      ))}
+      <Pagination offset={offset} count={mine.length} size={25} onChange={setOffset} loading={result.loading} />
     </div>
   );
 }
