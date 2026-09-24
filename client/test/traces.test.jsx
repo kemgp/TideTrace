@@ -116,3 +116,52 @@ it("ignores a late response after switching category filters", async () => {
   expect(screen.queryByText("Stale record")).toBeNull();
   expect(screen.getByText("Filtered record")).toBeTruthy();
 });
+
+it("handles malformed collection responses as retryable errors", async () => {
+  setup((url) => url.startsWith("/api/traces?") ? response({ unexpected: true }) : undefined);
+  open();
+  expect((await screen.findByRole("alert")).textContent).toMatch(/unexpected response/);
+  expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  expect(screen.queryByText("No approved traces found.")).toBeNull();
+});
+
+it("keeps the archive usable when categories fail and can retry categories separately", async () => {
+  let works = false;
+  setup((url) => {
+    if (url === "/api/categories") return works ? response([category]) : failure();
+    if (url.startsWith("/api/traces?")) return response([trace()]);
+  });
+  open();
+  await screen.findByRole("alert");
+  expect(await screen.findByText("Saved seagrass survey")).toBeTruthy();
+  works = true;
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(await screen.findByRole("button", { name: "Seagrass" })).toBeTruthy();
+});
+
+it("searches displayed records by author and location without showing unrelated matches", async () => {
+  setup((url) => url.startsWith("/api/traces?") ? response([trace(), trace({ id: "other", title: "Another survey", location_name: "Other coast", author: { display_name: "Other Member" } })]) : undefined);
+  open();
+  await screen.findByText("Saved seagrass survey");
+  fireEvent.change(screen.getByPlaceholderText(/Search this page/), { target: { value: "Actual Member" } });
+  expect(screen.getByText("Saved seagrass survey")).toBeTruthy();
+  expect(screen.queryByText("Another survey")).toBeNull();
+  fireEvent.change(screen.getByPlaceholderText(/Search this page/), { target: { value: "other coast" } });
+  expect(screen.getByText("Another survey")).toBeTruthy();
+  expect(screen.queryByText("Saved seagrass survey")).toBeNull();
+});
+
+it("discards a private read that finishes after logout", async () => {
+  let finish;
+  const pending = new Promise((resolve) => { finish = resolve; });
+  setup((url) => url.startsWith("/api/contributions?") ? pending : undefined);
+  open("/user/contributions");
+  await screen.findByRole("heading", { name: "Your traces & their status" });
+  fireEvent.click(screen.getByTitle("Profile"));
+  fireEvent.click(await screen.findByRole("button", { name: /Usage & activity/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  await screen.findByRole("heading", { name: "Welcome to TideTrace" });
+  await act(async () => finish(response([trace({ title: "Private late response" })])));
+  expect(screen.queryByText("Private late response")).toBeNull();
+  expect(window.sessionStorage.getItem(SESSION_KEY)).toBeNull();
+});

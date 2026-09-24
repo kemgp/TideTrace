@@ -37,7 +37,7 @@ export default function ViewTraces() {
             <h2>Community archive</h2>
             <p>Sightings, clean-ups, and stories from coastal communities — searchable and filterable.</p>
           </div>
-          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>Preview submission form (demo)</Button>
+          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>New draft</Button>
         </div>
       </div>
 

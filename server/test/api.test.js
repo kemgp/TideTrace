@@ -141,6 +141,40 @@ test("contributions and notifications explicitly filter the authenticated owner"
   assert.equal(dataCalls[1].url.searchParams.get("recipient_id"), `eq.${userId}`);
 });
 
+test("category reads request only active categories in name order", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/categories" ? json([{ id: categoryId, name: "Coral", is_active: true }]) : undefined });
+  const response = await request(app).get("/api/categories").expect(200);
+  assert.equal(response.body.data[0].name, "Coral");
+  assert.equal(calls[0].url.searchParams.get("is_active"), "eq.true");
+  assert.equal(calls[0].url.searchParams.get("order"), "name.asc");
+});
+
+test("public details apply visibility filters even with a staff token", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([]) : undefined });
+  await bearer(request(app).get(`/api/traces/${traceId}`), "admin-token").expect(404);
+  const query = calls[0].url.searchParams;
+  assert.equal(query.get("id"), `eq.${traceId}`);
+  assert.equal(query.get("status"), "eq.approved");
+  assert.equal(query.get("is_hidden"), "eq.false");
+  assert.equal(query.get("deleted_at"), "is.null");
+});
+
+test("private detail checks both record ID and authenticated owner and rejects owner overrides", async () => {
+  const otherId = "10000000-0000-4000-8000-000000000002";
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname !== "/rest/v1/traces") return undefined;
+    // The requested record belongs to another user, so the owner filter excludes it.
+    return json(url.searchParams.get("author_id") === `eq.${otherId}` ? [{ id: traceId, author_id: otherId }] : []);
+  } });
+  await request(app).get(`/api/contributions/${traceId}`).expect(401);
+  await bearer(request(app).get(`/api/contributions/${traceId}`)).expect(404);
+  const query = businessCalls(calls)[0].url.searchParams;
+  assert.equal(query.get("id"), `eq.${traceId}`);
+  assert.equal(query.get("author_id"), `eq.${userId}`);
+  await bearer(request(app).get(`/api/contributions?author_id=${otherId}`)).expect(400);
+  assert.equal(businessCalls(calls).length, 1);
+});
+
 test("draft writes use guarded RPC and never accept supplied author/status", async () => {
   const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/save_trace_draft" ? json({ id: traceId, version: 1, status: "draft" }) : undefined });
   await bearer(request(app).post("/api/traces")).send({ ...draft, author_id: userId, status: "approved" }).expect(400);
@@ -355,4 +389,54 @@ test("password policy and reauthentication errors remain actionable", async () =
     const response = await bearer(request(app).put("/api/auth/password")).send({ password: "a-new-strong-password-42" }).expect(status);
     assert.equal(response.body.error.code, expected);
   }
+});
+
+test("draft creation permits unfinished text but requires a valid category", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname.endsWith("/save_trace_draft") ? json({ id: traceId, version: 1, status: "draft" }) : undefined });
+  const unfinished = { title: "", description: "", location_name: "", category_id: categoryId };
+  await bearer(request(app).post("/api/traces")).send({ ...unfinished, category_id: "" }).expect(400);
+  await bearer(request(app).post("/api/traces")).send(unfinished).expect(201);
+  assert.equal(businessCalls(calls).length, 1);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_id: null, p_version: null, p_title: "", p_description: "", p_location_name: "", p_category_id: categoryId, p_latitude: null, p_longitude: null });
+});
+
+test("draft updates require the loaded version and preserve supplied coordinates", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname.endsWith("/save_trace_draft") ? json({ id: traceId, version: 5, status: "draft" }) : undefined });
+  await bearer(request(app).put(`/api/traces/${traceId}`)).send(draft).expect(400);
+  await bearer(request(app).put(`/api/traces/${traceId}`)).send({ ...draft, version: 4, latitude: 10, longitude: 124 }).expect(200);
+  assert.equal(businessCalls(calls).length, 1);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_id: traceId, p_version: 4, p_title: draft.title, p_description: draft.description, p_location_name: draft.location_name, p_category_id: categoryId, p_latitude: 10, p_longitude: 124 });
+});
+
+test("partial uploads return the owned object path for attachment recovery", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([{ id: traceId, author_id: userId, status: "draft", is_hidden: false, deleted_at: null }]);
+    if (url.pathname.startsWith("/storage/v1/object/trace-media/")) return json({ Key: "uploaded" });
+    if (url.pathname.endsWith("/attach_trace_media")) return json({ message: "Temporary failure" }, 500);
+  } });
+  const image = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
+  const response = await bearer(request(app).post(`/api/traces/${traceId}/media`)).set("Content-Type", "image/png").send(image).expect(502);
+  assert.equal(response.body.error.code, "MEDIA_ATTACH_FAILED");
+  const attachedPath = calls.find(({ url }) => url.pathname.endsWith("/attach_trace_media")).body.p_object_path;
+  assert.equal(response.body.error.details.object_path, attachedPath);
+  assert.match(attachedPath, new RegExp(`^${userId}/${traceId}/[0-9a-f-]+\\.png$`));
+});
+
+test("attachment retry uses the existing object and removal calls the guarded detach RPC", async () => {
+  const objectPath = `${userId}/${traceId}/${mediaId}.png`;
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname.endsWith("/attach_trace_media")) return json({ id: mediaId, trace_id: traceId, object_path: objectPath, mime_type: "image/png" });
+    if (url.pathname.endsWith("/detach_trace_media")) return json(null, 204);
+  } });
+  await bearer(request(app).post(`/api/traces/${traceId}/media/attach`)).send({ object_path: objectPath }).expect(201);
+  await bearer(request(app).delete(`/api/media/${mediaId}`)).expect(204);
+  assert.deepEqual(businessCalls(calls).map(({ body }) => body), [{ p_trace_id: traceId, p_object_path: objectPath, p_sort_order: 0 }, { p_media_id: mediaId }]);
+  assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+});
+
+test("removal rejects unauthenticated callers and preserves database permission errors", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname.endsWith("/detach_trace_media") ? json({ code: "42501", message: "Submission is not editable" }, 403) : undefined });
+  await request(app).delete(`/api/media/${mediaId}`).expect(401);
+  assert.equal(businessCalls(calls).length, 0);
+  await bearer(request(app).delete(`/api/media/${mediaId}`)).expect(403);
 });

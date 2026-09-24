@@ -6,6 +6,7 @@ TideTrace is a community conservation application with a React frontend and a No
 
 - The frontend includes public, member, moderator and admin screens. Login, registration, email confirmation and logout use the backend. Dashboard data and actions still use in-memory mock data in `client/src/context/AppContext.jsx`.
 - Community archive categories and approved Traces, My Contributions, and their detail pages now read saved records through the API. Contributions are scoped to the authenticated account by the backend. Lists have loading/error/empty states, retry controls, and pagination; they do not fall back to mock records.
+- Members can create and edit their own Trace drafts through the API. The initial form supports optional photo selection and a local preview; saving creates the draft before uploading the photo. Saved draft details support additional uploads, signed previews, and attachment removal. Only a category is required; saving does not submit or publish the Trace. Version checks prevent stale edits.
 - The backend implements authentication, profiles, categories, Traces, evidence uploads, comments, reports, notifications, Tides, moderation and account administration.
 - The existing Supabase schema supplies row-level security, guarded workflow functions and audit records. Configure a Supabase project before using persistent data.
 - Dashboard access is determined by the current database profile returned by `/api/auth/me`; the old demo role picker is removed. Sessions survive reloads and refresh automatically. Saved roles are never trusted; the backend checks the current account before dashboard access is restored.
@@ -57,7 +58,7 @@ Without Web Locks, sessions use per-tab session storage and survive reloads with
 
 Expired/revoked refresh tokens or suspended accounts clear the saved session. Temporary network/server errors retain the token pair and offer a retry; expired accounts cannot open protected pages while reconnecting. Logging out clears browser state immediately, then asks Supabase to revoke the session. If the server cannot be reached, local sign-out succeeds but server revocation is not confirmed.
 
-Recovery sessions remain in memory, separate from saved login sessions, and do not automatically open a dashboard. Opening a recovery link clears the existing saved login. If the reset page is reloaded, request a new recovery email. Profile preferences, Traces and other dashboard actions remain a clearly labeled demo.
+Recovery sessions remain in memory, separate from saved login sessions, and do not automatically open a dashboard. Opening a recovery link clears the existing saved login. If the reset page is reloaded, request a new recovery email. Profile preferences and other dashboard actions remain a clearly labeled demo; Trace reading, draft saving and photo uploads are connected.
 
 To check session management locally:
 
@@ -106,17 +107,92 @@ Frontend and backend dependencies are declared in their workspace manifests. Run
 | `npm run start:server` | Start the API without file watching. |
 | `npm run build` | Build the frontend into `client/dist/`. |
 | `npm run preview` | Preview the frontend build; start the API separately for `/api` requests. |
-| `npm test` | Run backend HTTP tests and frontend auth interaction tests. |
+| `npm test` | Run backend HTTP tests and frontend authentication, session, Trace reading, draft and photo-upload tests. |
+| `npm run verify:reads` | Check live Trace reads against the configured Supabase project without writing records. |
 
-## Environment and remaining integration
+## Rate limits
+
+The backend enforces these limits per IP address. Each row has a shared request budget across the routes it covers, rather than a separate budget per endpoint or account.
+
+| Scope | Limit | Applies to |
+| --- | --- | --- |
+| General API | 300 requests per minute | All `/api` routes except `/api/health`, including draft creation and editing. |
+| Authentication | 30 requests per 15 minutes | Authentication routes such as login, registration, verification and password recovery; excludes session maintenance below. |
+| Session maintenance | 120 requests per 15 minutes | `/api/auth/me`, `/api/auth/refresh` and `/api/auth/logout` combined. |
+| File uploads | 20 requests per 15 minutes | Authenticated uploads to `POST /api/traces/:id/media`, from both the initial Trace form and saved draft details. |
+
+The general API limit also applies to requests covered by a more specific limit. Requests exceeding a limit receive HTTP **429 Too Many Requests** with a JSON error and retry guidance. Failed attempts that reach a limiter also count toward its budget. People sharing an IP address share these limits.
+
+Draft saves have no separate limit beyond the general API budget. Retrying attachment of an already uploaded file, removing an attachment, and requesting a photo preview also use the general budget; they do not consume the file-upload budget. Supabase email quotas and other upstream limits are separate from these application limits.
+
+Counters are stored in server memory, reset on restart, and are not shared across server instances. Multi-instance deployment requires a shared rate-limit store. The server currently does not trust forwarded IP headers; deployment behind a proxy requires explicit trusted-proxy configuration so client addresses are identified correctly. These limits protect this API, not requests sent directly to Supabase. See the [backend setup guide](server/README.md) for deployment details.
+
+## Environment and live read checks
+
+Run `npm run verify:reads` to check Trace reading against the Supabase project configured in `server/.env`. The command starts a temporary local API, makes GET requests, and exits. It verifies active categories, the public archive and category filter, available public details, and rejection of unauthenticated contribution requests. It does not create records, send emails, or change the database. Empty datasets and unavailable authenticated checks are explicitly marked `SKIP`.
+
+For authenticated live checks, a project developer can supply an existing short-lived access token using the `TIDETRACE_VERIFY_ACCESS_TOKEN` environment variable; do not paste it into chat, commit it, or put it in a command-line argument. The command checks contribution ownership and available detail records without logging in or refreshing the token. Without this variable, only public reads and unauthenticated access checks run. `npm test` separately exercises frontend behavior and API authorization with mocked Supabase responses.
 
 `server/.env` is ignored by Git. The backend accepts a Supabase publishable or legacy anon key and rejects privileged service-role/secret keys. It uses the caller's verified identity and database permissions. See [server/.env.example](server/.env.example).
 
-Authentication, sessions, and Trace reading are connected. Open `/user/traces` for the approved archive and live category filters, or `/user/contributions` for your saved submissions (including drafts and revision requests). Detail links fetch the record directly, so they also work after reload. Pages load 25 records at a time; archive text search and contribution status filters apply to the current page, while archive category selection filters on the server.
+## Trace workflow
 
-No additional migration is needed. An empty database correctly shows empty lists. With existing records in a development project, verify that a member sees only approved/public records in the archive and only their own submissions in My Contributions. Reload a detail link and check that it still loads. API failures should show retry controls instead of demo records. Automated frontend tests mock the API; live reads still need verification against your configured project.
+Trace reading, draft creation/editing, and photo uploads are connected to the backend. Keep both development servers running and sign in with a member account. The existing database and private `trace-media` Storage setup must be applied; these frontend changes do not require a new migration. RLS remains enabled, and no service-role key is needed.
 
-Submission forms, editing, uploads, media viewing, comments, dashboard statistics, moderation and other actions still need frontend integration. The list pages label links to the existing submission form as demo previews, and saved detail pages do not offer fake save/comment actions. Hosted email delivery and Storage uploads need validation against your configured development Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the backend guide for details.
+### Browse saved Traces
+
+- **Traces** (`/user/traces`) shows approved, visible records and live category filters. Drafts do not appear in this archive.
+- **My Contributions** (`/user/contributions`) shows the signed-in member's saved records, including drafts and revision requests. The backend restricts these reads to their owner.
+- Detail links fetch saved records directly and work after reload. Lists show 25 records per page. Archive text search and contribution status filters apply to the current page; archive category filtering happens on the server.
+- Loading, empty and error states use real API results. Failed reads offer a retry and do not fall back to sample records.
+
+### Create a draft with an optional photo
+
+1. Choose **New draft** from Traces or My Contributions to open `/user/traces/upload`.
+2. Select a category. Title, location and description are optional while the Trace is a draft.
+3. Optionally choose one JPEG, PNG or WebP photo, up to 20 MB. The form displays a local preview and lets you remove or replace the selection before saving. Selecting a photo alone does not upload it.
+4. Click **Save draft**. The API creates the draft under your account, then uploads and attaches the selected photo. A progress indicator appears during the upload.
+5. When saving and any selected upload succeed, the saved contribution detail opens. You can return to it later through My Contributions.
+
+Saving keeps the Trace in **Draft** status; it does not publish it or send it to moderators. If draft creation fails, the photo is not uploaded. If the draft saves but its photo upload fails, the page keeps the saved draft and offers photo recovery, so retrying does not create another Trace.
+
+### Continue editing a draft
+
+Open a saved draft and choose **Edit draft**. The form loads its saved fields and version. Only the owner's available draft-status records can be edited through this form; pending, approved, rejected, hidden and deleted records are not editable here. Revision-request editing and resubmission remain deferred.
+
+Saving is manual. Unsaved text remains in the form after an error, and closing or reloading the browser warns about unsaved form changes. In-app navigation does not autosave. Location is entered as text; map pinning is not connected. Changing an existing location name clears previously saved coordinates, while other edits preserve them.
+
+If another tab or an attachment change has updated the Trace, a stale save is rejected. Copy any text you want to keep, then choose **Discard local changes and reload saved draft** before editing again. If a save response is lost or cannot be verified, the app does not automatically replay the write; check My Contributions before trying again.
+
+### Manage saved photos
+
+On a draft's detail page, use **Photos → Choose a photo → Upload photo** to add more JPEG, PNG or WebP images, one at a time. Files must be non-empty and at most 20 MB each. The backend validates file signatures and ownership. Both initial-form and detail-page uploads use the same [upload rate limit](#rate-limits).
+
+Uploads go through the authenticated API into private Supabase Storage. A progress indicator remains visible while uploading and attaching; it does not estimate a percentage. Saved previews use short-lived signed URLs. If a preview fails or expires, **Reload photo** requests a fresh link. Approved Trace details display photos without upload or removal controls.
+
+**Remove photo** immediately detaches it from the draft. Adding or removing an attachment increases the Trace version. Physical removal of detached Storage objects remains a maintenance task in the existing backend; the frontend action removes the attachment from the Trace.
+
+If the file uploads but attaching it fails, **Retry attachment** checks saved attachments and reuses the existing upload path. If the outcome of a write is uncertain, use **Reload saved attachments** and check the photos before uploading again. Recovery paths and selected files are kept only while the page remains open; they are not restored after a reload.
+
+### Verify against your Supabase project
+
+Automated tests cover Trace reads, draft creation/editing, version conflicts, initial-form photo selection, upload ordering, attachment recovery, removal, invalid files and logout during requests. They mock API/Supabase responses and do not prove live database or Storage persistence. `npm run verify:reads` checks live reads only; it does not test uploads or draft writes.
+
+With a signed-in development account:
+
+1. Save a category-only draft and find it in My Contributions. Reload its detail, edit its text, save and reload again.
+2. Create another draft with a selected photo. Verify that its detail shows the saved photo after reloading.
+3. Add another photo from the saved detail, edit/save the text afterward, then remove an attachment and reload to confirm the change.
+4. Open the same draft in two tabs and save different text edits. Confirm the second save reports a version conflict instead of overwriting the first.
+5. Confirm drafts are absent from the approved archive and another member cannot read or edit your draft.
+
+Live draft-write and photo-upload verification still needs a signed-in account against the configured development project.
+
+## Remaining integration
+
+The next Trace feature is **Submit for review**. Its backend workflow already exists, but the frontend action is not connected. It must require the necessary text fields, an active category and at least one attached image before changing a Trace from Draft to Pending.
+
+Revision-request editing/resubmission, video uploads/playback, comments, map pinning, dashboard statistics, moderation and other actions still need frontend integration. Dashboard demo state does not reflect saved Trace activity yet. Hosted email delivery also needs validation against the configured Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the [backend guide](server/README.md) for details.
 
 ## User Flow Diagram ##
 <img width="10471" height="5822" alt="Tide Trace_userflow" src="https://github.com/user-attachments/assets/c45946a1-d19d-4206-ac75-3bc93f1c68ca" />

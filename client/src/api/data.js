@@ -1,18 +1,30 @@
 import { ApiError } from "./auth.js";
 
-export async function getData(path, { token, signal } = {}) {
+export function getData(path, options) {
+  return requestData(path, options);
+}
+
+export async function requestData(path, { token, signal, method = "GET", body, file } = {}) {
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener("abort", abort, { once: true });
   if (signal?.aborted) abort();
-  const timeout = setTimeout(abort, 20000);
+  const timeout = setTimeout(abort, file ? 120000 : 20000);
   try {
-    const response = await fetch(`/api/${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal: controller.signal, cache: "no-store" });
+    const response = await fetch(`/api/${path}`, {
+      method, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(file ? { "Content-Type": file.type } : body !== undefined ? { "Content-Type": "application/json" } : {}) },
+      ...(file ? { body: file } : body !== undefined ? { body: JSON.stringify(body) } : {}), signal: controller.signal, cache: "no-store",
+    });
+    if (response.status === 204 && response.ok) return null;
     let payload;
     try { payload = await response.json(); }
     catch { throw new ApiError("The service is unavailable. Please try again.", "INVALID_RESPONSE", response.status); }
-    if (!response.ok) throw new ApiError(payload.error?.message || "Unable to load this data.", payload.error?.code, response.status);
-    if (!Object.hasOwn(payload, "data")) throw new ApiError("The service returned an unexpected response.", "INVALID_RESPONSE");
+    if (!response.ok) {
+      const error = new ApiError(payload?.error?.message || "Unable to complete this request.", payload?.error?.code, response.status);
+      error.details = payload?.error?.details;
+      throw error;
+    }
+    if (!payload || !Object.hasOwn(payload, "data")) throw new ApiError("The service returned an unexpected response.", "INVALID_RESPONSE");
     return payload.data;
   } catch (error) {
     if (signal?.aborted) throw new ApiError("Request cancelled.", "CANCELLED");

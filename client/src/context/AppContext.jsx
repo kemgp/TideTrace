@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ApiError, authRequest } from "../api/auth.js";
 import { createSessionManager } from "../api/session.js";
-import { getData } from "../api/data.js";
+import { getData, requestData } from "../api/data.js";
 import {
   categories as seedCategories,
   users as seedUsers,
@@ -99,6 +99,27 @@ export function AppProvider({ children }) {
     return data;
   }, [sessions]);
 
+  // Writes are never replayed automatically: a lost response can still mean a successful save.
+  const writeData = useCallback(async (path, { method, body, file, signal }) => {
+    const owner = sessions.getSnapshot().account?.profile.id;
+    let current = sessions.getSnapshot().account;
+    if (!owner) throw new ApiError("Sign in to continue.", "UNAUTHENTICATED", 401);
+    if (current.expiresAt <= Date.now() / 1000 + 60) {
+      await sessions.retrySession();
+      current = sessions.getSnapshot().account;
+    }
+    if (!current || current.profile.id !== owner || current.expiresAt <= Date.now() / 1000) throw new ApiError("Reconnect to your account and try again.", "SESSION_EXPIRED", 401);
+    if (signal?.aborted) throw new ApiError("Request cancelled.", "CANCELLED");
+    let data;
+    try { data = await requestData(path, { method, body, file, token: current.accessToken, signal }); }
+    catch (error) {
+      if (error.status === 401 || error.status === 403) await sessions.retrySession();
+      throw error;
+    }
+    if (signal?.aborted || sessions.getSnapshot().account?.profile.id !== owner) throw new ApiError("Request cancelled.", "CANCELLED");
+    return data;
+  }, [sessions]);
+
   const addTrace = useCallback((trace) => {
     const id = "t" + (Math.floor(Math.random() * 90000) + 10000);
     setTraces((prev) => [
@@ -175,6 +196,7 @@ export function AppProvider({ children }) {
       role,
       profile,
       readData,
+      writeData,
       sessionReady,
       sessionError,
       sessionNotice,
@@ -213,7 +235,7 @@ export function AppProvider({ children }) {
     }),
     [
       role, profile, sessionReady, sessionError, sessionNotice, retrySession, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
-      readData, login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
+      readData, writeData, login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
       resolveFlaggedComment, resolveReport, markAllNotificationsRead, suspendUser, editUser, addModerator, addCategory,
     ]
   );

@@ -27,7 +27,7 @@ export default function MyContributions() {
             <h2>Your traces &amp; their status</h2>
             <p>Your saved submissions, including drafts. Status filters apply to the current page.</p>
           </div>
-          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>Preview submission form (demo)</Button>
+          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>New draft</Button>
         </div>
       </div>
 

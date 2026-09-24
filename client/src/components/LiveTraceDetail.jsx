@@ -4,10 +4,13 @@ import useRemoteData from "../hooks/useRemoteData.js";
 import { displayTrace } from "../api/data.js";
 import RemoteState from "./RemoteState.jsx";
 import TraceStatusBadge from "./TraceStatusBadge.jsx";
+import TracePhotos from "./TracePhotos.jsx";
+import { useApp } from "../context/AppContext.jsx";
 import Card from "./Card.jsx";
 
 export default function LiveTraceDetail({ contribution = false }) {
   const { id } = useParams();
+  const { profile } = useApp();
   const base = contribution ? "contributions" : "traces";
   const result = useRemoteData(`${base}/${encodeURIComponent(id)}`);
   const trace = result.data ? displayTrace(result.data) : null;
@@ -22,7 +25,9 @@ export default function LiveTraceDetail({ contribution = false }) {
       <div className="divider" />
       <span className="lbl">Description</span>
       <p style={{ fontSize: "12.5px", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{trace.description || "No description supplied."}</p>
-      <p className="hint">Media viewing{contribution ? " and submission editing" : " and comments"} will be available in a later update.</p>
+      <p className="hint">{contribution ? "Submitting for review" : "Comments"} will be available in a later update.</p>
+      {contribution && trace.status === "draft" && !trace.is_hidden && !trace.deleted_at && <Link className="btn clay" to={`/user/contributions/${encodeURIComponent(trace.id)}/edit`}>Edit draft</Link>}
+      <TracePhotos key={`${profile?.id}:${trace.id}`} trace={result.data} contribution={contribution} />
     </Card>}
   </div>;
 }
