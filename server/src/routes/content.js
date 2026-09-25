@@ -4,6 +4,7 @@ import { authenticate } from "../middleware.js";
 import { first, result } from "../errors.js";
 import { coordinatePair, draft, page, paginate, report, text, uuid, version } from "../validation.js";
 
+export const reviewSelect = "id,from_state,to_state,reason,created_at";
 export const traceSelect = "*,category:categories(id,name),author:profiles!traces_author_id_fkey(id,display_name),trace_media(*)";
 const publicTraces = (db) => db.from("traces").select(traceSelect).eq("status", "approved").eq("is_hidden", false).is("deleted_at", null);
 
@@ -46,6 +47,12 @@ export function contentRoutes(gateway) {
   });
   router.get("/contributions/:id", member, async (req, res) => {
     send(res, first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).eq("id", uuid.parse(req.params.id)).limit(1))));
+  });
+  router.get("/contributions/:id/reviews", member, async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    const pagination = page.parse(req.query);
+    first(await result(req.db.from("traces").select("id").eq("id", id).eq("author_id", req.user.id).limit(1)));
+    send(res, await result(paginate(req.db.from("moderation_actions").select(reviewSelect).eq("trace_id", id).eq("action", "review_trace").order("created_at", { ascending: false }).order("id", { ascending: false }), pagination)));
   });
   async function saveDraft(req, res, creating) {
     const schema = creating ? draft : draft.extend({ version });

@@ -32,13 +32,15 @@ function open(path = "/user/traces") {
 const photo = { id: "40000000-0000-4000-8000-000000000001", trace_id: trace().id, object_path: "current-user/trace/photo.png", mime_type: "image/png", size_bytes: 12, sort_order: 0 };
 const png = () => new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0])], "coast.png", { type: "image/png" });
 const detail = `/api/contributions/${trace().id}`;
+const submit = `/api/traces/${trace().id}/submit`;
 const upload = `/api/traces/${trace().id}/media`;
 const choose = async (file = png()) => fireEvent.change(await screen.findByLabelText("Choose a photo"), { target: { files: [file] } });
 
-it("uploads raw photo bytes with authentication, displays the saved image, and removes it", async () => {
+it("uploads raw photo bytes on submission, then allows removal if submission is rejected", async () => {
   let saved = trace({ trace_media: [] });
   const calls = setup((url, options) => {
     if (url === detail) return response(saved);
+    if (url === submit) return failure(400);
     if (url === upload) { saved = { ...saved, trace_media: [photo], version: 2 }; return response(photo); }
     if (url === `/api/media/${photo.id}/url`) return response({ url: "https://project.supabase.co/photo.png?token=signed", expires_in: 60 });
     if (url === `/api/media/${photo.id}` && options.method === "DELETE") { saved = { ...saved, trace_media: [], version: 3 }; return { ok: true, status: 204, json: vi.fn(() => { throw new Error("No JSON body"); }) }; }
@@ -46,14 +48,14 @@ it("uploads raw photo bytes with authentication, displays the saved image, and r
   open(`/user/contributions/${trace().id}`);
   const file = png();
   await choose(file);
-  fireEvent.click(screen.getByRole("button", { name: "Upload photo" }));
+  fireEvent.click(await submitButton());
   const image = await screen.findByAltText("Trace photo 1");
   expect(image.getAttribute("src")).toContain("token=signed");
   const options = calls.mock.calls.find(([url]) => url === upload)[1];
   expect(options.body).toBe(file);
   expect(options.headers).toEqual({ Authorization: "Bearer live-access", "Content-Type": "image/png" });
   expect(options.method).toBe("POST");
-  expect(screen.getByText("Photo uploaded and attached to your draft.")).toBeTruthy();
+  await screen.findByRole("alert");
   // A fresh detail read reconstructs attachments from saved records.
   fireEvent.click(screen.getByRole("link", { name: "Edit draft" }));
   await screen.findByRole("heading", { name: "Edit your draft" });
@@ -74,7 +76,7 @@ it.each([
   open(`/user/contributions/${trace().id}`);
   await choose(file);
   expect((await screen.findByRole("alert")).textContent).toMatch(message);
-  expect(screen.getByRole("button", { name: "Upload photo" }).disabled).toBe(true);
+  expect(screen.queryByRole("button", { name: "Upload photo" })).toBeNull();
   expect(calls.mock.calls.some(([url]) => url === upload)).toBe(false);
 });
 
@@ -84,10 +86,10 @@ it("retains the selection after validation errors and prevents duplicate in-flig
   const calls = setup((url) => url === detail ? response(trace({ trace_media: [] })) : url === upload ? pending : undefined);
   open(`/user/contributions/${trace().id}`);
   await choose();
-  const button = screen.getByRole("button", { name: "Upload photo" });
+  const button = await submitButton();
   fireEvent.click(button);
   fireEvent.click(button);
-  expect(screen.getByLabelText("Photo operation in progress")).toBeTruthy();
+  expect(await screen.findByLabelText("Photo operation in progress")).toBeTruthy();
   expect(button.disabled).toBe(true);
   await act(async () => finish({ ok: false, status: 400, json: async () => ({ error: { code: "INVALID_MEDIA", message: "The file does not match its declared content type." } }) }));
   expect((await screen.findByRole("alert")).textContent).toMatch(/does not match/);
@@ -96,19 +98,21 @@ it("retains the selection after validation errors and prevents duplicate in-flig
   expect(calls.mock.calls.filter(([url]) => url === upload)).toHaveLength(1);
 });
 
-it("recovers an uploaded file by retrying attachment without uploading its bytes again", async () => {
+it("recovers an uploaded file by submitting again without uploading its bytes again", async () => {
+  let saved = trace({ trace_media: [] });
   const calls = setup((url) => {
-    if (url === detail) return response(trace({ trace_media: [] }));
+    if (url === detail) return response(saved);
+    if (url === submit) { saved = { ...saved, status: "pending", version: 3 }; return response(saved); }
     if (url === upload) return { ok: false, status: 502, json: async () => ({ error: { code: "MEDIA_ATTACH_FAILED", message: "Attachment failed", details: { object_path: photo.object_path } } }) };
-    if (url === `${upload}/attach`) return response(photo);
+    if (url === `${upload}/attach`) { saved = { ...saved, trace_media: [photo], version: 2 }; return response(photo); }
     if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   open(`/user/contributions/${trace().id}`);
   await choose();
-  fireEvent.click(screen.getByRole("button", { name: "Upload photo" }));
+  fireEvent.click(await submitButton());
   expect((await screen.findByRole("alert")).textContent).toMatch(/attaching it failed/);
-  fireEvent.click(screen.getByRole("button", { name: "Retry attachment" }));
-  await screen.findByAltText("Trace photo 1");
+  fireEvent.click(await submitButton());
+  await screen.findByText(/Your Trace is awaiting a reviewer/);
   expect(calls.mock.calls.filter(([url]) => url === upload)).toHaveLength(1);
   expect(JSON.parse(calls.mock.calls.find(([url]) => url === `${upload}/attach`)[1].body)).toEqual({ object_path: photo.object_path });
 });
@@ -122,9 +126,10 @@ it("requires reloading saved attachments after an uncertain upload instead of re
   });
   open(`/user/contributions/${trace().id}`);
   await choose();
-  fireEvent.click(screen.getByRole("button", { name: "Upload photo" }));
+  fireEvent.click(await submitButton());
   expect((await screen.findByRole("alert")).textContent).toMatch(/could not confirm/);
-  expect(screen.getByRole("button", { name: "Upload photo" }).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "Submit for review" }).disabled).toBe(true);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Reload saved attachments" }).disabled).toBe(false));
   fireEvent.click(screen.getByRole("button", { name: "Reload saved attachments" }));
   await screen.findByAltText("Trace photo 1");
   expect(calls.mock.calls.filter(([url]) => url === upload)).toHaveLength(1);
@@ -159,7 +164,7 @@ it("does not show upload success or a preview after logout", async () => {
   setup((url) => url === detail ? response(trace({ trace_media: [] })) : url === upload ? pending : undefined);
   open(`/user/contributions/${trace().id}`);
   await choose();
-  fireEvent.click(screen.getByRole("button", { name: "Upload photo" }));
+  fireEvent.click(await submitButton());
   fireEvent.click(screen.getByTitle("Profile"));
   fireEvent.click(await screen.findByRole("button", { name: /Usage & activity/ }));
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
@@ -169,6 +174,12 @@ it("does not show upload success or a preview after logout", async () => {
   expect(screen.queryByAltText("Trace photo 1")).toBeNull();
 });
 
+async function submitButton() {
+  const button = await screen.findByRole("button", { name: "Submit for review" });
+  await waitFor(() => expect(button.disabled).toBe(false));
+  return button;
+}
+
 async function prepareInitialPhoto(file = png()) {
   vi.stubGlobal("URL", class extends URL {
     static createObjectURL = vi.fn(() => "blob:selected-photo");
@@ -176,8 +187,11 @@ async function prepareInitialPhoto(file = png()) {
   });
   open("/user/traces/upload");
   await screen.findByRole("option", { name: "Seagrass" });
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: trace().title } });
+  fireEvent.change(screen.getByLabelText("Description"), { target: { value: trace().description } });
+  fireEvent.change(screen.getByLabelText("Location"), { target: { value: trace().location_name } });
   fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
-  fireEvent.change(screen.getByLabelText("Choose a photo (optional)"), { target: { files: [file] } });
+  fireEvent.change(screen.getByLabelText(/^Choose a photo/), { target: { files: [file] } });
 }
 
 it("selects and previews a photo on the initial form, then saves before uploading", async () => {
@@ -186,7 +200,8 @@ it("selects and previews a photo on the initial form, then saves before uploadin
   const pending = new Promise((resolve) => { finish = resolve; });
   const calls = setup((url, options) => {
     if (url === "/api/traces" && options.method === "POST") { saved = trace({ ...JSON.parse(options.body), trace_media: [] }); return response(saved); }
-    if (url === upload) { expect(saved).toBeTruthy(); saved = { ...saved, trace_media: [photo] }; return pending; }
+    if (url === upload) { expect(saved).toBeTruthy(); saved = { ...saved, trace_media: [photo], version: 2 }; return pending; }
+    if (url === submit) { saved = { ...saved, status: "pending", version: 3 }; return response(saved); }
     if (url === detail) return response(saved);
     if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
@@ -194,14 +209,14 @@ it("selects and previews a photo on the initial form, then saves before uploadin
   await prepareInitialPhoto(file);
   expect(await screen.findByAltText("Selected photo preview")).toBeTruthy();
   expect(calls.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
-  const button = screen.getByRole("button", { name: "Save draft" });
+  const button = screen.getByRole("button", { name: "Submit Trace" });
   fireEvent.click(button);
   fireEvent.click(button);
   expect(await screen.findByRole("button", { name: "Uploading photo…" })).toBeTruthy();
   await act(async () => finish(response(photo)));
   await screen.findByAltText("Trace photo 1");
   const writes = calls.mock.calls.filter(([, options]) => options.method === "POST");
-  expect(writes.map(([url]) => url)).toEqual(["/api/traces", upload]);
+  expect(writes.map(([url]) => url)).toEqual(["/api/traces", upload, submit]);
   expect(writes[1][1].body).toBe(file);
   expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:selected-photo");
 });
@@ -235,17 +250,19 @@ it("does not upload the initial photo if draft creation fails", async () => {
 });
 
 it("recovers an initial attachment failure without creating another draft or uploading again", async () => {
+  let saved = trace({ trace_media: [], latitude: null, longitude: null });
   const calls = setup((url) => {
-    if (url === "/api/traces" || url === detail) return response(trace({ trace_media: [] }));
+    if (url === "/api/traces" || url === detail) return response(saved);
+    if (url === submit) { saved = { ...saved, status: "pending", version: 3 }; return response(saved); }
     if (url === upload) return { ok: false, status: 502, json: async () => ({ error: { code: "MEDIA_ATTACH_FAILED", message: "Attachment failed", details: { object_path: photo.object_path } } }) };
-    if (url === `${upload}/attach`) return response(photo);
+    if (url === `${upload}/attach`) { saved = { ...saved, trace_media: [photo], version: 2 }; return response(photo); }
     if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
-  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  fireEvent.click(screen.getByRole("button", { name: "Submit Trace" }));
   await screen.findByRole("heading", { name: "Draft saved" });
   expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Retry attachment" }));
+  fireEvent.click(await submitButton());
   await screen.findByAltText("Trace photo 1");
   expect(calls.mock.calls.filter(([url]) => url === "/api/traces")).toHaveLength(1);
   expect(calls.mock.calls.filter(([url]) => url === upload)).toHaveLength(1);
@@ -259,9 +276,10 @@ it("requires checking saved attachments when the initial photo upload outcome is
     if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
-  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  fireEvent.click(screen.getByRole("button", { name: "Submit Trace" }));
   await screen.findByRole("heading", { name: "Draft saved" });
-  expect(screen.getByRole("button", { name: "Upload photo" }).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "Submit for review" }).disabled).toBe(true);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Reload saved attachments" }).disabled).toBe(false));
   fireEvent.click(screen.getByRole("button", { name: "Reload saved attachments" }));
   await screen.findByAltText("Trace photo 1");
   expect(calls.mock.calls.filter(([url]) => url === "/api/traces")).toHaveLength(1);

@@ -70,7 +70,7 @@ it("saves an unfinished draft, reopens it from contributions, and persists an ed
 it("preserves saved coordinates on an edit and sends the loaded version", async () => {
   const saved = trace({ version: 4, latitude: 10, longitude: 124 });
   const calls = setup((url, options) => {
-    if (url.startsWith("/api/contributions/")) return response(saved);
+    if ((url.startsWith("/api/contributions/") && !url.includes("/reviews?"))) return response(saved);
     if (options.method === "PUT") return response({ ...saved, version: 5 });
   });
   open(`/user/contributions/${saved.id}/edit`);
@@ -85,7 +85,7 @@ it("preserves saved coordinates on an edit and sends the loaded version", async 
 it("clears old coordinates when the location name changes", async () => {
   const saved = trace({ latitude: 10, longitude: 124 });
   const calls = setup((url, options) => {
-    if (url.startsWith("/api/contributions/")) return response(saved);
+    if ((url.startsWith("/api/contributions/") && !url.includes("/reviews?"))) return response(saved);
     if (options.method === "PUT") return response({ ...saved, version: 2 });
   });
   open(`/user/contributions/${saved.id}/edit`);
@@ -99,7 +99,7 @@ it("clears old coordinates when the location name changes", async () => {
 it("keeps edits on a version conflict and requires an explicit reload", async () => {
   let saved = trace();
   const calls = setup((url, options) => {
-    if (url.startsWith("/api/contributions/")) return response(saved);
+    if ((url.startsWith("/api/contributions/") && !url.includes("/reviews?"))) return response(saved);
     if (options.method === "PUT") return failure(409);
   });
   open(`/user/contributions/${saved.id}/edit`);
@@ -136,10 +136,10 @@ it("blocks double saves and never automatically retries an uncertain create", as
 });
 
 it.each([
-  { status: "approved" }, { status: "pending" }, { status: "revision_requested" },
+  { status: "approved" }, { status: "pending" },
   { is_hidden: true }, { deleted_at: "2026-09-23" }, { author_id: "someone-else" },
 ])("does not offer editing for an unavailable draft: %j", async (overrides) => {
-  setup((url) => url.startsWith("/api/contributions/") ? response(trace(overrides)) : undefined);
+  setup((url) => (url.startsWith("/api/contributions/") && !url.includes("/reviews?")) ? response(trace(overrides)) : undefined);
   open(`/user/contributions/${trace().id}/edit`);
   expect((await screen.findByRole("alert")).textContent).toMatch(/not an editable draft/);
   expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();

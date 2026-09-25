@@ -440,3 +440,97 @@ test("removal rejects unauthenticated callers and preserves database permission 
   assert.equal(businessCalls(calls).length, 0);
   await bearer(request(app).delete(`/api/media/${mediaId}`)).expect(403);
 });
+
+test("submission accepts only a version and uses the authenticated guarded workflow", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname.endsWith("/submit_trace") ? json({ id: traceId, version: 8, status: "pending" }) : undefined });
+  await request(app).post(`/api/traces/${traceId}/submit`).send({ version: 7 }).expect(401);
+  await bearer(request(app).post(`/api/traces/${traceId}/submit`)).send({}).expect(400);
+  await bearer(request(app).post(`/api/traces/${traceId}/submit`)).send({ version: 0 }).expect(400);
+  await bearer(request(app).post(`/api/traces/${traceId}/submit`)).send({ version: 7, status: "approved" }).expect(400);
+  const response = await bearer(request(app).post(`/api/traces/${traceId}/submit`)).send({ version: 7 }).expect(200);
+  assert.equal(response.body.data.status, "pending");
+  assert.equal(businessCalls(calls).length, 1);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_id: traceId, p_version: 7 });
+  assert.equal(businessCalls(calls)[0].headers.get("authorization"), "Bearer member-token");
+});
+
+test("submission preserves database eligibility and missing-evidence errors", async () => {
+  for (const [code, status, message] of [["42501", 403, "Submission is not eligible"], ["P0001", 400, "Active category and at least one image required"]]) {
+    const { app } = fixture({ handler: ({ url }) => url.pathname.endsWith("/submit_trace") ? json({ code, message }, 400) : undefined });
+    const response = await bearer(request(app).post(`/api/traces/${traceId}/submit`)).send({ version: 1 }).expect(status);
+    assert.equal(response.body.error.code, code === "42501" ? "FORBIDDEN" : "WORKFLOW_ERROR");
+  }
+});
+
+test("staff Trace detail requires staff access and filters hidden/deleted records", async () => {
+  const member = fixture();
+  await request(member.app).get(`/api/moderation/traces/${traceId}`).expect(401);
+  await bearer(request(member.app).get(`/api/moderation/traces/${traceId}`)).expect(403);
+  assert.equal(businessCalls(member.calls).length, 0);
+  for (const role of ["moderator", "admin"]) {
+    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([{ id: traceId, status: "pending", version: 3 }]) : undefined });
+    await bearer(request(app).get(`/api/moderation/traces/${traceId}`)).expect(200);
+    const query = businessCalls(calls)[0].url.searchParams;
+    assert.equal(query.get("id"), `eq.${traceId}`);
+    assert.equal(query.get("is_hidden"), "eq.false");
+    assert.equal(query.get("deleted_at"), "is.null");
+    assert.equal(query.get("limit"), "1");
+    assert.match(query.get("select"), /trace_media/);
+  }
+});
+
+test("moderation history includes saved Trace titles and reviewer names", async () => {
+  const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/moderation_actions" ? json([]) : undefined });
+  await bearer(request(app).get("/api/moderation/history?limit=25&offset=25")).expect(200);
+  const query = businessCalls(calls)[0].url.searchParams;
+  assert.match(query.get("select"), /trace:traces\(id,title\)/);
+  assert.match(query.get("select"), /actor:profiles!moderation_actions_actor_id_fkey/);
+  assert.equal(query.get("offset"), "25");
+  assert.equal(query.get("order"), "created_at.desc,id.asc");
+});
+
+test("moderator decisions pass the reviewed version and allowed status to the guarded RPC", async () => {
+  for (const decision of ["approved", "revision_requested", "rejected"]) {
+    const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname.endsWith("/moderate_trace") ? json({ id: traceId, status: decision, version: 4 }) : undefined });
+    const response = await bearer(request(app).post(`/api/moderation/traces/${traceId}/decision`)).send({ version: 3, decision, reason: "Evidence reviewed" }).expect(200);
+    assert.equal(response.body.data.status, decision);
+    assert.deepEqual(businessCalls(calls)[0].body, { p_id: traceId, p_version: 3, p_decision: decision, p_reason: "Evidence reviewed" });
+  }
+});
+
+test("member review feedback verifies ownership before querying per-Trace history", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([{ id: traceId }]);
+    if (url.pathname === "/rest/v1/moderation_actions") return json([{ id: mediaId, to_state: "revision_requested", reason: "Clarify location" }]);
+  } });
+  await request(app).get(`/api/contributions/${traceId}/reviews`).expect(401);
+  await bearer(request(app).get(`/api/contributions/${traceId}/reviews?limit=5&offset=5`)).expect(200);
+  const queries = businessCalls(calls).map(({ url }) => url.searchParams);
+  assert.equal(queries[0].get("id"), `eq.${traceId}`);
+  assert.equal(queries[0].get("author_id"), `eq.${userId}`);
+  assert.equal(queries[1].get("trace_id"), `eq.${traceId}`);
+  assert.equal(queries[1].get("action"), "eq.review_trace");
+  assert.equal(queries[1].get("select"), "id,from_state,to_state,reason,created_at");
+  assert.equal(queries[1].get("offset"), "5");
+  assert.equal(queries[1].get("order"), "created_at.desc,id.desc");
+});
+
+test("another member cannot read feedback for an inaccessible contribution", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([]) : undefined });
+  await bearer(request(app).get(`/api/contributions/${traceId}/reviews`)).expect(404);
+  assert.equal(calls.some(({ url }) => url.pathname === "/rest/v1/moderation_actions"), false);
+});
+
+test("staff can read prior review decisions while members cannot use staff feedback routes", async () => {
+  const member = fixture();
+  await bearer(request(member.app).get(`/api/moderation/traces/${traceId}/reviews`)).expect(403);
+  const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([{ id: traceId }]);
+    if (url.pathname === "/rest/v1/moderation_actions") return json([]);
+  } });
+  await bearer(request(app).get(`/api/moderation/traces/${traceId}/reviews`)).expect(200);
+  const queries = businessCalls(calls).map(({ url }) => url.searchParams);
+  assert.equal(queries[0].get("is_hidden"), "eq.false");
+  assert.equal(queries[0].get("deleted_at"), "is.null");
+  assert.equal(queries[1].get("trace_id"), `eq.${traceId}`);
+});

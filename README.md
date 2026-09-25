@@ -6,7 +6,8 @@ TideTrace is a community conservation application with a React frontend and a No
 
 - The frontend includes public, member, moderator and admin screens. Login, registration, email confirmation and logout use the backend. Dashboard data and actions still use in-memory mock data in `client/src/context/AppContext.jsx`.
 - Community archive categories and approved Traces, My Contributions, and their detail pages now read saved records through the API. Contributions are scoped to the authenticated account by the backend. Lists have loading/error/empty states, retry controls, and pagination; they do not fall back to mock records.
-- Members can create and edit their own Trace drafts through the API. The initial form supports optional photo selection and a local preview; saving creates the draft before uploading the photo. Saved draft details support additional uploads, signed previews, and attachment removal. Only a category is required; saving does not submit or publish the Trace. Version checks prevent stale edits.
+- Members can create and edit their own Trace drafts through the API. The initial form supports photo selection and a local preview. Save draft saves details only; Submit Trace saves the record, uploads the selected photo, and submits for review. Saved draft details upload a selected photo through Submit for review, with no separate upload button. Signed previews and attachment removal are supported. Only a category is required to save a draft; saving does not submit or publish the Trace. Version checks prevent stale edits. Complete drafts can be submitted for review and become Pending until reviewed.
+- Moderators and admins can review real Pending Traces, inspect saved photos, approve, request revision, or reject, and read persisted moderation history.
 - The backend implements authentication, profiles, categories, Traces, evidence uploads, comments, reports, notifications, Tides, moderation and account administration.
 - The existing Supabase schema supplies row-level security, guarded workflow functions and audit records. Configure a Supabase project before using persistent data.
 - Dashboard access is determined by the current database profile returned by `/api/auth/me`; the old demo role picker is removed. Sessions survive reloads and refresh automatically. Saved roles are never trusted; the backend checks the current account before dashboard access is restored.
@@ -137,7 +138,7 @@ For authenticated live checks, a project developer can supply an existing short-
 
 ## Trace workflow
 
-Trace reading, draft creation/editing, and photo uploads are connected to the backend. Keep both development servers running and sign in with a member account. The existing database and private `trace-media` Storage setup must be applied; these frontend changes do not require a new migration. RLS remains enabled, and no service-role key is needed.
+Trace reading, draft creation/editing, photo uploads, and submission for review are connected to the backend. Keep both development servers running and sign in with a member account. The existing database and private `trace-media` Storage setup must be applied; these frontend changes do not require a new migration. RLS remains enabled, and no service-role key is needed.
 
 ### Browse saved Traces
 
@@ -146,33 +147,60 @@ Trace reading, draft creation/editing, and photo uploads are connected to the ba
 - Detail links fetch saved records directly and work after reload. Lists show 25 records per page. Archive text search and contribution status filters apply to the current page; archive category filtering happens on the server.
 - Loading, empty and error states use real API results. Failed reads offer a retry and do not fall back to sample records.
 
-### Create a draft with an optional photo
+### Create a Trace or save a draft
 
-1. Choose **New draft** from Traces or My Contributions to open `/user/traces/upload`.
+1. Choose **New Trace** from Traces or My Contributions to open `/user/traces/upload`.
 2. Select a category. Title, location and description are optional while the Trace is a draft.
 3. Optionally choose one JPEG, PNG or WebP photo, up to 20 MB. The form displays a local preview and lets you remove or replace the selection before saving. Selecting a photo alone does not upload it.
-4. Click **Save draft**. The API creates the draft under your account, then uploads and attaches the selected photo. A progress indicator appears during the upload.
-5. When saving and any selected upload succeed, the saved contribution detail opens. You can return to it later through My Contributions.
+4. Choose the primary **Submit Trace** action when ready, or the secondary **Save draft** action to finish later. Submit Trace requires a title, description, location, active category and photo; Save draft requires only an active category.
+5. Missing information appears beside the relevant fields after a submission attempt, with errors clearing as you correct them. The form no longer shows a readiness checklist.
+6. **Submit Trace** saves the record, uploads the selected photo, reloads the record and submits its latest version for review. **Save draft** saves only the details, even when a photo is selected. The saved contribution detail opens when the chosen action succeeds. Photo selections are temporary: after saving a draft, select the photo again when you are ready to submit.
 
-Saving keeps the Trace in **Draft** status; it does not publish it or send it to moderators. If draft creation fails, the photo is not uploaded. If the draft saves but its photo upload fails, the page keeps the saved draft and offers photo recovery, so retrying does not create another Trace.
+**Save draft** keeps the Trace in **Draft** status; it does not publish it or send it to moderators. If draft creation fails, the photo is not uploaded. If the draft saves but its photo upload fails, the page keeps the saved draft and offers photo recovery, so retrying does not create another Trace. If submission fails or its outcome is uncertain after saving, use **Open saved Trace** to check the existing record before trying again; the app does not repeat creation or submission automatically.
 
 ### Continue editing a draft
 
-Open a saved draft and choose **Edit draft**. The form loads its saved fields and version. Only the owner's available draft-status records can be edited through this form; pending, approved, rejected, hidden and deleted records are not editable here. Revision-request editing and resubmission remain deferred.
+Open a saved draft and choose **Edit draft**. The form loads its saved fields and version, with **Submit Trace** as the primary action and **Save draft** as secondary. Authors can edit their available Draft and Needs revision records; Pending, Approved, Rejected, hidden and deleted records remain locked.
 
 Saving is manual. Unsaved text remains in the form after an error, and closing or reloading the browser warns about unsaved form changes. In-app navigation does not autosave. Location is entered as text; map pinning is not connected. Changing an existing location name clears previously saved coordinates, while other edits preserve them.
 
 If another tab or an attachment change has updated the Trace, a stale save is rejected. Copy any text you want to keep, then choose **Discard local changes and reload saved draft** before editing again. If a save response is lost or cannot be verified, the app does not automatically replay the write; check My Contributions before trying again.
 
+### Address requested revisions
+
+Open a Needs revision Trace in My Contributions to read **Moderator feedback**, with the latest decision first and earlier reviews available through pagination. Choose **Edit requested revision** to update its title, description, category and location. The feedback is also shown beside the edit form. Revision saves require non-empty title, description and location fields, matching the existing database constraints.
+
+Use **Save changes** to persist edits on the same Trace. Its status stays **Needs revision**; saving does not create another Trace or resubmit it. Select a replacement photo or remove saved photos from its detail page as needed; the selected photo uploads when you resubmit. When finished, choose the primary **Resubmit for review** action from the edit form or saved detail (the edit form saves your changes first): the app checks the current record, active category and attached image, submits the latest version, and returns the Trace to **Pending review** with editing and uploads locked again.
+
+Stale edits and uncertain writes require an explicit reload/status check before retrying. Previous decisions and feedback remain in moderation history, and reviewers see **Previous review feedback** alongside a resubmitted Trace. Authors read feedback through an owner-authorized endpoint, not staff routes. No database migration is required; member notifications remain a separate integration task.
+
 ### Manage saved photos
 
-On a draft's detail page, use **Photos → Choose a photo → Upload photo** to add more JPEG, PNG or WebP images, one at a time. Files must be non-empty and at most 20 MB each. The backend validates file signatures and ownership. Both initial-form and detail-page uploads use the same [upload rate limit](#rate-limits).
+On a Draft or Needs revision detail page, use **Photos → Choose a photo**, then **Submit for review** or **Resubmit for review**. That single action uploads the selected photo and submits the Trace. There is no separate Upload photo button. Selecting or clearing a file does not upload it, and leaving or reloading the page discards the selection. Files must be non-empty and at most 20 MB each. The backend validates file signatures and ownership. Both initial-form and detail-page uploads use the same [upload rate limit](#rate-limits).
 
 Uploads go through the authenticated API into private Supabase Storage. A progress indicator remains visible while uploading and attaching; it does not estimate a percentage. Saved previews use short-lived signed URLs. If a preview fails or expires, **Reload photo** requests a fresh link. Approved Trace details display photos without upload or removal controls.
 
 **Remove photo** immediately detaches it from the draft. Adding or removing an attachment increases the Trace version. Physical removal of detached Storage objects remains a maintenance task in the existing backend; the frontend action removes the attachment from the Trace.
 
-If the file uploads but attaching it fails, **Retry attachment** checks saved attachments and reuses the existing upload path. If the outcome of a write is uncertain, use **Reload saved attachments** and check the photos before uploading again. Recovery paths and selected files are kept only while the page remains open; they are not restored after a reload.
+If the file uploads but attaching it fails, click **Submit for review** again. It checks saved attachments and reuses the existing upload path before submitting, without uploading the file bytes again. If the outcome of a write is uncertain, use **Reload saved attachments** and check the photos before trying again. This clears the local file selection to prevent accidentally uploading it twice; select it again only if it is missing. Recovery paths and selected files are kept only while the page remains open; they are not restored after a reload.
+
+### Submit a Trace for review
+
+Open your saved draft from My Contributions and use **Submit for review**. Missing title, description, location, category or photo information is shown inline when you try to submit; there is no readiness checklist. A valid selected photo satisfies the local photo requirement. The app checks the saved text and category, uploads the selected photo, reloads the updated Trace version, then submits. If upload fails, the Trace remains editable and is not submitted; resolve the photo error before retrying. If upload succeeds but submission fails, retrying submission reuses the attached photo.
+
+The app reloads the draft and active categories before submitting, then sends only its latest version to `POST /api/traces/:id/submit`. If another tab changed the text, the updated details appear for you to review before trying again. Concurrent attachment changes and duplicate submission clicks are blocked locally; database version checks protect against changes from other tabs.
+
+Successful submission changes the status to **Pending review** and removes editing/upload controls. Pending Traces stay in My Contributions and remain outside the approved archive. Saving a draft still does not submit it automatically. A version conflict or uncertain submission response requires **Reload saved Trace** to check the current status before retrying; submission is never automatically replayed.
+
+### Review submissions as staff
+
+Moderators open **Review Traces** at `/moderator/review`; admins can use `/admin/review`. The queue loads real Pending records, with refresh and pagination. Open a record to inspect its saved title, author, category, location, description and signed photo previews. Detail URLs work directly after reload. The moderator dashboard's oldest pending cards also use this live queue; its count is the number shown (up to four), not a total. Other dashboard statistics remain demos.
+
+Choose **Approve & publish**, **Request revision**, or **Reject**. Feedback is required for revision and rejection. Approval makes the Trace eligible for the public archive; revision changes its status to Needs revision; rejection is final and retains the record in the author's contributions. Authors see the new status when they reopen or refresh their contributions. Reviewers cannot decide their own submissions.
+
+Decisions use the version shown during review. While saving, all decision buttons are disabled. A conflict or uncertain response requires **Reload Trace** before retrying; copy any feedback you want to keep first. Decisions are never automatically replayed. After a saved decision, return to the queue for refreshed results or open **Moderation history** to see the saved action, reviewer, feedback and timestamp. History is paginated and includes report resolutions recorded by the backend.
+
+The database records the decision and creates the author's review notification in the same workflow. Revision editing/resubmission and feedback are connected; member notifications are not connected yet. Staff screens support photo previews; video playback remains deferred.
 
 ### Verify against your Supabase project
 
@@ -181,18 +209,36 @@ Automated tests cover Trace reads, draft creation/editing, version conflicts, in
 With a signed-in development account:
 
 1. Save a category-only draft and find it in My Contributions. Reload its detail, edit its text, save and reload again.
-2. Create another draft with a selected photo. Verify that its detail shows the saved photo after reloading.
-3. Add another photo from the saved detail, edit/save the text afterward, then remove an attachment and reload to confirm the change.
+2. Choose a photo on the initial form and click **Save draft**. Confirm only the text/category are saved and no photo is attached. Complete the saved draft, choose a photo and click **Submit for review**; verify the photo and Pending status remain after reload.
+3. Use **Submit Trace** on a complete initial form with a photo. Verify a single Trace is created, its photo is attached, and its status is Pending. Request revision as a reviewer, then remove or select a replacement photo as the author and resubmit. Confirm the same Trace and updated photo persist.
 4. Open the same draft in two tabs and save different text edits. Confirm the second save reports a version conflict instead of overwriting the first.
 5. Confirm drafts are absent from the approved archive and another member cannot read or edit your draft.
 
-Live draft-write and photo-upload verification still needs a signed-in account against the configured development project.
+Also submit a complete draft and confirm that it remains Pending after reload, cannot be edited or receive uploads, and is absent from the approved archive. Test a second tab changing the record during submission to verify the conflict/reload behavior.
+
+Using a separate moderator or admin account, open a Pending Trace, inspect the photo, save a decision, then check history. With the author account, reload the contribution to verify its status; approval should also make the Trace appear in the archive. For a revision request, use the author account to read feedback, save text changes, reload, select a replacement photo if needed, and resubmit the same Trace; the reviewer should see the previous feedback when reopening it. Also test rejection, self-review denial and a second reviewer deciding the same version.
+
+Live draft-write, photo-upload, submission and moderation verification still needs a signed-in account against the configured development project.
 
 ## Remaining integration
 
-The next Trace feature is **Submit for review**. Its backend workflow already exists, but the frontend action is not connected. It must require the necessary text fields, an active category and at least one attached image before changing a Trace from Draft to Pending.
+Follow this order. Steps 2–8 are planned work, not completed integrations.
 
-Revision-request editing/resubmission, video uploads/playback, comments, map pinning, dashboard statistics, moderation and other actions still need frontend integration. Dashboard demo state does not reflect saved Trace activity yet. Hosted email delivery also needs validation against the configured Supabase project. Lesson progress, expanded profile preferences and other features absent from the current schema remain deferred; see the [backend guide](server/README.md) for details.
+1. **Verify the complete Trace workflow against live Supabase.** Start `npm run dev:server` and `npm run dev` in separate terminals; open `http://localhost:5173`. Use an author and a separate moderator/admin account. Follow the verification steps above: save details only, submit with a photo, request revision, edit/resubmit, approve, and reload after each stage. Verify ownership restrictions and that only approved records reach the archive. Keep RLS enabled. Automated mocks do not replace this check.
+
+2. **Connect member notifications.** Replace demo data in `Notifications.jsx` with paginated `GET /api/notifications` results. Map persisted `message`, `created_at`, and `read_at` to the UI. Use `POST /api/notifications/read` with `{ "ids": ["notification-uuid"] }` for individual reads or `{ "ids": null }` for all owned notifications; a successful response is 204. Refresh the list and navbar unread indicator after writes. If the badge needs a total across all pages, add an owner-scoped count endpoint rather than counting one page. Add an authorized Trace destination to the API response if needed for links to feedback. Verify that a review decision appears only for its recipient and that read state survives reload.
+
+3. **Connect Tides reading.** Replace the demo `tides` array in `Tides.jsx` and `ViewTide.jsx` with `GET /api/tides` and `GET /api/tides/:id`. Render saved `title` and `body`, plus real loading, empty, not-found and retry states. Start with plain text and preserved line breaks; introduce a safe Markdown renderer only if formatted lessons are required. Use published records only. The current schema has no duration, module, or learner-progress fields, so remove those mock values or explicitly add schema support. Hide Continue learning and Mark as complete until step 5. Verify a published lesson opens by direct URL after reload while drafts and archived lessons remain inaccessible to members.
+
+4. **Connect admin Tides authoring and publication.** Replace demo mutations in `ManageTides.jsx` with `GET /api/admin/tides`, `POST /api/admin/tides`, and `PUT /api/admin/tides/:id`. Build fields for `title`, unique lowercase-hyphenated `slug`, `body`, and `status` (`draft`, `published`, `archived`). Add Save draft, Publish, Return to draft and Archive actions, with inline errors and disabled controls while saving. Publication status must come from `status`, never learner completion. Publishing requires non-empty content. Support direct editor URLs with an admin-authorized detail read if added. Verify that draft content is private, publishing exposes the saved lesson, and returning it to draft or archiving removes member access. Include duplicate-slug and non-admin write tests. Plan version conflict protection before allowing simultaneous editors.
+
+5. **Persist Tides learning progress.** Add a new incremental migration for a progress table keyed by `(user_id, tide_id)`, with completion state and timestamps, foreign keys, and RLS restricting reads/writes to the signed-in learner. Add authenticated read and idempotent update endpoints that also verify the lesson is accessible. Connect Mark as complete and Continue learning to those records. For an MVP, use not-started/in-progress/completed states; do not display invented percentages without defined lesson sections. Verify persistence across reloads/devices, no duplicate completion rows, and isolation between users. Do not rerun or replace the original schema migration.
+
+6. **Connect comments, reports and their moderation.** Connect Trace comments to the existing `GET/POST /api/traces/:id/comments` routes with pagination, inline errors and duplicate-click protection. Connect report forms to `POST /api/reports`, requiring exactly one Trace or comment target and a reason. Then connect staff report queues and decisions to the moderation API; add any missing comment-management endpoints before wiring their buttons. Verify permissions, hidden-content behavior, saved reasons and audit history. Launch community posting together with working reporting/moderation.
+
+7. **Replace remaining dashboard and administration demos.** Connect member contribution totals, reviewer queue totals and admin summaries to authorized aggregate queries/endpoints. Do not calculate totals from a paginated list. Connect profile editing, category management and account/moderator administration to existing APIs, adding missing operations deliberately. Verify role restrictions, reload persistence and session changes after account suspension or role updates. Remove demo notices only from features that actually use saved records.
+
+8. **Prepare the MVP for deployment.** Configure and test email confirmation/recovery for ordinary users, production frontend/API URLs, allowed origins and Auth redirects. Run the full automated suite, production build and signed-in smoke checks for each role against a development/staging project before release. Set up monitoring and a deliberate cleanup process for orphaned/detached Storage files. Map pinning, video playback/uploads, quizzes and MFA can remain later work unless they become release requirements.
 
 ## User Flow Diagram ##
 <img width="10471" height="5822" alt="Tide Trace_userflow" src="https://github.com/user-attachments/assets/c45946a1-d19d-4206-ac75-3bc93f1c68ca" />

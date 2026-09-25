@@ -26,6 +26,7 @@ const modLinks = [
 ];
 
 const adminLinks = [
+  { to: "/admin/review", label: "Review Traces" },
   { to: "/admin/dashboard", label: "Dashboard" },
   { to: "/admin/users", label: "Users" },
   { to: "/admin/moderators", label: "Moderators" },

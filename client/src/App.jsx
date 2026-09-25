@@ -22,7 +22,7 @@ import Notifications from "./pages/user/notifications/Notifications.jsx";
 import Profile from "./pages/user/profile/Profile.jsx";
 
 import ModDashboard from "./pages/moderator/Dashboard.jsx";
-import ReviewTraces from "./pages/moderator/ReviewTraces.jsx";
+import ReviewTraces, { ModerationHistory } from "./pages/moderator/ReviewTraces.jsx";
 import ManageComments from "./pages/moderator/ManageComments.jsx";
 import ManageReports from "./pages/moderator/ManageReports.jsx";
 
@@ -315,7 +315,7 @@ function AppShell() {
       <Navbar />
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
-      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving and photo uploads use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
+      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission and Trace moderation use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
       <main>
         <Routes>
           <Route path="/" element={<div className="view"><Home /></div>} />
@@ -339,6 +339,11 @@ function AppShell() {
 
           <Route path="/moderator/dashboard" element={<RequireRole role="mod"><div className="view"><ModDashboard /></div></RequireRole>} />
           <Route path="/moderator/review" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
+          <Route path="/moderator/review/history" element={<RequireRole role="mod"><div className="view"><ModerationHistory /></div></RequireRole>} />
+          <Route path="/moderator/review/:id" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
+          <Route path="/admin/review" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
+          <Route path="/admin/review/history" element={<RequireRole role="admin"><div className="view"><ModerationHistory /></div></RequireRole>} />
+          <Route path="/admin/review/:id" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
           <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
           <Route path="/moderator/reports" element={<RequireRole role="mod"><div className="view"><ManageReports /></div></RequireRole>} />
 

@@ -96,7 +96,7 @@ it("restores a contribution detail directly using the owner-scoped endpoint", as
 });
 
 it("handles inaccessible contribution details without showing a mock submission", async () => {
-  setup((url) => url.startsWith("/api/contributions/") ? failure(404) : undefined);
+  setup((url) => (url.startsWith("/api/contributions/") && !url.includes("/reviews?")) ? failure(404) : undefined);
   open(`/user/contributions/${trace().id}`);
   expect((await screen.findByRole("alert")).textContent).toMatch(/could not be found/);
   expect(screen.queryByText("Saved description")).toBeNull();

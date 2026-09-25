@@ -33,7 +33,7 @@ The API listens at `http://127.0.0.1:3001/api`. The frontend stays on port **517
 
 ## API conventions
 
-The frontend's archive and contribution pages now consume `GET /api/categories`, `GET /api/traces`, `GET /api/traces/:id`, `GET /api/contributions`, and `GET /api/contributions/:id`. Requests use the current access token, renew an expiring session, and discard results after navigation or account changes. Category filters use category UUIDs. Public detail and private owner-scoped detail remain separate. These pages are read-only; submission/edit/upload/moderation UI integration is still pending.
+The frontend's archive and contribution pages now consume `GET /api/categories`, `GET /api/traces`, `GET /api/traces/:id`, `GET /api/contributions`, and `GET /api/contributions/:id`. Requests use the current access token, renew an expiring session, and discard results after navigation or account changes. Category filters use category UUIDs. Public detail and private owner-scoped detail remain separate. Member draft creation/editing, photo uploads/removal, signed previews and submission for review are connected. The form offers primary Submit Trace and secondary Save draft actions with inline validation; the submit action saves first, uploads selected evidence, then submits, while draft saving permits unfinished details. Submission reloads the owner-scoped record and active categories, validates required text and an attached image, and sends the current version without replaying failed writes. Authors can save edits and change photos on Draft and Needs revision records; saving preserves the current status. Resubmission returns Needs revision to Pending. Authors and staff can read per-Trace review feedback through separate authorized routes. Staff queue/detail pages, decisions and moderation history now consume the moderation API; report/comment moderation screens remain demos.
 
 - Successful JSON responses use `{ "data": ... }`. Deletes, logout, password changes and void workflow operations return HTTP 204.
 - Failures use `{ "error": { "code", "message", "request_id", "details"? } }`. Validation details identify invalid fields. Internal Supabase payloads and credentials are not returned.
@@ -97,6 +97,7 @@ const { data: profile } = await profileResponse.json();
 | `GET /api/tides` / `GET /api/tides/:id` | Published learning content. |
 | `PATCH /api/profile` | Member: `display_name`. |
 | `GET /api/contributions` / `GET /api/contributions/:id` | Member: own submissions, including drafts/rejected items. |
+| `GET /api/contributions/:id/reviews` | Member: paginated review decisions and feedback for an owned Trace, newest first. |
 | `POST /api/traces` | Member: create a draft. |
 | `PUT /api/traces/:id` | Member: replace editable draft fields, including current `version`. |
 | `POST /api/traces/:id/submit` | Member: `version`; submit a draft or requested revision. |
@@ -139,10 +140,12 @@ The existing database permits both moderators and admins to review content. Memb
 | Method and path | Body / purpose |
 | --- | --- |
 | `GET /api/moderation/traces` | Filter by `status` (default `pending`). Includes private review data. |
+| `GET /api/moderation/traces/:id` | Staff: saved Trace detail with category, author and media; excludes hidden/deleted records. |
+| `GET /api/moderation/traces/:id/reviews` | Staff: paginated previous review decisions and feedback for the visible Trace. |
 | `POST /api/moderation/traces/:id/decision` | `version, decision, reason`; decision is `approved`, `rejected` or `revision_requested`. Non-approval needs feedback. |
 | `GET /api/moderation/reports` | Filter by `status` (default `open`). Includes reported comment/Trace details. |
 | `POST /api/moderation/reports/:id/resolve` | `remove_content` boolean and `reason`; hide content and resolve, or dismiss. |
-| `GET /api/moderation/history` | Moderation audit history. |
+| `GET /api/moderation/history` | Moderation audit history, including available Trace titles and reviewer display names. |
 | `GET /api/admin/users` | Admin: current profiles, roles and statuses; no Auth credentials. |
 | `PATCH /api/admin/users/:id` | Admin: `role, status, reason`; promote existing accounts or suspend/reactivate them. |
 | `GET /api/admin/audit-logs` | Admin: account role/status audit trail. |

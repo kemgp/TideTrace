@@ -2,13 +2,17 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import TraceStatusBadge from "../../components/TraceStatusBadge.jsx";
+import useRemoteData from "../../hooks/useRemoteData.js";
+import { displayTrace } from "../../api/data.js";
+import RemoteState from "../../components/RemoteState.jsx";
 import Button from "../../components/Button.jsx";
 
 export default function Dashboard() {
-  const { profile, traces, comments, reports } = useApp();
+  const { profile, comments, reports } = useApp();
   const navigate = useNavigate();
 
-  const pending = traces.filter((t) => t.status === "pending");
+  const result = useRemoteData("moderation/traces?status=pending&limit=4&offset=0", { collection: true });
+  const pending = (result.data || []).map(displayTrace);
   const flagged = comments.filter((c) => c.status === "open").length;
   const openReports = reports.filter((r) => r.status === "open").length;
   const oldest = pending.slice(0, 4);
@@ -27,7 +31,7 @@ export default function Dashboard() {
       </div>
 
       <div className="g4" style={{ marginTop: 16 }}>
-        <div className="stat"><b>{pending.length}</b><span>pending traces</span></div>
+        <div className="stat"><b>{result.loading || result.error ? "—" : pending.length}</b><span>pending shown (up to 4)</span></div>
         <div className="stat"><b>{flagged}</b><span>flagged comments</span></div>
         <div className="stat"><b>{openReports}</b><span>open reports</span></div>
         <div className="stat"><b>6</b><span>reviewed today</span></div>
@@ -40,16 +44,17 @@ export default function Dashboard() {
       </div>
 
       <h3 className="sec-t">Oldest in the queue</h3>
+      <RemoteState {...result} />
       <div className="card">
-        {oldest.length ? oldest.map((t) => (
-          <div className="lrow click" key={t.id} onClick={() => navigate("/moderator/review", { state: { open: t.id } })}>
+        {!result.loading && !result.error && (oldest.length ? oldest.map((t) => (
+          <div className="lrow click" key={t.id} onClick={() => navigate(`/moderator/review/${encodeURIComponent(t.id)}`)}>
             <div className="grow">
               <div className="t">{t.title}</div>
               <div className="m"><span>{t.author}</span> · <span>{t.location}</span></div>
             </div>
             <TraceStatusBadge status={t.status} />
           </div>
-        )) : <p className="hint">Queue clear — nothing pending right now.</p>}
+        )) : <p className="hint">Queue clear — nothing pending right now.</p>)}
       </div>
     </div>
   );
