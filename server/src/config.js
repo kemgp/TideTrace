@@ -1,5 +1,8 @@
 export function readConfig(env = process.env) {
   const port = Number(env.PORT || 3001);
+  const proxyValue = env.TRUST_PROXY_HOPS || "0";
+  if (!/^\d+$/.test(proxyValue) || !Number.isSafeInteger(Number(proxyValue))) throw new Error("TRUST_PROXY_HOPS must be a non-negative integer");
+  const trustProxyHops = Number(proxyValue);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be between 1 and 65535");
   const url = env.SUPABASE_URL || "";
   const key = env.SUPABASE_PUBLISHABLE_KEY || "";
@@ -24,5 +27,5 @@ export function readConfig(env = process.env) {
     if (new URL(origin).origin !== origin) throw new Error("CLIENT_ORIGIN must contain comma-separated origins");
     return origin;
   });
-  return { port, host: env.HOST || "127.0.0.1", url: url.replace(/\/$/, ""), key, origins, configured: Boolean(url && key) };
+  return { port, host: env.HOST || "127.0.0.1", url: url.replace(/\/$/, ""), key, origins, trustProxyHops, configured: Boolean(url && key) };
 }

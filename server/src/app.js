@@ -13,8 +13,8 @@ export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
   const app = express();
   const gateway = createSupabase(config, fetchImpl);
   app.disable("x-powered-by");
-  // Do not trust arbitrary X-Forwarded-For headers for rate-limit identities.
-  app.set("trust proxy", false);
+  // Trust only the configured number of proxy hops, never the entire header chain.
+  app.set("trust proxy", config.trustProxyHops || false);
   app.use(security(config));
   app.get("/api/health", (req, res) => res.json({ data: { status: "ok", service: "tidetrace-api", configured: config.configured } }));
   app.use("/api", rateLimit({

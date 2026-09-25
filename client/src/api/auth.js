@@ -1,3 +1,5 @@
+import { apiUrl } from "./url.js";
+
 export const ROLE_HOME = { user: "/user/dashboard", mod: "/moderator/dashboard", admin: "/admin/dashboard" };
 const UI_ROLES = { user: "user", moderator: "mod", admin: "admin" };
 
@@ -13,7 +15,7 @@ export async function authRequest(path, { body, token, method = body === undefin
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    const response = await fetch(`/api/auth/${path}`, {
+    const response = await fetch(apiUrl(`auth/${path}`), {
       method,
       headers: {
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),

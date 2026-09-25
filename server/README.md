@@ -163,6 +163,11 @@ The existing schema does not persist lesson progress, barangay/profile preferenc
 
 ## Testing and deployment notes
 
+For the Vercel + Render setup using the existing Supabase project, follow
+[DEPLOYMENT.md](../DEPLOYMENT.md). Set `TRUST_PROXY_HOPS=1` behind Render's
+immediate reverse proxy and keep the default `0` for local direct connections.
+Reassess and verify the hop count if the network topology changes.
+
 ```sh
 npm test
 npm run build

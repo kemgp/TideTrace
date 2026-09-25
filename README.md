@@ -14,6 +14,9 @@ TideTrace is a community conservation application with a React frontend and a No
 
 ## Getting started
 
+For Vercel frontend + Render API deployment using the existing shared Supabase
+project, see [the deployment guide](DEPLOYMENT.md).
+
 Use Node.js 22.12+ (or a newer supported Node release). Install dependencies from the repository root:
 
 ```sh
@@ -126,7 +129,7 @@ The general API limit also applies to requests covered by a more specific limit.
 
 Draft saves have no separate limit beyond the general API budget. Retrying attachment of an already uploaded file, removing an attachment, and requesting a photo preview also use the general budget; they do not consume the file-upload budget. Supabase email quotas and other upstream limits are separate from these application limits.
 
-Counters are stored in server memory, reset on restart, and are not shared across server instances. Multi-instance deployment requires a shared rate-limit store. The server currently does not trust forwarded IP headers; deployment behind a proxy requires explicit trusted-proxy configuration so client addresses are identified correctly. These limits protect this API, not requests sent directly to Supabase. See the [backend setup guide](server/README.md) for deployment details.
+Counters are stored in server memory, reset on restart, and are not shared across server instances. Multi-instance deployment requires a shared rate-limit store. Forwarded IP headers are ignored by default; set `TRUST_PROXY_HOPS` to the verified proxy hop count for your deployment (`1` for the immediate Render proxy, `0` locally). These limits protect this API, not requests sent directly to Supabase. See the [deployment guide](DEPLOYMENT.md) for details.
 
 ## Environment and live read checks
 

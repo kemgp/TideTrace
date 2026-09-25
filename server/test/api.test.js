@@ -52,6 +52,18 @@ test("config refuses privileged keys and insecure remote URLs", () => {
   assert.throws(() => readConfig({ PORT: "bad" }), /PORT/);
 });
 
+test("proxy configuration trusts only the immediate hop and defaults to direct connections", () => {
+  for (const invalid of ["true", "-1", "1.5", "Infinity"]) {
+    assert.throws(() => readConfig({ TRUST_PROXY_HOPS: invalid }), /TRUST_PROXY_HOPS/);
+  }
+  const direct = createApp({ config: readConfig({}) });
+  assert.equal(direct.get("trust proxy"), false);
+  const app = createApp({ config: readConfig({ TRUST_PROXY_HOPS: "1" }) });
+  const trust = app.get("trust proxy fn");
+  assert.equal(trust("127.0.0.1", 0), true);
+  assert.equal(trust("203.0.113.1", 1), false);
+});
+
 test("signup forwards only supported account fields and never a role", async () => {
   const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/auth/v1/signup" ? json({ id: userId, email: "member@example.test" }) : undefined });
   const body = { display_name: "Member", email: "member@example.test", password: "long-password" };

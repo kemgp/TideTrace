@@ -1,4 +1,5 @@
 import { ApiError } from "./auth.js";
+import { apiUrl } from "./url.js";
 
 export function getData(path, options) {
   return requestData(path, options);
@@ -11,7 +12,7 @@ export async function requestData(path, { token, signal, method = "GET", body, f
   if (signal?.aborted) abort();
   const timeout = setTimeout(abort, file ? 120000 : 20000);
   try {
-    const response = await fetch(`/api/${path}`, {
+    const response = await fetch(apiUrl(path), {
       method, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(file ? { "Content-Type": file.type } : body !== undefined ? { "Content-Type": "application/json" } : {}) },
       ...(file ? { body: file } : body !== undefined ? { body: JSON.stringify(body) } : {}), signal: controller.signal, cache: "no-store",
     });
