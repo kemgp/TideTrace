@@ -29,6 +29,7 @@ import ManageReports from "./pages/moderator/ManageReports.jsx";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import ManageUsers from "./pages/admin/ManageUsers.jsx";
 import ManageModerators from "./pages/admin/ManageModerators.jsx";
+import EditTide from "./pages/admin/EditTide.jsx";
 import ManageTides from "./pages/admin/ManageTides.jsx";
 import ManageCategories from "./pages/admin/ManageCategories.jsx";
 
@@ -315,7 +316,7 @@ function AppShell() {
       <Navbar />
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
-      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission, Trace moderation and member notifications use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
+      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission, Trace moderation, member notifications and Tides lessons use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
       <main>
         <Routes>
           <Route path="/" element={<div className="view"><Home /></div>} />
@@ -351,6 +352,8 @@ function AppShell() {
           <Route path="/admin/users" element={<RequireRole role="admin"><div className="view"><ManageUsers /></div></RequireRole>} />
           <Route path="/admin/moderators" element={<RequireRole role="admin"><div className="view"><ManageModerators /></div></RequireRole>} />
           <Route path="/admin/tides" element={<RequireRole role="admin"><div className="view"><ManageTides /></div></RequireRole>} />
+          <Route path="/admin/tides/new" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
+          <Route path="/admin/tides/:id/edit" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
           <Route path="/admin/categories" element={<RequireRole role="admin"><div className="view"><ManageCategories /></div></RequireRole>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

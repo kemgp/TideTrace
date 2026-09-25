@@ -153,7 +153,9 @@ The existing database permits both moderators and admins to review content. Memb
 | `GET /api/admin/categories` | Admin: includes inactive categories. |
 | `POST /api/admin/categories` / `PUT /api/admin/categories/:id` | Admin: `name`, optional `description, is_active`; deactivate rather than delete. |
 | `GET /api/admin/tides` | Admin: includes drafts and archived learning content. |
-| `POST /api/admin/tides` / `PUT /api/admin/tides/:id` | Admin: `title, slug, body, status` (`draft`, `published`, `archived`). |
+| `GET /api/admin/tides/:id` | Admin-only lesson detail, including draft and archived content. |
+| `POST /api/admin/tides` | Admin: `title, slug, body, status` (`draft`, `published`, `archived`). |
+| `PUT /api/admin/tides/:id` | Same fields plus required `updated_at` from the last saved read. Atomic timestamp filtering rejects stale/missing records with 409 `STALE_VERSION`. |
 | `GET /api/admin/settings` | Admin: settings. |
 | `POST /api/admin/settings` | Admin: `key, value`; create configuration. |
 | `PUT /api/admin/settings/:key` | Admin: `value`; update configuration. |
@@ -181,3 +183,7 @@ The server defaults to loopback. Set `HOST` explicitly for your deployment and e
 Limits per IP: 300 API requests/minute, 30 authentication attempts/15 minutes, 120 session-maintenance requests (`/me`, `/refresh`, `/logout`)/15 minutes, and 20 uploads/15 minutes. Session maintenance has a separate budget so routine checks do not exhaust login/email attempts. Counters are in memory and reset on restart. Configure an external rate-limit store for multiple instances and explicit trusted proxy hops for your deployment; arbitrary `X-Forwarded-For` headers are not trusted. Supabase's direct endpoints also need their own Auth/Storage abuse controls because clients can contact them independently.
 
 Implementation references: [Supabase Auth REST endpoints](https://github.com/supabase/auth#endpoints), [client initialization and session settings](https://supabase.com/docs/reference/javascript/initializing), [row-level security](https://supabase.com/docs/guides/database/postgres/row-level-security), [private Storage access](https://supabase.com/docs/guides/storage/serving/downloads).
+
+### Tides integration verification
+
+`npm run verify:tides` checks the configured project's published lesson reads and anonymous admin-route restrictions without writing records. Set an existing short-lived `TIDETRACE_VERIFY_ACCESS_TOKEN` only in the environment to additionally verify admin/non-admin reads. No new migration is required for the lesson editor: existing RLS, publication and `updated_at` triggers are used. Tides creation/update still uses the caller JWT, never a service-role key. Duplicate slugs return 409 `ALREADY_EXISTS`; publication requires non-empty content. Learning progress, lesson images and rich formatting are not implemented.

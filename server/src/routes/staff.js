@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware.js";
-import { first, result } from "../errors.js";
+import { first, result, HttpError } from "../errors.js";
 import { category, decision, page, paginate, text, tide, uuid } from "../validation.js";
 import { reviewSelect, traceSelect } from "./content.js";
 
@@ -54,6 +54,9 @@ export function adminRoutes(gateway) {
   router.get("/audit-logs", async (req, res) => {
     res.json({ data: await result(paginate(req.db.from("admin_audit_logs").select("*").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
   });
+  router.get("/tides/:id", async (req, res) => {
+    res.json({ data: first(await result(req.db.from("tides").select("*").eq("id", uuid.parse(req.params.id)).limit(1))) });
+  });
   for (const [resource, schema] of [["categories", category], ["tides", tide]]) {
     router.get(`/${resource}`, async (req, res) => {
       res.json({ data: await result(paginate(req.db.from(resource).select("*").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
@@ -62,6 +65,13 @@ export function adminRoutes(gateway) {
       res.status(201).json({ data: first(await result(req.db.from(resource).insert(schema.parse(req.body)).select())) });
     });
     router.put(`/${resource}/:id`, async (req, res) => {
+      if (resource === "tides") {
+        const { updated_at, ...fields } = req.body || {};
+        const expected = z.iso.datetime({ offset: true }).parse(updated_at);
+        const rows = await result(req.db.from(resource).update(schema.parse(fields)).eq("id", uuid.parse(req.params.id)).eq("updated_at", expected).select());
+        if (!rows?.length) throw new HttpError(409, "STALE_VERSION", "This lesson changed or is no longer available. Reload it before retrying.");
+        return res.json({ data: first(rows) });
+      }
       res.json({ data: first(await result(req.db.from(resource).update(schema.parse(req.body)).eq("id", uuid.parse(req.params.id)).select())) });
     });
   }

@@ -2,19 +2,17 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import TraceCard from "../../components/TraceCard.jsx";
-import TideCard from "../../components/TideCard.jsx";
 import Card from "../../components/Card.jsx";
 import Button from "../../components/Button.jsx";
 
 export default function Dashboard() {
-  const { profile, traces, tides } = useApp();
+  const { profile, traces } = useApp();
   const navigate = useNavigate();
 
   const mine = traces.filter((t) => t.author === "Ana Ramos");
   const approved = mine.filter((t) => t.status === "approved").length;
   const review = mine.filter((t) => t.status === "pending").length;
   const recent = traces.slice(0, 3);
-  const inProgress = tides.filter((t) => t.progress > 0 && t.progress < 100);
 
   return (
     <div className="wrap">
@@ -39,15 +37,6 @@ export default function Dashboard() {
         <Button variant="clay" onClick={() => navigate("/user/traces/upload")}>＋ Upload Trace</Button>
         <Button variant="outline" onClick={() => navigate("/user/traces")}>Explore Traces</Button>
       </div>
-
-      <h3 className="sec-t">Continue learning</h3>
-      {inProgress.length > 0 ? (
-        <div className="g3">
-          {inProgress.map((t) => <TideCard key={t.id} tide={t} />)}
-        </div>
-      ) : (
-        <p className="hint">You're all caught up — visit Tides to start a new lesson.</p>
-      )}
 
       <h3 className="sec-t">Go to</h3>
       <Card>

@@ -561,3 +561,82 @@ test("staff can read prior review decisions while members cannot use staff feedb
   assert.equal(queries[0].get("deleted_at"), "is.null");
   assert.equal(queries[1].get("trace_id"), `eq.${traceId}`);
 });
+
+const tideId = "50000000-0000-4000-8000-000000000001";
+const lesson = { title: "How to Submit a Useful Trace", slug: "how-to-submit-a-useful-trace", body: "Describe what you observed.", status: "draft" };
+
+test("Tides admin create, publish, unpublish and archive use saved records and publication filters", async () => {
+  let saved;
+  let revision = 0;
+  const { app, calls } = fixture({ role: "admin", handler: ({ url, method, body }) => {
+    if (url.pathname !== "/rest/v1/tides") return;
+    if (method === "POST") { saved = { ...body, id: tideId, updated_at: `2026-09-25T00:00:0${++revision}.000Z` }; return json([saved], 201); }
+    if (method === "PATCH") {
+      if (url.searchParams.get("updated_at") !== `eq.${saved.updated_at}`) return json([]);
+      saved = { ...saved, ...body, updated_at: `2026-09-25T00:00:0${++revision}.000Z` }; return json([saved]);
+    }
+    return json(saved && (!url.searchParams.has("status") || url.searchParams.get("status") === `eq.${saved.status}`) ? [saved] : []);
+  } });
+  await bearer(request(app).post("/api/admin/tides")).send(lesson).expect(201);
+  await bearer(request(app).get(`/api/admin/tides/${tideId}`)).expect(200);
+  await request(app).get(`/api/tides/${tideId}`).expect(404);
+  assert.deepEqual((await request(app).get("/api/tides").expect(200)).body.data, []);
+  for (const status of ["published", "draft", "published", "archived"]) {
+    const expected = saved.updated_at;
+    const response = await bearer(request(app).put(`/api/admin/tides/${tideId}`)).send({ ...lesson, status, updated_at: expected }).expect(200);
+    assert.equal(response.body.data.status, status);
+    await request(app).get(`/api/tides/${tideId}`).expect(status === "published" ? 200 : 404);
+    const list = await request(app).get("/api/tides?limit=25&offset=0").expect(200);
+    assert.equal(list.body.data.length, status === "published" ? 1 : 0);
+  }
+  for (const call of calls.filter((call) => call.method === "PATCH")) {
+    assert.equal(call.headers.get("authorization"), "Bearer member-token");
+    assert.equal(call.url.searchParams.get("id"), `eq.${tideId}`);
+    assert.equal(Object.hasOwn(call.body, "updated_at"), false);
+  }
+});
+
+test("Tides admin reads and writes deny anonymous, member and moderator access", async () => {
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ role });
+    await request(app).get(`/api/admin/tides/${tideId}`).expect(401);
+    await request(app).post("/api/admin/tides").send(lesson).expect(401);
+    await bearer(request(app).get("/api/admin/tides")).expect(403);
+    await bearer(request(app).get(`/api/admin/tides/${tideId}`)).expect(403);
+    await bearer(request(app).post("/api/admin/tides")).send(lesson).expect(403);
+    await bearer(request(app).put(`/api/admin/tides/${tideId}`)).send({ ...lesson, updated_at: "2026-09-25T00:00:00Z" }).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+});
+
+test("Tides validate publication, slugs, timestamps and extra fields before writing", async () => {
+  const { app, calls } = fixture({ role: "admin" });
+  for (const fields of [{ body: " ", status: "published" }, { slug: "Bad Slug" }, { title: " " }, { status: "unknown" }, { author_id: userId }]) {
+    await bearer(request(app).post("/api/admin/tides")).send({ ...lesson, ...fields }).expect(400);
+  }
+  await bearer(request(app).put(`/api/admin/tides/${tideId}`)).send(lesson).expect(400);
+  await bearer(request(app).put(`/api/admin/tides/${tideId}`)).send({ ...lesson, updated_at: "bad" }).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("Tides rejects stale updates instead of overwriting another editor", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([]) : undefined });
+  const response = await bearer(request(app).put(`/api/admin/tides/${tideId}`)).send({ ...lesson, updated_at: "2026-09-25T00:00:00Z" }).expect(409);
+  assert.equal(response.body.error.code, "STALE_VERSION");
+  assert.equal(businessCalls(calls)[0].url.searchParams.get("updated_at"), "eq.2026-09-25T00:00:00Z");
+});
+
+test("Tides duplicate slugs return a conflict without exposing database details", async () => {
+  const { app } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json({ code: "23505", message: "duplicate key" }, 409) : undefined });
+  const response = await bearer(request(app).post("/api/admin/tides")).send(lesson).expect(409);
+  assert.equal(response.body.error.code, "ALREADY_EXISTS");
+});
+
+test("Tides public detail always filters published status, including for admins", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([]) : undefined });
+  await bearer(request(app).get(`/api/tides/${tideId}`)).expect(404);
+  const query = calls.find((call) => call.url.pathname === "/rest/v1/tides").url.searchParams;
+  assert.equal(query.get("status"), "eq.published");
+  assert.equal(query.get("id"), `eq.${tideId}`);
+  await request(app).get("/api/tides?status=draft").expect(400);
+});

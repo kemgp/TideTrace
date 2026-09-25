@@ -9,6 +9,7 @@
     "start:server": "npm run start --workspace=server --",
     "test": "npm run test --workspace=server && npm run test --workspace=client",
     "verify:reads": "npm run verify:reads --workspace=server",
+    "verify:tides": "npm run verify:tides --workspace=server",
     "build": "npm run build --workspace=client --",
     "preview": "npm run preview --workspace=client --"
   }
