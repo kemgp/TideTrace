@@ -235,6 +235,21 @@ test("reports require exactly one target; authors are database assigned", async 
   assert.deepEqual(businessCalls(calls)[0].body, { trace_id: traceId, reason: "Spam" });
 });
 
+test("notification unread count is authenticated, owner scoped, and counts only unread rows", async () => {
+  const { app, calls } = fixture({ handler: ({ url, method }) => {
+    if (url.pathname === "/rest/v1/notifications" && method === "HEAD") {
+      return new Response(null, { status: 200, headers: { "content-range": "0-0/37" } });
+    }
+  } });
+  await request(app).get("/api/notifications/unread-count").expect(401);
+  const response = await bearer(request(app).get("/api/notifications/unread-count")).expect(200);
+  assert.deepEqual(response.body.data, { count: 37 });
+  const call = calls.find(({ url }) => url.pathname === "/rest/v1/notifications");
+  assert.equal(call.url.searchParams.get("recipient_id"), `eq.${userId}`);
+  assert.equal(call.url.searchParams.get("read_at"), "is.null");
+  assert.equal(call.headers.get("prefer"), "count=exact");
+});
+
 test("notification updates call owner-scoped RPC, including explicit mark-all", async () => {
   const { app, calls } = fixture({ handler: ({ url }) => url.pathname.endsWith("/mark_notifications_read") ? json(null, 204) : undefined });
   await bearer(request(app).post("/api/notifications/read")).send({}).expect(400);

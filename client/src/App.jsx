@@ -315,7 +315,7 @@ function AppShell() {
       <Navbar />
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
-      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission and Trace moderation use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
+      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission, Trace moderation and member notifications use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
       <main>
         <Routes>
           <Route path="/" element={<div className="view"><Home /></div>} />

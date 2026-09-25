@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { ApiError, authRequest } from "../api/auth.js";
 import { createSessionManager } from "../api/session.js";
 import { getData, requestData } from "../api/data.js";
+import useNotifications from "../hooks/useNotifications.js";
 import {
   categories as seedCategories,
   users as seedUsers,
@@ -10,7 +11,6 @@ import {
   initialTides,
   initialComments,
   initialReports,
-  initialNotifications,
   initialHistory,
   initialLogs,
 } from "../data/mockData.js";
@@ -36,7 +36,6 @@ export function AppProvider({ children }) {
   const [tides, setTides] = useState(initialTides);
   const [comments, setComments] = useState(initialComments);
   const [reports, setReports] = useState(initialReports);
-  const [notifications, setNotifications] = useState(initialNotifications);
   const [history, setHistory] = useState(initialHistory);
   const [logs, setLogs] = useState(initialLogs);
   const [users, setUsers] = useState(seedUsers);
@@ -120,6 +119,8 @@ export function AppProvider({ children }) {
     return data;
   }, [sessions]);
 
+  const notificationState = useNotifications(role === "user" ? profile?.id : null, readData, writeData);
+
   const addTrace = useCallback((trace) => {
     const id = "t" + (Math.floor(Math.random() * 90000) + 10000);
     setTraces((prev) => [
@@ -158,10 +159,6 @@ export function AppProvider({ children }) {
 
   const resolveReport = useCallback((id, action) => {
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: action } : r)));
-  }, []);
-
-  const markAllNotificationsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
   }, []);
 
   const toggleTideProgress = useCallback((id, progress) => {
@@ -221,8 +218,7 @@ export function AppProvider({ children }) {
       resolveFlaggedComment,
       reports,
       resolveReport,
-      notifications,
-      markAllNotificationsRead,
+      ...notificationState,
       history,
       logs,
       users,
@@ -234,9 +230,9 @@ export function AppProvider({ children }) {
       addCategory,
     }),
     [
-      role, profile, sessionReady, sessionError, sessionNotice, retrySession, toast, traces, tides, comments, reports, notifications, history, logs, users, moderators, categories,
+      role, profile, sessionReady, sessionError, sessionNotice, retrySession, toast, traces, tides, comments, reports, notificationState, history, logs, users, moderators, categories,
       readData, writeData, login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
-      resolveFlaggedComment, resolveReport, markAllNotificationsRead, suspendUser, editUser, addModerator, addCategory,
+      resolveFlaggedComment, resolveReport, suspendUser, editUser, addModerator, addCategory,
     ]
   );
 

@@ -300,6 +300,14 @@ main{min-height:70vh;flex:1;}
 .nitem .tx{font-size:12px;font-weight:500;flex:1;}
 .nitem .tm{font-size:9.5px;color:var(--soft);margin-top:3px;}
 .udot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex:none;margin-top:6px;}
+.notification-item{cursor:default;transition:background-color .3s ease,border-color .3s ease,box-shadow .3s ease;box-shadow:inset 3px 0 transparent;}
+.notification-item.is-unread{background:#edf8f7;border-color:#a9d6d2;box-shadow:inset 3px 0 var(--teal);}
+.notification-item .nico{background:var(--bg);transition:background-color .3s ease;}
+.notification-item.is-unread .nico{background:#d5eeeb;}
+.notification-read-action{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,visibility 0s linear .25s;}
+.is-unread .notification-read-action{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .25s ease;}
+.notification-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+@media(prefers-reduced-motion:reduce){.notification-item,.notification-item .nico,.notification-read-action{transition:none;}}
 
 /* settings panes */
 .sgrid{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start;}

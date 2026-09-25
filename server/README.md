@@ -105,6 +105,7 @@ const { data: profile } = await profileResponse.json();
 | `POST /api/reports` | Member: `reason` and exactly one `trace_id` or `comment_id`. |
 | `GET /api/reports` | Member: own reports. |
 | `GET /api/notifications` | Member: own notifications. |
+| `GET /api/notifications/unread-count` | Member: exact count of own unread notifications across all pages. |
 | `POST /api/notifications/read` | Member: `ids` array, or explicit `ids: null` to mark all owned notifications read. |
 
 Draft fields: `title`, `description`, `category_id`, `location_name`, optional paired `latitude`/`longitude` (numbers or both null). `PUT` requires all those fields plus `version`. Do not supply author IDs, statuses, timestamps or audit fields. The database supplies these. A rejected Trace is final; it cannot be edited or resubmitted.

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware.js";
-import { first, result } from "../errors.js";
+import { first, result, upstreamError } from "../errors.js";
 import { coordinatePair, draft, page, paginate, report, text, uuid, version } from "../validation.js";
 
 export const reviewSelect = "id,from_state,to_state,reason,created_at";
@@ -81,6 +81,11 @@ export function contentRoutes(gateway) {
   });
   router.get("/notifications", member, async (req, res) => {
     send(res, await result(paginate(req.db.from("notifications").select("*").eq("recipient_id", req.user.id).order("created_at", { ascending: false }).order("id"), page.parse(req.query))));
+  });
+  router.get("/notifications/unread-count", member, async (req, res) => {
+    const { count, error } = await req.db.from("notifications").select("id", { count: "exact", head: true }).eq("recipient_id", req.user.id).is("read_at", null);
+    if (error) throw upstreamError(error);
+    send(res, { count });
   });
   router.post("/notifications/read", member, async (req, res) => {
     const input = z.object({ ids: z.array(uuid).min(1).max(100).nullable() }).strict().parse(req.body);

@@ -35,13 +35,13 @@ const adminLinks = [
 ];
 
 export default function Navbar() {
-  const { role, profile, logout, notifications } = useApp();
+  const { role, profile, logout, unreadNotificationCount } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   const links = role === "mod" ? modLinks : role === "admin" ? adminLinks : role === "user" ? userLinks : [];
-  const unread = notifications?.filter((n) => n.unread).length || 0;
+  const unread = unreadNotificationCount;
   const isAuthPage = ["/login", "/register", "/forgot-password"].includes(location.pathname);
   const avatarClass = role === "mod" ? "avatar-btn mod" : role === "admin" ? "avatar-btn admin" : "avatar-btn";
   const avatarLetter = profile?.display_name?.trim().charAt(0).toUpperCase() || "?";
@@ -59,7 +59,7 @@ export default function Navbar() {
           <ul className="nav-links">
             {links.map((l) => (
               <li key={l.to}>
-                <Link className={location.pathname === l.to ? "on" : ""} to={l.to} onClick={() => setOpen(false)}>
+                <Link aria-label={l.label === "Notifications" && unread > 0 ? `Notifications (${unread} unread)` : undefined} className={location.pathname === l.to ? "on" : ""} to={l.to} onClick={() => setOpen(false)}>
                   {l.label}
                   {l.label === "Notifications" && unread > 0 && <span className="nav-badge">{unread}</span>}
                 </Link>
