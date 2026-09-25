@@ -640,3 +640,99 @@ test("Tides public detail always filters published status, including for admins"
   assert.equal(query.get("id"), `eq.${tideId}`);
   await request(app).get("/api/tides?status=draft").expect(400);
 });
+test("Tide completion creates a completion for the authenticated user", async () => {
+  const completion = {
+    user_id: userId,
+    tide_id: tideId,
+    completed_at: "2026-09-25T10:00:00.000Z",
+  };
+
+  let inserted = false;
+
+  const { app, calls } = fixture({
+    handler: ({ url, method }) => {
+      if (url.pathname === "/rest/v1/tides") {
+        return json([{ id: tideId }]);
+      }
+
+      if (url.pathname === "/rest/v1/tide_completions") {
+        if (method === "GET") {
+          return json([]);
+        }
+
+        if (method === "POST") {
+          inserted = true;
+          return json([completion]);
+        }
+      }
+    },
+  });
+
+  const response = await bearer(
+    request(app).put(`/api/tides/${tideId}/completion`)
+  ).expect(201);
+
+  assert.deepEqual(response.body.data, completion);
+  assert.equal(inserted, true);
+
+  const insert = calls.find(
+    ({ url, method }) =>
+      url.pathname === "/rest/v1/tide_completions" &&
+      method === "POST"
+  );
+
+  assert.ok(insert);
+  assert.deepEqual(insert.body, {
+    user_id: userId,
+    tide_id: tideId,
+  });
+});
+
+
+test("Tide completion is idempotent and does not create a duplicate", async () => {
+  const completion = {
+    user_id: userId,
+    tide_id: tideId,
+    completed_at: "2026-09-25T10:00:00.000Z",
+  };
+
+  let inserted = false;
+
+  const { app, calls } = fixture({
+    handler: ({ url, method }) => {
+      if (url.pathname === "/rest/v1/tides") {
+        return json([{ id: tideId }]);
+      }
+
+      if (url.pathname === "/rest/v1/tide_completions") {
+        if (method === "GET") {
+          return json(inserted ? [completion] : []);
+        }
+
+        if (method === "POST") {
+          inserted = true;
+          return json([completion]);
+        }
+      }
+    },
+  });
+
+  const first = await bearer(
+    request(app).put(`/api/tides/${tideId}/completion`)
+  ).expect(201);
+
+  const second = await bearer(
+    request(app).put(`/api/tides/${tideId}/completion`)
+  ).expect(200);
+
+  assert.deepEqual(first.body.data, completion);
+  assert.deepEqual(second.body.data, completion);
+
+  const inserts = calls.filter(
+    ({ url, method }) =>
+      url.pathname === "/rest/v1/tide_completions" &&
+      method === "POST"
+  );
+
+  assert.equal(inserts.length, 1);
+});
