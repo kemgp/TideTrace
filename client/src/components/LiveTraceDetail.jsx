@@ -8,6 +8,8 @@ import TracePhotos from "./TracePhotos.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import TraceFeedback from "./TraceFeedback.jsx";
 import Card from "./Card.jsx";
+import TraceComments from "./TraceComments.jsx";
+import "./trace-detail.css";
 
 export default function LiveTraceDetail({ contribution = false }) {
   const { id } = useParams();
@@ -15,7 +17,7 @@ export default function LiveTraceDetail({ contribution = false }) {
   const base = contribution ? "contributions" : "traces";
   const result = useRemoteData(`${base}/${encodeURIComponent(id)}`);
 
-  return <div className="wrap" style={{ maxWidth: 760 }}>
+  return <div className={contribution ? "wrap" : "wrap trace-detail"} style={contribution ? { maxWidth: 760 } : undefined}>
     <Link className="btn ghost sm" style={{ marginBottom: 14 }} to={`/user/${base}`}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
     <RemoteState {...result} />
     {result.data && <TraceContent key={`${profile?.id}:${result.data.id}`} initialTrace={result.data} contribution={contribution} />}
@@ -32,25 +34,26 @@ function TraceContent({ initialTrace, contribution }) {
   const trace = displayTrace(current);
   const editable = contribution && current.author_id === profile?.id && ["draft", "revision_requested"].includes(current.status) && !current.is_hidden && !current.deleted_at;
   return (
-    <Card>
-      <div className="row between" style={{ marginBottom: 12 }}><TraceStatusBadge status={trace.status} /><span className="hint">{trace.when}</span></div>
-      <h2 style={{ fontSize: 19, margin: "16px 0 10px" }}>{trace.title || "Untitled draft"}</h2>
+    <Card className={contribution ? "" : "trace-detail__card"}>
+      <div className="row between trace-detail__status">{!contribution && trace.status === "approved" ? <span className="badge approved">Approved · Published</span> : <TraceStatusBadge status={trace.status} />}<span className="hint">{trace.when}</span></div>
+      {!contribution && <TracePhotos trace={current} hero />}
+      <h2 className="trace-detail__title">{trace.title || "Untitled draft"}</h2>
       {fieldError("title")}
-      <div className="chiprow" style={{ marginBottom: 14 }}><span className="chip on">{trace.category}</span><span className="chip">{trace.location}</span></div>
+      <div className="chiprow trace-detail__tags"><span className="chip on">{trace.category}</span><span className="chip">{!contribution && <span aria-hidden="true">📍 </span>}{trace.location}</span></div>
       {fieldError("category_id")}
       {fieldError("location_name")}
-      <p className="hint">{trace.author}</p>
+      <div className="trace-detail__author">{!contribution && <span className="avatar trace-detail__avatar" aria-hidden="true" />}<p className="hint"><span>{trace.author}</span>{!contribution && trace.when && <> · {trace.when}</>}</p></div>
       <div className="divider" />
       <span className="lbl">Description</span>
-      <p style={{ fontSize: "12.5px", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{trace.description || "No description supplied."}</p>
+      <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
       {fieldError("description")}
-      {!contribution && <p className="hint">Comments will be available in a later update.</p>}
+      {!contribution && <TraceComments traceId={current.id} />}
       {contribution && trace.status === "pending" && <p role="status">Pending review. Your Trace is awaiting a reviewer; editing and uploads are disabled until a revision is requested.</p>}
       {contribution && current.status !== "draft" && <TraceFeedback key={`${current.id}:${current.status}`} id={current.id} />}
       {current.status === "revision_requested" && contribution && <p className="hint">Address the moderator's feedback, save your changes, then resubmit this Trace for review.</p>}
       {editable && !submissionLocked && <Link className="btn outline" to={`/user/contributions/${encodeURIComponent(trace.id)}/edit`}>{current.status === "revision_requested" ? "Edit requested revision" : "Edit draft"}</Link>}
       {fieldError("photo")}
-      <TracePhotos trace={current} contribution={contribution} onChange={setCurrent} onLockedChange={setSubmissionLocked} onValidation={setFieldErrors} operationLock={operationLock} />
+      {contribution && <TracePhotos trace={current} contribution onChange={setCurrent} onLockedChange={setSubmissionLocked} onValidation={setFieldErrors} operationLock={operationLock} />}
     </Card>
   );
 }

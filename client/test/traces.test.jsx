@@ -42,6 +42,45 @@ it("loads live categories and approved records, then opens the saved detail", as
   expect(calls.mock.calls.filter(([url]) => !url.includes("/auth/")).every(([, options]) => options.headers.Authorization === "Bearer live-access")).toBe(true);
 });
 
+it("shows media before the title and saves comments through the trace API", async () => {
+  const comments = [];
+  const calls = setup((url, options) => {
+    if (url === `/api/traces/${trace().id}`) return response(trace());
+    if (url.startsWith(`/api/traces/${trace().id}/comments`)) {
+      if (options.method === "POST") {
+        const saved = { id: "comment-1", trace_id: trace().id, author_id: profile.id, body: JSON.parse(options.body).body, created_at: "2026-09-26T12:00:00Z" };
+        comments.push(saved);
+        return response(saved);
+      }
+      return response([...comments]);
+    }
+  });
+  open(`/user/traces/${trace().id}`);
+  const title = await screen.findByRole("heading", { name: trace().title });
+  expect(screen.getByRole("region", { name: "Trace photos" }).compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await screen.findByText(/No comments yet/);
+  fireEvent.change(screen.getByRole("textbox", { name: "Add a comment" }), { target: { value: "I observed this too." } });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  expect(await screen.findByText("I observed this too.")).toBeTruthy();
+  expect(screen.getByText("Comments (1)")).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Add a comment" }).value).toBe("");
+  expect(calls.mock.calls.filter(([, options]) => options.method === "POST")).toHaveLength(1);
+});
+
+it("keeps an unconfirmed comment and prevents accidental duplicate sends", async () => {
+  setup((url, options) => {
+    if (url === `/api/traces/${trace().id}`) return response(trace());
+    if (url.includes("/comments") && options.method === "POST") throw new TypeError("Connection lost");
+  });
+  open(`/user/traces/${trace().id}`);
+  const input = await screen.findByRole("textbox", { name: "Add a comment" });
+  fireEvent.change(input, { target: { value: "Keep this comment" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("could not confirm");
+  expect(input.value).toBe("Keep this comment");
+  expect(screen.getByRole("button", { name: "Send" }).disabled).toBe(true);
+});
+
 it("shows a real loading state and an empty archive without sample records", async () => {
   let finish;
   const pending = new Promise((resolve) => { finish = resolve; });
