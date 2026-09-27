@@ -5,7 +5,7 @@ This is an initial schema for a **new Supabase project**, aligned with the suppl
 ## Run the setup
 
 1. Create/select your Supabase project. Open **SQL Editor → New query**.
-2. Paste and run all of `migrations/20260921000100_initial_schema.sql` as the project database owner (`postgres`). Run it once. It includes its own transaction, tables, policies, functions, private Storage bucket, and six initial categories.
+2. Paste and run all of `migrations/20260921000100_initial_schema.sql` as the project database owner (`postgres`). Run it once; the initial schema includes tables, policies, functions, the private Storage bucket and six categories. Then apply `migrations/20260927000100_tide_completions.sql` for member lesson completion. Existing projects run only this incremental migration.
 3. Configure the backend environment and create your personal account through the app's registration form or Supabase Authentication. The frontend now uses real backend authentication. Follow the repository README for confirmation email redirect URLs.
 4. Open `bootstrap-first-admin.sql`, replace `REPLACE_WITH_YOUR_AUTH_USER_UUID` with your account ID from **Authentication → Users**, and run it as `postgres`. It refuses to bootstrap if an active admin already exists.
 5. Configure Auth site URL, allowed redirect URLs, email confirmation and email delivery in the Supabase dashboard. SQL does not configure these settings. For local signup confirmation, allow `http://localhost:5173/auth/callback` and `http://127.0.0.1:5173/auth/callback`.
@@ -101,3 +101,8 @@ node supabase/tests/local-check.mjs /tmp/tidetrace-sql-check/node_modules/@elect
 ```
 
 The harness also checks that first-admin bootstrap works once and rejects a repeat. This is single-session validation; concurrent requests and real Supabase service integration still need staging verification.
+
+
+### Tide completions
+
+The incremental `20260927000100_tide_completions.sql` migration adds a unique member/lesson record with a database-assigned completion timestamp, foreign keys, RLS and restricted column grants. Active members read only their own records and insert only for published lessons; update/delete and caller-supplied timestamps are prohibited. Existing compatible tables are retained and experimental RLS policies are replaced. Duplicate existing member/lesson pairs cause the migration to fail atomically; inspect them rather than deleting learning history blindly. Ordinary lesson edits do not reset completion.

@@ -758,3 +758,35 @@ test("profile name updates reject unsupported fields and anonymous writes", asyn
   }
   assert.equal(businessCalls(calls).length, 0);
 });
+
+
+test("concurrent Tide completion conflict returns the original record", async () => {
+  const completion = { user_id: userId, tide_id: tideId, completed_at: "2026-09-25T10:00:00Z" };
+  let reads = 0;
+  const { app } = fixture({ handler: ({ url, method }) => {
+    if (url.pathname === "/rest/v1/tides") return json([{ id: tideId }]);
+    if (url.pathname === "/rest/v1/tide_completions") {
+      if (method === "POST") return json({ code: "23505", message: "duplicate" }, 409);
+      return json(++reads === 1 ? [] : [completion]);
+    }
+  } });
+  const response = await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(200);
+  assert.deepEqual(response.body.data, completion);
+});
+
+test("completion reads filter the current owner and requested lessons", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tide_completions" ? json([]) : undefined });
+  await bearer(request(app).get(`/api/tide-completions?tide_ids=${tideId}`)).expect(200);
+  const query = calls.find(({ url }) => url.pathname === "/rest/v1/tide_completions").url.searchParams;
+  assert.equal(query.get("user_id"), `eq.${userId}`);
+  assert.equal(query.get("tide_id"), `in.(${tideId})`);
+  assert.equal(query.get("limit"), "25");
+  await bearer(request(app).get("/api/tide-completions?tide_ids=invalid")).expect(400);
+  await request(app).get("/api/tide-completions").expect(401);
+});
+
+test("unpublished Tide cannot be completed", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([]) : undefined });
+  await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(404);
+  assert.equal(calls.some(({ url }) => url.pathname === "/rest/v1/tide_completions"), false);
+});

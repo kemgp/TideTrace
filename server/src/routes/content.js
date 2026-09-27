@@ -39,7 +39,10 @@ export function contentRoutes(gateway) {
     send(res, first(await result(req.db.from("tides").select("*").eq("status", "published").eq("id", uuid.parse(req.params.id)).limit(1))));
   });
   router.get("/tide-completions", member, async (req, res) => {
-    send(res, await result(req.db.from("tide_completions").select("tide_id,completed_at").eq("user_id", req.user.id).order("completed_at", { ascending: false })));
+    const query = page.extend({ tide_ids: z.string().transform((value) => value.split(",")).pipe(z.array(uuid).min(1).max(25)).optional() }).parse(req.query);
+    let records = req.db.from("tide_completions").select("tide_id,completed_at").eq("user_id", req.user.id);
+    if (query.tide_ids) records = records.in("tide_id", query.tide_ids);
+    send(res, await result(paginate(records.order("completed_at", { ascending: false }).order("tide_id"), query)));
   });
   router.put("/tides/:id/completion", member, async (req, res) => {
     const tideId = uuid.parse(req.params.id);
@@ -47,7 +50,13 @@ export function contentRoutes(gateway) {
     const existingRows = await result(req.db.from("tide_completions").select("user_id,tide_id,completed_at").eq("user_id", req.user.id).eq("tide_id", tideId).limit(1));
     const existing = existingRows[0];
     if (existing) return send(res, existing);
-    send(res, first(await result(req.db.from("tide_completions").insert({ user_id: req.user.id, tide_id: tideId }).select("user_id,tide_id,completed_at"))), 201);
+    const inserted = await req.db.from("tide_completions").insert({ user_id: req.user.id, tide_id: tideId }).select("user_id,tide_id,completed_at");
+    // Another request may have completed the same lesson after our read.
+    if (inserted.error?.code === "23505") {
+      return send(res, first(await result(req.db.from("tide_completions").select("user_id,tide_id,completed_at").eq("user_id", req.user.id).eq("tide_id", tideId).limit(1))));
+    }
+    if (inserted.error) throw upstreamError(inserted.error);
+    send(res, first(inserted.data), 201);
   });
   router.patch("/profile", member, async (req, res) => {
     const body = z.object({ display_name: text(100) }).strict().parse(req.body);

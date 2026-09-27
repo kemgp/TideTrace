@@ -138,4 +138,41 @@ select tidetrace_test.assert_ok((select bool_and(relrowsecurity) from pg_class w
  'public.profiles'::regclass,'public.categories'::regclass,'public.traces'::regclass,'public.trace_media'::regclass,
  'public.tides'::regclass,'public.comments'::regclass,'public.reports'::regclass,'public.moderation_actions'::regclass,
  'public.notifications'::regclass,'public.settings'::regclass,'public.admin_audit_logs'::regclass)), 'All application tables have RLS');
+
+-- Completion isolation, immutable timestamps, publication eligibility and persistence.
+reset role;
+select set_config('test.tide_id',(select id::text from public.tides where slug='tidetrace-access-test'),true);
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+insert into public.tide_completions(user_id,tide_id) values(auth.uid(),current_setting('test.tide_id')::uuid);
+select tidetrace_test.assert_ok((select count(*)=1 from public.tide_completions),'Member reads own completion');
+select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id) values(auth.uid(),current_setting('test.tide_id')::uuid)$q$,'23505');
+select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id) values('10000000-0000-0000-0000-000000000003',current_setting('test.tide_id')::uuid)$q$,'42501');
+select tidetrace_test.reject($q$update public.tide_completions set completed_at=now()$q$,'42501');
+select tidetrace_test.reject($q$delete from public.tide_completions$q$,'42501');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
+select tidetrace_test.assert_ok((select count(*)=0 from public.tide_completions),'Another member cannot read completion');
+select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id,completed_at) values(auth.uid(),current_setting('test.tide_id')::uuid,now())$q$,'42501');
+reset role;
+select set_config('test.completed_at',(select completed_at::text from public.tide_completions limit 1),true);
+update public.tides set body='Updated lesson content' where id=current_setting('test.tide_id')::uuid;
+select tidetrace_test.assert_ok((select completed_at::text=current_setting('test.completed_at') from public.tide_completions limit 1),'Text edits preserve completion timestamp');
+update public.tides set status='archived' where id=current_setting('test.tide_id')::uuid;
+set local role authenticated;
+select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id) values(auth.uid(),current_setting('test.tide_id')::uuid)$q$,'42501');
+reset role;
+update public.tides set status='draft' where id=current_setting('test.tide_id')::uuid;
+set local role authenticated;
+select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id) values(auth.uid(),current_setting('test.tide_id')::uuid)$q$,'42501');
+reset role;
+update public.tides set status='published' where id=current_setting('test.tide_id')::uuid;
+update public.profiles set status='suspended' where id='10000000-0000-0000-0000-000000000002';
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select tidetrace_test.assert_ok((select count(*)=0 from public.tide_completions),'Suspended member cannot read completion');
+select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id) values(auth.uid(),current_setting('test.tide_id')::uuid)$q$,'42501');
+set local role anon;
+select tidetrace_test.reject($q$select * from public.tide_completions$q$,'42501');
+select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id) values('10000000-0000-0000-0000-000000000003',current_setting('test.tide_id')::uuid)$q$,'42501');
+reset role;
 rollback;

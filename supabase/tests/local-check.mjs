@@ -1,6 +1,6 @@
 // Isolated SQL validation with PostgreSQL/PGlite; no Supabase credentials needed.
 // Pass an absolute path to an installed @electric-sql/pglite dist/index.js.
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 const { PGlite } = await import(process.argv[2] ? pathToFileURL(process.argv[2]).href : '@electric-sql/pglite');
 const db = new PGlite();
@@ -24,9 +24,11 @@ try {
     alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
     alter default privileges in schema public grant execute on functions to anon,authenticated,service_role;
   `);
-  const migration = await readFile(new URL('../migrations/20260921000100_initial_schema.sql', import.meta.url), 'utf8');
-  await db.exec(migration);
-  console.log('PASS: migration executed on PostgreSQL (PGlite with Auth/Storage stubs).');
+  const migrationDir = new URL('../migrations/', import.meta.url);
+  for (const name of (await readdir(migrationDir)).filter((name) => name.endsWith('.sql')).sort()) {
+    await db.exec(await readFile(new URL(name, migrationDir), 'utf8'));
+    console.log(`PASS: migration ${name} executed on PostgreSQL (PGlite with Auth/Storage stubs).`);
+  }
   const checks = await readFile(new URL('./access-control.sql', import.meta.url), 'utf8');
   await db.exec(checks);
   console.log(`PASS: ${checks.match(/select tidetrace_test\.(assert_ok|reject)\(/g).length} access-control and workflow assertions; fixtures rolled back.`);

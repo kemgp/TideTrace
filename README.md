@@ -8,7 +8,7 @@ TideTrace is a community conservation application with a React frontend and a No
 - Community archive categories and approved Traces, My Contributions, and their detail pages now read saved records through the API. Contributions are scoped to the authenticated account by the backend. Lists have loading/error/empty states, retry controls, and pagination; they do not fall back to mock records.
 - Members can create and edit their own Trace drafts through the API. The initial form supports photo selection and a local preview. Save draft saves details only; Submit Trace saves the record, uploads the selected photo, and submits for review. Saved draft details upload a selected photo through Submit for review, with no separate upload button. Signed previews and attachment removal are supported. Only a category is required to save a draft; saving does not submit or publish the Trace. Version checks prevent stale edits. Complete drafts can be submitted for review and become Pending until reviewed.
 - Moderators and admins can review real Pending Traces, inspect saved photos, approve, request revision, or reject, and read persisted moderation history.
-- Tides members read published lessons through the API. Admins can create and edit drafts, preview plain-text content, publish, return to draft and archive. Updates use the saved timestamp to reject conflicting edits. Learning progress remains deferred.
+- Tides members read published lessons through the API. Admins can create and edit drafts, preview plain-text content, publish, return to draft and archive. Updates use the saved timestamp to reject conflicting edits. Members can mark a single-page lesson complete and see saved completion on library cards (apply the completion migration below).
 - The backend implements authentication, profiles, categories, Traces, evidence uploads, comments, reports, notifications, Tides, moderation and account administration.
 - The existing Supabase schema supplies row-level security, guarded workflow functions and audit records. Configure a Supabase project before using persistent data.
 - Dashboard access is determined by the current database profile returned by `/api/auth/me`; the old demo role picker is removed. Sessions survive reloads and refresh automatically. Saved roles are never trusted; the backend checks the current account before dashboard access is restored.
@@ -239,7 +239,7 @@ Live draft-write, photo-upload, submission and moderation verification still nee
 
 ## Tides lesson workflow
 
-Keep the frontend and API running. No new Supabase migration is required: this uses the existing `tides` table, RLS policies, publication trigger and `updated_at` trigger.
+Keep the frontend and API running. Authoring uses the existing `tides` table. For member completion, run `supabase/migrations/20260927000100_tide_completions.sql` in the Supabase SQL Editor as `postgres`, after the initial schema. Do not rerun the initial schema. The incremental migration preserves compatible existing completion records and replaces experimental completion policies with owner-only access.
 
 1. Sign in as an admin and open **Tides → Add lesson** (`/admin/tides/new`). Choose **Use sample lesson** to load the prepared “How to Submit a Useful Trace” example. This fills the form only; it does not create or publish a record.
 2. Enter a title, unique slug and lesson content. The slug is suggested from the title until you edit it. Slugs use lowercase letters, numbers and single hyphens. Content is plain text with preserved line breaks; HTML is displayed as text. Images and rich formatting are deferred.
@@ -247,6 +247,12 @@ Keep the frontend and API running. No new Supabase migration is required: this u
 4. Choose **Publish** when the content is complete. Published lessons appear in the member library (`/user/tides`), and `/user/tides/:id` supports direct links and reloads. Lists are paginated at 25 records. Saved publication status drives the admin badge; simulated completion, module and duration values are not displayed.
 5. For a published lesson, **Save published changes** updates the member-visible content. **Return to draft** removes member access while preserving the record. **Archive** also removes member access and keeps the record editable by admins. Each save/publication action saves the current form fields.
 6. On a conflict, copy text you want to preserve and use **Discard local changes and reload saved lesson**. The API compares the supplied `updated_at` with the stored timestamp in the update query. Lost/uncertain save responses are not replayed automatically; check the saved record before trying again. A duplicate slug gets an inline error.
+
+### Member completion
+
+Completion reads use `GET /api/tide-completions?tide_ids=<comma-separated UUIDs>` (up to 25 lesson IDs), with normal pagination available for history reads. `PUT /api/tides/:id/completion` saves the authenticated member's completion. Only published lessons can be completed. The database controls completion timestamps and prohibits member edits/deletes. If a lesson is archived, its existing completion remains stored and returns if that lesson is republished.
+
+Before release, sign in as a member, complete a lesson, reload and check its library card. Sign in as another member and confirm it still says **Not started**. Edit the lesson text as an admin and verify the first member remains completed. These signed-in live checks require the migration to be applied; automated tests do not apply changes to your hosted database.
 
 ### Tides verification
 
@@ -256,7 +262,7 @@ For signed-in live verification, use separate admin and member browser sessions:
 
 ## Remaining integration
 
-The original sequence is retained below. Notifications and basic Tides reading/authoring are now connected; learning progress and the later integrations remain planned work.
+The original sequence is retained below. Notifications and basic Tides reading/authoring are now connected; single-page lesson completion is also connected; the later integrations remain planned work.
 
 1. **Verify the complete Trace workflow against live Supabase.** Start `npm run dev:server` and `npm run dev` in separate terminals; open `http://localhost:5173`. Use an author and a separate moderator/admin account. Follow the verification steps above: save details only, submit with a photo, request revision, edit/resubmit, approve, and reload after each stage. Verify ownership restrictions and that only approved records reach the archive. Keep RLS enabled. Automated mocks do not replace this check.
 
@@ -266,7 +272,7 @@ The original sequence is retained below. Notifications and basic Tides reading/a
 
 4. **Admin Tides authoring - implemented.** Draft creation, sample content, safe preview, publication, return to draft, archiving, direct editor URLs and timestamp conflict protection are connected. Complete the signed-in live checks above before release.
 
-5. **Persist Tides learning progress.** Add a new incremental migration for a progress table keyed by `(user_id, tide_id)`, with completion state and timestamps, foreign keys, and RLS restricting reads/writes to the signed-in learner. Add authenticated read and idempotent update endpoints that also verify the lesson is accessible. Connect Mark as complete and Continue learning to those records. For an MVP, use not-started/in-progress/completed states; do not display invented percentages without defined lesson sections. Verify persistence across reloads/devices, no duplicate completion rows, and isolation between users. Do not rerun or replace the original schema migration.
+5. **Tides completion - implemented.** Apply the incremental migration above. Members choose **Mark as complete** on a published lesson; the library shows **Not started** or **Completed** from saved records. Completion survives reloads, devices and lesson text edits. There is no in-progress state, percentage, multi-page navigation or Continue learning. RLS isolates each member; repeated or simultaneous requests preserve one record and its original completion time.
 
 6. **Connect comments, reports and their moderation.** Connect Trace comments to the existing `GET/POST /api/traces/:id/comments` routes with pagination, inline errors and duplicate-click protection. Connect report forms to `POST /api/reports`, requiring exactly one Trace or comment target and a reason. Then connect staff report queues and decisions to the moderation API; add any missing comment-management endpoints before wiring their buttons. Verify permissions, hidden-content behavior, saved reasons and audit history. Launch community posting together with working reporting/moderation.
 

@@ -142,7 +142,7 @@ it("loads the published library, opens a lesson and supports direct detail URLs 
   fireEvent.click(await screen.findByRole("link", { name: new RegExp(sampleTide.title) }));
   await screen.findByRole("heading", { name: sampleTide.title });
   expect(screen.getByRole("article", { name: "Lesson content" }).textContent).toContain("Every observation starts");
-  expect(screen.queryByRole("button", { name: "Mark as complete" })).toBeNull();
+  expect(await screen.findByRole("button", { name: "Mark as complete" })).toBeTruthy();
   view.unmount();
   open(`/user/tides/${id}`);
   await screen.findByRole("heading", { name: sampleTide.title });
@@ -176,4 +176,64 @@ it("does not request admin lessons for a member visiting the editor", async () =
   await screen.findByText(/Kumusta/);
   expect(calls.mock.calls.some(([url]) => url.startsWith("/api/admin/tides"))).toBe(false);
   expect(screen.queryByLabelText("Lesson content")).toBeNull();
+});
+
+
+it("persists completion and shows it on the library and after reopening", async () => {
+  let completion = null;
+  const calls = setup((url, options) => {
+    if (url === `/api/tides/${id}/completion`) {
+      completion = { user_id: "current-user", tide_id: id, completed_at: stamp };
+      return ok(completion);
+    }
+    if (url.startsWith("/api/tide-completions?")) return ok(completion ? [completion] : []);
+    if (url.startsWith("/api/tides?")) return ok([lesson({ status: "published" })]);
+    if (url === `/api/tides/${id}`) return ok(lesson({ status: "published" }));
+  }, "user");
+  open("/user/tides");
+  await screen.findByText("Not started");
+  fireEvent.click(screen.getByRole("link", { name: new RegExp(sampleTide.title) }));
+  await clickReady("Mark as complete");
+  await screen.findByText("Completed");
+  fireEvent.click(screen.getByRole("link", { name: /Back to Tides/ }));
+  await screen.findByText("Completed");
+  fireEvent.click(screen.getByRole("link", { name: new RegExp(sampleTide.title) }));
+  await screen.findByText("Completed");
+  expect(screen.queryByRole("button", { name: "Mark as complete" })).toBeNull();
+  expect(calls.mock.calls.filter(([, options]) => options.method === "PUT")).toHaveLength(1);
+});
+
+it("does not label failed completion reads as not started", async () => {
+  setup((url) => url.startsWith("/api/tides?") ? ok([lesson({ status: "published" })]) : url.startsWith("/api/tide-completions?") ? fail() : undefined, "user");
+  open("/user/tides");
+  await screen.findByText("Completion unavailable");
+  expect(screen.queryByText("Not started")).toBeNull();
+});
+
+it("reloads saved completion after a lost response without replaying the write", async () => {
+  let completed = false;
+  const calls = setup((url) => {
+    if (url === `/api/tides/${id}/completion`) { completed = true; throw new TypeError("Lost response"); }
+    if (url.startsWith("/api/tide-completions?")) return ok(completed ? [{ tide_id: id, completed_at: stamp }] : []);
+    if (url === `/api/tides/${id}`) return ok(lesson({ status: "published" }));
+  }, "user");
+  open(`/user/tides/${id}`);
+  await clickReady("Mark as complete");
+  await screen.findByText("Completed");
+  expect(calls.mock.calls.filter(([, options]) => options.method === "PUT")).toHaveLength(1);
+});
+
+it("ignores a pending completion after logout and prevents duplicate clicks", async () => {
+  let finish;
+  const pending = new Promise((resolve) => { finish = resolve; });
+  const calls = setup((url) => url === `/api/tides/${id}/completion` ? pending : url === `/api/tides/${id}` ? ok(lesson({ status: "published" })) : undefined, "user");
+  open(`/user/tides/${id}`);
+  const button = await screen.findByRole("button", { name: "Mark as complete" });
+  await waitFor(() => expect(button.disabled).toBe(false));
+  fireEvent.click(button); fireEvent.click(button);
+  await waitFor(() => expect(calls.mock.calls.filter(([, options]) => options.method === "PUT")).toHaveLength(1));
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  await screen.findByRole("heading", { name: "Welcome to TideTrace" });
+  await act(async () => finish(ok({ user_id: "current-user", tide_id: id, completed_at: stamp })));
+  expect(screen.queryByText("Completed")).toBeNull();
 });
