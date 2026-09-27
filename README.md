@@ -70,7 +70,7 @@ Without Web Locks, sessions use per-tab session storage and survive reloads with
 
 Expired/revoked refresh tokens or suspended accounts clear the saved session. Temporary network/server errors retain the token pair and offer a retry; expired accounts cannot open protected pages while reconnecting. Logging out clears browser state immediately, then asks Supabase to revoke the session. If the server cannot be reached, local sign-out succeeds but server revocation is not confirmed.
 
-Recovery sessions remain in memory, separate from saved login sessions, and do not automatically open a dashboard. Opening a recovery link clears the existing saved login. If the reset page is reloaded, request a new recovery email. Profile preferences and other dashboard actions remain a clearly labeled demo; Trace reading, draft saving and photo uploads are connected.
+Recovery sessions remain in memory, separate from saved login sessions, and do not automatically open a dashboard. Opening a recovery link clears the existing saved login. If the reset page is reloaded, request a new recovery email. Display-name saves and password recovery are connected; unsupported profile preferences are disabled, and dashboard actions remain demos; Trace reading, draft saving and photo uploads are connected.
 
 To check session management locally:
 
@@ -81,6 +81,12 @@ To check session management locally:
 5. With a saved session, stop the API and reload a protected page; it should offer a connection retry. Restart the API and retry to restore access.
 
 Automated tests also cover token rotation, revoked sessions, profile changes, concurrent refreshes, and logout during pending requests. Hosted session behavior still needs verification with your development Supabase account.
+
+## Profile settings
+
+Members, moderators and admins can save their display name from Profile Settings. The form sends only `display_name` to `PATCH /api/profile`, verifies the response and refreshes the signed-in profile so account summaries and navigation reflect the saved name. Failed saves never show success; an uncertain response requires reloading the saved profile before trying again. Writes are not automatically replayed.
+
+Email is read-only. Profile photos, community details and preference changes are unavailable and do not claim to save. Staff profile pages are protected by their role routes. All three roles use **Security → Reset password** to open the existing email recovery flow; the removed staff password forms did not update Supabase. A password changes only after the recovery verification and reset form succeed. Delivery still depends on Supabase email configuration.
 
 ## Technology and structure
 

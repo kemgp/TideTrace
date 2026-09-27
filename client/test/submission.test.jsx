@@ -172,8 +172,6 @@ it("discards a submission response after logout", async () => {
   open(`/user/contributions/${trace().id}`);
   fireEvent.click(await ready());
   await waitFor(() => expect(calls.mock.calls.some(([url]) => url === submit)).toBe(true));
-  fireEvent.click(screen.getByTitle("Profile"));
-  fireEvent.click(await screen.findByRole("button", { name: /Usage & activity/ }));
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
   await screen.findByRole("heading", { name: "Welcome to TideTrace" });
   await act(async () => finish(response(complete({ status: "pending", version: 2 }))));

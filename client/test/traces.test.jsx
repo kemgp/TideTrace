@@ -196,8 +196,6 @@ it("discards a private read that finishes after logout", async () => {
   setup((url) => url.startsWith("/api/contributions?") ? pending : undefined);
   open("/user/contributions");
   await screen.findByRole("heading", { name: "Your traces & their status" });
-  fireEvent.click(screen.getByTitle("Profile"));
-  fireEvent.click(await screen.findByRole("button", { name: /Usage & activity/ }));
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
   await screen.findByRole("heading", { name: "Welcome to TideTrace" });
   await act(async () => finish(response([trace({ title: "Private late response" })])));

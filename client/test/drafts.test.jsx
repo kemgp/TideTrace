@@ -161,8 +161,6 @@ it("does not show a save success after logout while the write is pending", async
   await screen.findByRole("option", { name: "Seagrass" });
   fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
-  fireEvent.click(screen.getByTitle("Profile"));
-  fireEvent.click(await screen.findByRole("button", { name: /Usage & activity/ }));
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
   await screen.findByRole("heading", { name: "Welcome to TideTrace" });
   await act(async () => finish(response(trace())));

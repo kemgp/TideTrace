@@ -165,8 +165,6 @@ it("does not show upload success or a preview after logout", async () => {
   open(`/user/contributions/${trace().id}`);
   await choose();
   fireEvent.click(await submitButton());
-  fireEvent.click(screen.getByTitle("Profile"));
-  fireEvent.click(await screen.findByRole("button", { name: /Usage & activity/ }));
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
   await screen.findByRole("heading", { name: "Welcome to TideTrace" });
   await act(async () => finish(response(photo)));

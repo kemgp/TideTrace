@@ -736,3 +736,25 @@ test("Tide completion is idempotent and does not create a duplicate", async () =
 
   assert.equal(inserts.length, 1);
 });
+
+test("profile name saves for each role only update the authenticated user's display name", async () => {
+  for (const role of ["user", "moderator", "admin"]) {
+    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/profiles" ? json([{ id: userId, display_name: "Updated Name" }]) : undefined });
+    const response = await bearer(request(app).patch("/api/profile")).send({ display_name: " Updated Name " }).expect(200);
+    assert.equal(response.body.data.display_name, "Updated Name");
+    const call = businessCalls(calls)[0];
+    assert.equal(call.method, "PATCH");
+    assert.equal(call.url.searchParams.get("id"), `eq.${userId}`);
+    assert.deepEqual(call.body, { display_name: "Updated Name" });
+    assert.equal(call.headers.get("authorization"), "Bearer member-token");
+  }
+});
+
+test("profile name updates reject unsupported fields and anonymous writes", async () => {
+  const { app, calls } = fixture();
+  await request(app).patch("/api/profile").send({ display_name: "New Name" }).expect(401);
+  for (const body of [{ display_name: " " }, { display_name: "New Name", role: "admin" }, { display_name: "New Name", email: "other@example.test" }, { display_name: "New Name", id: traceId }]) {
+    await bearer(request(app).patch("/api/profile")).send(body).expect(400);
+  }
+  assert.equal(businessCalls(calls).length, 0);
+});

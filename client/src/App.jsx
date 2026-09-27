@@ -349,7 +349,7 @@ function AppShell() {
           <Route path="/admin/review/:id" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
           <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
           <Route path="/moderator/reports" element={<RequireRole role="mod"><div className="view"><ManageReports /></div></RequireRole>} />
-          <Route path="/moderator/profile" element={<ModeratorProfile />} />
+          <Route path="/moderator/profile" element={<RequireRole role="mod"><ModeratorProfile /></RequireRole>} />
 
           <Route path="/admin/dashboard" element={<RequireRole role="admin"><div className="view"><AdminDashboard /></div></RequireRole>} />
           <Route path="/admin/users" element={<RequireRole role="admin"><div className="view"><ManageUsers /></div></RequireRole>} />
@@ -358,7 +358,7 @@ function AppShell() {
           <Route path="/admin/tides/new" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
           <Route path="/admin/tides/:id/edit" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
           <Route path="/admin/categories" element={<RequireRole role="admin"><div className="view"><ManageCategories /></div></RequireRole>} />
-          <Route path="/admin/profile" element={<AdminProfile />} />
+          <Route path="/admin/profile" element={<RequireRole role="admin"><AdminProfile /></RequireRole>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

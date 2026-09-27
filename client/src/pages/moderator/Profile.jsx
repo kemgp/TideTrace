@@ -1,87 +1,14 @@
 import React, { useState } from "react";
+import ProfileNameForm from "../../components/ProfileNameForm.jsx";
+import ProfileSecurity from "../../components/ProfileSecurity.jsx";
 import { useApp } from "../../context/AppContext.jsx";
 
-const EyeIcon = ({ visible }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    {visible ? (
-      <>
-        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-        <circle cx="12" cy="12" r="3" />
-      </>
-    ) : (
-      <>
-        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-        <path d="M4 4l16 16" />
-      </>
-    )}
-  </svg>
-);
-
 export default function ModeratorProfile() {
-  const [profilePhoto, setProfilePhoto] = useState(
-  localStorage.getItem("moderatorProfilePhoto") || ""
-);
-
-const handleProfilePhoto = (e) => {
-  const file = e.target.files?.[0];
-
-  if (!file) return;
-
-  if (!file.type.startsWith("image/")) {
-    alert("Please select an image file.");
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = () => {
-    setProfilePhoto(reader.result);
-    localStorage.setItem("moderatorProfilePhoto", reader.result);
-  };
-
-  reader.readAsDataURL(file);
-};
   const { profile } = useApp();
-
   const [activeTab, setActiveTab] = useState("account");
-
-  const [name, setName] = useState(profile?.display_name || "Keith");
-  const [email, setEmail] = useState(profile?.email || "");
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const [message, setMessage] = useState("");
-
-  const saveInformation = (e) => {
-    e.preventDefault();
-    setMessage("Changes saved successfully.");
-  };
-
-  const updatePassword = (e) => {
-    e.preventDefault();
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setMessage("Please complete all password fields.");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setMessage("New password and confirm password do not match.");
-      return;
-    }
-
-    setMessage("Password updated successfully.");
-
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-  };
+  const name = profile?.display_name || "";
+  const email = profile?.email || "";
+  const profilePhoto = "";
 
   return (
     <main className="settings-page">
@@ -160,7 +87,7 @@ const handleProfilePhoto = (e) => {
   <label
     htmlFor="moderator-profile-upload"
     className="camera-icon"
-    title="Change profile picture"
+    title="Profile photo uploads are not available yet" aria-disabled="true"
   >
     <svg
       width="15"
@@ -181,25 +108,26 @@ const handleProfilePhoto = (e) => {
     id="moderator-profile-upload"
     type="file"
     accept="image/*"
-    onChange={handleProfilePhoto}
+    disabled aria-label="Profile photo upload unavailable"
     hidden
   />
 
 </div>
 
-      <h2>Kieth</h2>
+      <h2>{name}</h2>
+      <p className="hint">Profile photo uploads are not available yet.</p>
 
       <span className="moderator-badge">
         MODERATOR
       </span>
 
       <p className="moderator-email">
-        kgpatino@up.edu.ph
+        {email || "Email unavailable"}
       </p>
 
       <p className="moderator-joined">
         <span>▣</span>
-        Joined: Aug 12, 2025
+        Joined: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "Not available"}
       </p>
 
     </div>
@@ -237,181 +165,13 @@ const handleProfilePhoto = (e) => {
 )}
 
             {/* BASIC INFORMATION */}
-            {activeTab === "basic" && (
-              <form onSubmit={saveInformation}>
-
-                <div className="settings-section-title">
-                  <h2>Basic information</h2>
-                  <p>Manage your moderator account information.</p>
-                </div>
-
-                <div className="settings-form-grid">
-
-                  <div className="settings-field full">
-                    <label>FULL NAME</label>
-
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="settings-field">
-                    <label>EMAIL ADDRESS</label>
-
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="settings-field">
-                    <label>ROLE</label>
-
-                    <input
-                      type="text"
-                      value="Moderator"
-                      readOnly
-                    />
-                  </div>
-
-                </div>
-
-                {message && (
-                  <div className="settings-success">
-                    {message}
-                  </div>
-                )}
-
-                <button className="settings-save" type="submit">
-                  Save Changes
-                </button>
-
-              </form>
-            )}
+            {activeTab === "basic" && <ProfileNameForm />}
 
             {/* SECURITY */}
-            {activeTab === "security" && (
-              <form onSubmit={updatePassword}>
-
-                <div className="settings-section-title">
-                  <h2>Security</h2>
-                  <p>Update your password to keep your account secure.</p>
-                </div>
-
-                <div className="password-fields">
-
-                  <div className="settings-field">
-                    <label>CURRENT PASSWORD</label>
-
-                    <div className="password-input">
-                      <input
-                        type={showCurrent ? "text" : "password"}
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Enter current password"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrent(!showCurrent)}
-                      >
-                        <EyeIcon visible={showCurrent} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="settings-field">
-                    <label>NEW PASSWORD</label>
-
-                    <div className="password-input">
-                      <input
-                        type={showNew ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter new password"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => setShowNew(!showNew)}
-                      >
-                        <EyeIcon visible={showNew} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="settings-field">
-                    <label>CONFIRM PASSWORD</label>
-
-                    <div className="password-input">
-                      <input
-                        type={showConfirm ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm new password"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirm(!showConfirm)}
-                      >
-                        <EyeIcon visible={showConfirm} />
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-
-                {message && (
-                  <div className="settings-success">
-                    {message}
-                  </div>
-                )}
-
-                <button className="settings-save" type="submit">
-                  Update Password
-                </button>
-
-              </form>
-            )}
+            {activeTab === "security" && <ProfileSecurity />}
 
             {/* PREFERENCES */}
-            {activeTab === "preferences" && (
-              <form onSubmit={saveInformation}>
-
-                <div className="settings-section-title">
-                  <h2>Preferences</h2>
-                </div>
-
-                <div className="preference-box">
-
-                  <div>
-                    <strong>Email Notifications</strong>
-                    <p>Get notified about new reports and flagged comments</p>
-                  </div>
-
-                  <label className="toggle">
-                    <input type="checkbox" defaultChecked />
-                    <span></span>
-                  </label>
-
-                </div>
-
-                {message && (
-                  <div className="settings-success">
-                    {message}
-                  </div>
-                )}
-
-                <button className="settings-save" type="submit">
-                  Save Changes
-                </button>
-
-              </form>
-            )}
+            {activeTab === "preferences" && <div><h2>Preferences</h2><p>Email notification preferences are not available yet. No changes are saved here.</p></div>}
 
           </section>
 
