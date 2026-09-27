@@ -180,6 +180,16 @@ export function AppProvider({ children }) {
     setLogs((prev) => [{ id: "g" + Date.now(), text: `${ROLE_NAMES.admin} added moderator ${mod.name}.`, when: "just now" }, ...prev]);
   }, []);
 
+  const editModerator = useCallback((id, changes) => {
+    setModerators((prev) => prev.map((mod) => mod.id === id ? { ...mod, ...changes } : mod));
+  }, []);
+  const removeModerator = useCallback((id) => {
+    setModerators((prev) => prev.filter((mod) => mod.id !== id));
+  }, []);
+  const removeCategory = useCallback((name) => {
+    setCategories((prev) => prev.filter((category) => category !== name));
+  }, []);
+
   const addTide = useCallback((tide) => {
     setTides((prev) => [{ id: "l" + Date.now(), progress: 0, ...tide }, ...prev]);
   }, []);
@@ -226,13 +236,16 @@ export function AppProvider({ children }) {
       editUser,
       moderators,
       addModerator,
+      editModerator,
+      removeModerator,
+      removeCategory,
       categories,
       addCategory,
     }),
     [
       role, profile, sessionReady, sessionError, sessionNotice, retrySession, toast, traces, tides, comments, reports, notificationState, history, logs, users, moderators, categories,
       readData, writeData, login, register, verifySignup, confirmSession, clearSession, resendConfirmation, logout, showToast, addTrace, decideTrace, addComment, toggleTideProgress, addTide,
-      resolveFlaggedComment, resolveReport, suspendUser, editUser, addModerator, addCategory,
+      resolveFlaggedComment, resolveReport, suspendUser, editUser, addModerator, editModerator, removeModerator, removeCategory, addCategory,
     ]
   );
 

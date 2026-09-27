@@ -1,5 +1,6 @@
 
 import React from "react";
+import AdminIcon from "../../components/AdminIcon.jsx";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 
@@ -30,16 +31,17 @@ export default function Dashboard() {
 
       <h3 className="sec-t">Quick actions</h3>
       <div className="g4">
-        <button className="btn blue" onClick={() => navigate("/admin/users")}>👥 Manage users</button>
-        <button className="btn outline" onClick={() => navigate("/admin/moderators")}>🛡 Add moderator</button>
-        <button className="btn outline" onClick={() => navigate("/admin/tides")}>📚 Publish Tides</button>
-        <button className="btn outline" onClick={() => navigate("/admin/categories")}>🏷 Manage categories</button>
+        <button className="btn blue" onClick={() => navigate("/admin/users")}><AdminIcon name="users" /> Manage users</button>
+        <button className="btn outline" onClick={() => navigate("/admin/moderators?add=1")}><AdminIcon name="shield" /> Add moderator</button>
+        <button className="btn outline" onClick={() => navigate("/admin/tides")}><AdminIcon name="book" /> Publish Tides</button>
+        <button className="btn outline" onClick={() => navigate("/admin/review/history")}><AdminIcon name="history" /> Moderation history</button>
       </div>
 
       <h3 className="sec-t">Recent system activity</h3>
       <div className="card">
         {logs.map((l) => (
           <div className="lrow" key={l.id}>
+            <span className="admin-log-icon"><AdminIcon name="log" size={16} /></span>
             <div className="grow">
               <div className="t">{l.text}</div>
               <div className="m">{l.when}</div>

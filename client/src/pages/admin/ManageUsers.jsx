@@ -44,10 +44,11 @@ export default function ManageUsers() {
         </div>
       </div>
 
+      {!filtered.length && <p role="status">No users match your search.</p>}
       <div className="card">
-        {filtered.map((u) => (
+        {filtered.map((u, index) => (
           <div className="lrow" key={u.id}>
-            <span className="avatar" style={{ background: "var(--tan)" }} />
+            <span className="avatar" style={{ background: ["var(--teal)", "var(--clay)", "var(--blue)", "var(--tan)"][index % 4] }}>{u.name.charAt(0)}</span>
             <div className="grow">
               <div className="t">{u.name}</div>
               <div className="m">
@@ -56,7 +57,7 @@ export default function ManageUsers() {
               </div>
             </div>
             <div className="act">
-              <button className="mini blue" onClick={() => openEdit(u)}>Edit</button>
+              <button className="mini blue" onClick={() => openEdit(u)}>View / Edit</button>
               <button className="mini clay" onClick={() => { suspendUser(u.id); showToast(u.status === "active" ? "User suspended" : "User activated"); }}>
                 {u.status === "active" ? "Suspend" : "Activate"}
               </button>
@@ -68,7 +69,7 @@ export default function ManageUsers() {
       {editing && editingUser && (
         <div className="modal" style={{ display: "grid" }}>
           <div className="mcard">
-            <h3>Edit user</h3>
+            <h3>Edit user — {editingUser.name}</h3>
             <div className="fgroup"><label>Full name</label><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="fgroup"><label>Email</label><input className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             <div className="fgroup"><label>Barangay / community</label><input className="input" value={form.barangay} onChange={(e) => setForm({ ...form, barangay: e.target.value })} /></div>

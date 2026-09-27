@@ -34,6 +34,10 @@ import EditTide from "./pages/admin/EditTide.jsx";
 import ManageTides from "./pages/admin/ManageTides.jsx";
 import ManageCategories from "./pages/admin/ManageCategories.jsx";
 import AdminProfile from "./pages/admin/Profile";
+import AdminSettings from "./pages/admin/Settings.jsx";
+import AdminAnalytics from "./pages/admin/Analytics.jsx";
+import AdminHistory from "./pages/admin/History.jsx";
+import "./pages/admin/admin.css";
 
 const WAVE = (
   <svg width={24} height={24} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
@@ -314,7 +318,7 @@ function AppShell() {
     return <Navigate to={{ pathname: "/auth/callback", hash: location.hash }} replace />;
   }
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${role === "admin" ? "admin-shell" : ""}`}>
       <Navbar />
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
@@ -345,7 +349,7 @@ function AppShell() {
           <Route path="/moderator/review/history" element={<RequireRole role="mod"><div className="view"><ModerationHistory /></div></RequireRole>} />
           <Route path="/moderator/review/:id" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
           <Route path="/admin/review" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
-          <Route path="/admin/review/history" element={<RequireRole role="admin"><div className="view"><ModerationHistory /></div></RequireRole>} />
+          <Route path="/admin/review/history" element={<RequireRole role="admin"><div className="view"><AdminHistory /></div></RequireRole>} />
           <Route path="/admin/review/:id" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
           <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
           <Route path="/admin/reports" element={<RequireRole role="admin"><div className="view"><ManageReports /></div></RequireRole>} />
@@ -359,6 +363,8 @@ function AppShell() {
           <Route path="/admin/tides/new" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
           <Route path="/admin/tides/:id/edit" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
           <Route path="/admin/categories" element={<RequireRole role="admin"><div className="view"><ManageCategories /></div></RequireRole>} />
+          <Route path="/admin/settings" element={<RequireRole role="admin"><div className="view"><AdminSettings /></div></RequireRole>} />
+          <Route path="/admin/analytics" element={<RequireRole role="admin"><div className="view"><AdminAnalytics /></div></RequireRole>} />
           <Route path="/admin/profile" element={<RequireRole role="admin"><AdminProfile /></RequireRole>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

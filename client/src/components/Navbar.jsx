@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 
+import AdminIcon from "./AdminIcon.jsx";
+
 const WAVE = (
   <svg width={24} height={24} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
     <path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0" />
@@ -26,13 +28,13 @@ const modLinks = [
 ];
 
 const adminLinks = [
-  { to: "/admin/reports", label: "Reports" },
-  { to: "/admin/review", label: "Review Traces" },
-  { to: "/admin/dashboard", label: "Dashboard" },
-  { to: "/admin/users", label: "Users" },
-  { to: "/admin/moderators", label: "Moderators" },
-  { to: "/admin/tides", label: "Tides" },
-  { to: "/admin/categories", label: "Categories" },
+  { to: "/admin/dashboard", label: "Dashboard", icon: "dashboard" },
+  { to: "/admin/users", label: "Users", icon: "users" },
+  { to: "/admin/moderators", label: "Moderators", icon: "shield" },
+  { to: "/admin/tides", label: "Content", icon: "book" },
+  { to: "/admin/review/history", label: "History", icon: "history" },
+  { to: "/admin/settings", label: "Settings", icon: "settings" },
+  { to: "/admin/analytics", label: "Analytics", icon: "chart" },
 ];
 
 export default function Navbar() {
@@ -48,6 +50,15 @@ export default function Navbar() {
   const avatarLetter = profile?.display_name?.trim().charAt(0).toUpperCase() || "?";
   const homeLink = role === "mod" ? "/moderator/dashboard" : role === "admin" ? "/admin/dashboard" : role === "user" ? "/user/dashboard" : "/";
 
+  const isActive = (link) => {
+    const path = location.pathname;
+    if (path === link.to) return true;
+    if (role !== "admin") return false;
+    if (link.label === "Content") return path.startsWith("/admin/tides/") || path === "/admin/categories";
+    if (link.label === "History") return path.startsWith("/admin/review") || path === "/admin/reports";
+    return false;
+  };
+
   return (
     <nav className={`nav ${open ? "open" : ""}`}>
       <div className="wrap nav-grid">
@@ -60,7 +71,8 @@ export default function Navbar() {
           <ul className="nav-links">
             {links.map((l) => (
               <li key={l.to}>
-                <Link aria-label={l.label === "Notifications" && unread > 0 ? `Notifications (${unread} unread)` : undefined} className={location.pathname === l.to ? "on" : ""} to={l.to} onClick={() => setOpen(false)}>
+                <Link aria-label={l.label === "Notifications" && unread > 0 ? `Notifications (${unread} unread)` : undefined} aria-current={isActive(l) ? "page" : undefined} className={isActive(l) ? "on" : ""} to={l.to} onClick={() => setOpen(false)}>
+                  {l.icon && <AdminIcon name={l.icon} size={16} />}
                   {l.label}
                   {l.label === "Notifications" && unread > 0 && <span className="nav-badge">{unread}</span>}
                 </Link>
@@ -114,7 +126,7 @@ export default function Navbar() {
               <button className="btn clay sm" onClick={() => navigate("/register")}>Join TideTrace</button>
             </>
           )}
-          <button className="menu-btn" aria-label="Menu" onClick={() => setOpen((o) => !o)}>
+          <button className="menu-btn" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#203463" strokeWidth={2}>
               <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
