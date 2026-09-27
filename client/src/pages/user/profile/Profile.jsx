@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { useApp } from "../../../context/AppContext.jsx";
 import ProfileNameForm from "../../../components/ProfileNameForm.jsx";
 import ProfileSecurity from "../../../components/ProfileSecurity.jsx";
+import AdminIcon from "../../../components/AdminIcon.jsx";
 import Sidebar from "../../../components/Sidebar.jsx";
 
 const PANES = [
-  { key: "account", label: "Account", number: "👤" },
-  { key: "privacy", label: "Privacy", number: "🔒" },
-  { key: "app", label: "App settings", number: "📱" },
-  { key: "security", label: "Security", number: "🔑" },
-  { key: "usage", label: "Usage & activity", number: "📊" },
+  { key: "account", label: "Account", number: <AdminIcon name="users" size={16} /> },
+  { key: "privacy", label: "Privacy", number: <AdminIcon name="shield" size={16} /> },
+  { key: "app", label: "App settings", number: <AdminIcon name="settings" size={16} /> },
+  { key: "security", label: "Security", number: <AdminIcon name="key" size={16} /> },
+  { key: "usage", label: "Usage & activity", number: <AdminIcon name="chart" size={16} /> },
 ];
 
 function Toggle() {
@@ -17,12 +18,12 @@ function Toggle() {
 }
 
 export default function Profile() {
-  const { traces } = useApp();
+  const { traces, profile } = useApp();
   const [pane, setPane] = useState("account");
   const mine = traces.filter((t) => t.author === "Ana Ramos").length;
 
   return (
-    <div className="wrap">
+    <div className="wrap user-settings">
       <div className="vhead">
         <span className="eyebrow">Settings</span>
         <h2>Account &amp; preferences</h2>
@@ -30,7 +31,7 @@ export default function Profile() {
       <div className="sgrid">
         <Sidebar items={PANES} active={pane} onSelect={setPane} />
         <div>
-          {pane === "account" && <div className="card"><ProfileNameForm /></div>}
+          {pane === "account" && <div className="card"><div className="user-account-header"><span className="avatar" aria-hidden="true">{profile?.display_name?.trim().charAt(0).toUpperCase()}</span><strong>{profile?.display_name}</strong></div><ProfileNameForm /></div>}
           {["privacy", "app"].includes(pane) && <p role="status">These preferences are not available yet. No changes are saved here.</p>}
 
           {pane === "privacy" && (
@@ -66,8 +67,8 @@ export default function Profile() {
           {pane === "security" && <div className="card"><ProfileSecurity /></div>}
 
           {pane === "usage" && (
-            <div className="card">
-              <div className="setrow"><div className="l">Your traces</div><span className="hint">{mine}</span></div>
+            <div className="card"><p className="hint">Sample activity preview. These numbers are not your saved account statistics.</p>
+              <div className="setrow"><div className="l">Your traces (sample)</div><span className="hint">{mine}</span></div>
               <div className="setrow"><div className="l">Comments posted</div><span className="hint">14</span></div>
               <div className="setrow"><div className="l">Learning minutes</div><span className="hint">46</span></div>
               <div className="setrow"><div className="l">Member since</div><span className="hint">January 2026</span></div>

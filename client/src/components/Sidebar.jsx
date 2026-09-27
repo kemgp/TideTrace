@@ -11,6 +11,7 @@ export default function Sidebar({ items, active, onSelect }) {
         <button
           key={item.key}
           type="button"
+          aria-current={active === item.key ? "true" : undefined}
           className={`ri ${active === item.key ? "on" : ""} ${item.done ? "done" : ""}`}
           onClick={() => onSelect(item.key)}
         >

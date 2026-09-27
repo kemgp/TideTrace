@@ -1,19 +1,15 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import TraceStatusBadge from "./TraceStatusBadge.jsx";
-
-const THUMB_COLORS = { "Coral condition": "var(--tan)", Mangroves: "var(--teal)", Fisheries: "var(--blue)", Pollution: "var(--clay)", "Oral history": "var(--navy)", Other: "var(--soft)" };
+import { traceColor } from "./TraceCategory.jsx";
+import AdminIcon from "./AdminIcon.jsx";
 
 export default function TraceCard({ trace, to }) {
-  const navigate = useNavigate();
-  return (
-    <div className="tcard" onClick={() => to && navigate(to)}>
-      <div className="thumb" style={{ background: THUMB_COLORS[trace.category] || "var(--bg)" }} />
-      <div className="t">{trace.title}</div>
-      <div className="m">
-        <span>{trace.location} · {trace.when || trace.category}</span>
-        <TraceStatusBadge status={trace.status} />
-      </div>
-    </div>
-  );
+  const Tag = to ? Link : "article";
+  return <Tag className="tcard user-trace-card" {...(to ? { to } : {})}>
+    <div className="thumb" aria-hidden="true" style={{ background: traceColor(trace.category) }} />
+    <div className="t">{trace.title}</div>
+    <div className="m"><span>{trace.author}{trace.when && ` · ${trace.when}`}</span><span className="user-category-label">{trace.category}</span></div>
+    <div className="m"><span className="user-card-location"><AdminIcon name="pin" size={13} />{trace.location}</span>{trace.status !== "approved" && <TraceStatusBadge status={trace.status} />}</div>
+  </Tag>;
 }

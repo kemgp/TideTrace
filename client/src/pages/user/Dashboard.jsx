@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import TraceCard from "../../components/TraceCard.jsx";
 import Card from "../../components/Card.jsx";
+import AdminIcon from "../../components/AdminIcon.jsx";
 import Button from "../../components/Button.jsx";
 
 export default function Dashboard() {
@@ -38,22 +39,25 @@ export default function Dashboard() {
         <Button variant="outline" onClick={() => navigate("/user/traces")}>Explore Traces</Button>
       </div>
 
+      <h3 className="sec-t">Continue learning</h3>
+      <Card className="user-learning-callout"><div><span className="lbl">Explore Tides</span><p>Coastal lessons from your community. Open Tides to see your saved completions.</p></div><Button variant="blue" onClick={() => navigate("/user/tides")}>Browse lessons →</Button></Card>
+
       <h3 className="sec-t">Go to</h3>
       <Card>
         <button className="shortcut" onClick={() => navigate("/user/traces")}>
-          <span>🌊 Traces — explore the community archive</span><span>›</span>
+          <span><AdminIcon name="pin" size={16} /> Traces — explore the community archive</span><span>›</span>
         </button>
         <button className="shortcut" onClick={() => navigate("/user/tides")}>
-          <span>📚 Tides — educational content</span><span>›</span>
+          <span><AdminIcon name="book" size={16} /> Tides — educational content</span><span>›</span>
         </button>
         <button className="shortcut" onClick={() => navigate("/user/contributions")}>
-          <span>📋 My Contributions — track your traces</span><span>›</span>
+          <span><AdminIcon name="log" size={16} /> My Contributions — track your traces</span><span>›</span>
         </button>
         <button className="shortcut" onClick={() => navigate("/user/notifications")}>
-          <span>🔔 Notifications</span><span>›</span>
+          <span><AdminIcon name="bell" size={16} /> Notifications</span><span>›</span>
         </button>
         <button className="shortcut" onClick={() => navigate("/user/profile")}>
-          <span>⚙️ Settings</span><span>›</span>
+          <span><AdminIcon name="settings" size={16} /> Settings</span><span>›</span>
         </button>
       </Card>
 

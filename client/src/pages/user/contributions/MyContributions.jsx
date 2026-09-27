@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useRemoteData from "../../../hooks/useRemoteData.js";
 import { displayTrace } from "../../../api/data.js";
 import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
+import TraceCategory from "../../../components/TraceCategory.jsx";
 import TraceStatusBadge from "../../../components/TraceStatusBadge.jsx";
 import Button from "../../../components/Button.jsx";
 
@@ -39,9 +40,9 @@ export default function MyContributions() {
 
       <RemoteState {...result} />
       {!result.loading && !result.error && (filtered.length > 0 ? (
-        <div className="card">
+        <div className="user-contributions">
           {filtered.map((t) => (
-            <div className="lrow click" key={t.id} onClick={() => navigate(`/user/contributions/${t.id}`)}>
+            <Link className="lrow user-contribution" key={t.id} to={`/user/contributions/${encodeURIComponent(t.id)}`}><TraceCategory category={t.category} />
               <div className="grow">
                 <div className="t">{t.title}</div>
                 <div className="m">
@@ -52,7 +53,7 @@ export default function MyContributions() {
                 )}
               </div>
               <TraceStatusBadge status={t.status} />
-            </div>
+            </Link>
           ))}
         </div>
       ) : (

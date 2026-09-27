@@ -1,6 +1,8 @@
 import React from "react";
 
 const paths = {
+  pin: "M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0 M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4",
   review: "M14 3H4v18h16V11 M8 8h3 M8 12h3 M8 16h8 M15 5l2 2 4-4",
   comment: "M21 3H3v14h4v4l5-4h9z",
   flag: "M4 22V3 M4 3c6-4 10 4 16 0v11c-6 4-10-4-16 0",

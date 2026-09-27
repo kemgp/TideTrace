@@ -5,6 +5,7 @@ import useRemoteData from "../hooks/useRemoteData.js";
 import { ApiError } from "../api/auth.js";
 import RemoteState from "./RemoteState.jsx";
 import TraceFeedback from "./TraceFeedback.jsx";
+import TraceDraftLayout, { TraceDraftSection, TraceDraftSummary } from "./TraceDraftLayout.jsx";
 import Card from "./Card.jsx";
 import TracePhotos from "./TracePhotos.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
@@ -28,6 +29,13 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   const saveLabel = revision ? "Save changes" : "Save draft";
   const categories = useRemoteData("categories", { collection: true });
   const [fields, setFields] = useState(() => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "" }));
+  const [activeStep, setActiveStep] = useState("category");
+  const jumpToStep = (step) => {
+    setActiveStep(step);
+    const section = document.getElementById(`trace-step-${step}`);
+    section?.scrollIntoView?.({ block: "start" });
+    section?.focus({ preventScroll: true });
+  };
   const [busy, setBusy] = useState(false);
   const [intent, setIntent] = useState("save");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -189,11 +197,12 @@ export default function TraceDraftForm({ trace = null, onReload }) {
       <p>{revision ? "Address the moderator’s feedback and save your changes. Keep the title, description and location complete. Save changes keeps the status as Needs revision; Resubmit for review saves your changes and sends them back to the reviewer." : "Submit your completed Trace for review, or save a draft and finish it later. A category is required to save a draft; submission also needs a title, location, description and photo."}</p>
     </div>
     {revision && <TraceFeedback id={trace.id} />}
-    <Card>
+    <TraceDraftLayout activeStep={activeStep} onSelect={jumpToStep} editing={Boolean(trace)}>
       <form onSubmit={save} noValidate>
         <RemoteState {...categories} />
         {!categories.loading && !categories.error && available.length === 0 && <p role="status">No categories are available. A category must be added before you can save a draft.</p>}
         <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}>
+          <TraceDraftSection step="category" onActivate={setActiveStep}>
           <label className="lbl" htmlFor="draft-category">Category (required)</label>
           <select className="input" id="draft-category" name="category_id" {...fieldProps("category_id")} required value={fields.category_id} onChange={change} disabled={categories.loading || Boolean(categories.error)}>
             <option value="">Choose a category</option>
@@ -201,16 +210,22 @@ export default function TraceDraftForm({ trace = null, onReload }) {
             {available.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
           {fieldError("category_id")}
-          <label className="lbl" htmlFor="draft-title" style={{ marginTop: 16 }}>Title</label>
-          <input className="input" id="draft-title" required={revision} name="title" {...fieldProps("title")} maxLength={200} value={fields.title} onChange={change} />
-          {fieldError("title")}
+          </TraceDraftSection>
+          <TraceDraftSection step="location" onActivate={setActiveStep}>
           <label className="lbl" htmlFor="draft-location" style={{ marginTop: 16 }}>Location</label>
           <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
           {fieldError("location_name")}
           <p className="hint">Enter the location name yourself. Map pinning is not available yet.{trace?.latitude != null && " Changing the location name clears the previously saved coordinates."}</p>
+          </TraceDraftSection>
+          <TraceDraftSection step="description" onActivate={setActiveStep}>
+          <label className="lbl" htmlFor="draft-title" style={{ marginTop: 16 }}>Title</label>
+          <input className="input" id="draft-title" required={revision} name="title" {...fieldProps("title")} maxLength={200} value={fields.title} onChange={change} />
+          {fieldError("title")}
           <label className="lbl" htmlFor="draft-description" style={{ marginTop: 16 }}>Description</label>
           <textarea className="input" id="draft-description" required={revision} name="description" {...fieldProps("description")} maxLength={20000} rows={6} value={fields.description} onChange={change} />
           {fieldError("description")}
+          </TraceDraftSection>
+          <TraceDraftSection step="photo" onActivate={setActiveStep}>
           {!trace && <div className="trace-photo-upload">
             <label className="lbl" htmlFor="draft-photo">Choose a photo (Required)</label>
             <div className="trace-photo-upload__card">
@@ -237,17 +252,21 @@ export default function TraceDraftForm({ trace = null, onReload }) {
             {photoValidation && <p id="draft-photo-validation" role="alert">{photoValidation}</p>}
           </div>}
           {trace && <div><p className="hint">Manage attached photos from the saved Trace's detail page.</p>{fieldError("photo")}{fieldErrors.photo && <Link to={`/user/contributions/${trace.id}`}>Add a photo</Link>}</div>}
+          </TraceDraftSection>
+          <TraceDraftSection step="review" onActivate={setActiveStep}>
+          {!trace && <TraceDraftSummary fields={fields} categories={available} photo={photo} />}
           {uploading && <div role="status"><progress aria-label="Photo operation in progress" />Draft saved. Uploading and attaching photo…</div>}
           <p className="hint">{dirty ? "You have unsaved changes. Save before leaving this page." : `Changes are saved only when you choose ${saveLabel}.`}</p>
           {error && <p role="alert">{error}</p>}
-          <div className="row" style={{ marginTop: 16 }}>
+          <div className="trace-draft-actions">
             <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" ? (uploading ? "Uploading photo…" : "Submitting…") : revision ? "Resubmit for review" : "Submit Trace"}</button>
             <button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" ? (uploading ? "Uploading photo…" : "Saving…") : saveLabel}</button>
             {blocked && trace && <button className="btn outline" type="button" onClick={onReload}>{revision ? "Discard local changes and reload Trace" : "Discard local changes and reload saved draft"}</button>}
           </div>
+          </TraceDraftSection>
         </fieldset>
       </form>
-    </Card>
+    </TraceDraftLayout>
     <Link className="btn ghost sm" style={{ marginTop: 16 }} to="/user/contributions">Back to My Contributions</Link>
   </>;
 }

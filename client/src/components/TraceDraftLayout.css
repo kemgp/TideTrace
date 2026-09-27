@@ -1,0 +1,98 @@
+/* Scoped to the draft editor so shared sidebar/form rules cannot flatten it. */
+.app-shell .trace-draft-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+.app-shell .trace-draft-steps {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.app-shell .trace-draft-steps ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.app-shell .trace-draft-steps li { min-width: 0; }
+.app-shell .trace-draft-steps button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 10px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--soft);
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.app-shell .trace-draft-steps button[aria-current="step"] {
+  background: #fff;
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.trace-draft-steps__number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+.trace-draft-steps__copy { min-width: 0; font-weight: 600; }
+.trace-draft-steps__copy small { display: none; }
+.app-shell .trace-draft-panel { min-width: 0; padding: clamp(16px, 3vw, 28px); }
+.app-shell .trace-draft-panel fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.app-shell .trace-draft-section {
+  min-width: 0;
+  padding-block: 26px;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: 100px;
+}
+.app-shell .trace-draft-section:first-child { padding-top: 0; }
+.app-shell .trace-draft-section:last-child { padding-bottom: 0; border-bottom: 0; }
+.app-shell .trace-draft-section__heading {
+  margin: 0 0 20px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.app-shell .trace-draft-section .lbl { display: block; margin: 0 0 8px; }
+.app-shell .trace-draft-section .input { margin: 0; }
+.app-shell .trace-draft-section .hint { margin-top: 10px; line-height: 1.65; }
+.app-shell .trace-draft-section .trace-photo-upload { margin-top: 0; }
+.app-shell .trace-draft-summary { margin: 0 0 22px; }
+.app-shell .trace-draft-summary > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--bg);
+}
+.app-shell .trace-draft-summary dt { font-size: 12px; font-weight: 600; color: var(--soft); }
+.app-shell .trace-draft-summary dd { min-width: 0; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.app-shell .trace-draft-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.app-shell .trace-draft-actions > button { flex: 1 1 150px; }
+@media (min-width: 480px) {
+  .app-shell .trace-draft-summary > div { grid-template-columns: 100px minmax(0, 1fr); gap: 16px; }
+  .trace-draft-steps__copy small { display: block; font-size: 11px; font-weight: 400; }
+}
+@media (min-width: 768px) {
+  .app-shell .trace-draft-layout:not(.trace-draft-layout--editing) { grid-template-columns: 220px minmax(0, 1fr); }
+  .app-shell .trace-draft-steps { position: sticky; top: 100px; }
+  .app-shell .trace-draft-steps ol { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .trace-draft-actions > button { flex: 0 1 auto; }
+}

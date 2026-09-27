@@ -12,12 +12,12 @@ const WAVE = (
 );
 
 const userLinks = [
-  { to: "/user/dashboard", label: "Dashboard" },
-  { to: "/user/traces", label: "Traces" },
-  { to: "/user/tides", label: "Tides" },
-  { to: "/user/contributions", label: "Contributions" },
-  { to: "/user/notifications", label: "Notifications" },
-  { to: "/user/profile", label: "Settings" },
+  { to: "/user/dashboard", label: "Dashboard", icon: "dashboard" },
+  { to: "/user/traces", label: "Traces", icon: "pin" },
+  { to: "/user/tides", label: "Tides", icon: "book" },
+  { to: "/user/contributions", label: "Contributions", icon: "log" },
+  { to: "/user/notifications", label: "Notifications", icon: "bell" },
+  { to: "/user/profile", label: "Settings", icon: "settings" },
 ];
 
 const modLinks = [
@@ -80,6 +80,7 @@ export default function Navbar() {
     const path = location.pathname;
     if (path === link.to) return true;
     if (role === "mod") return link.to === "/moderator/review" && path.startsWith("/moderator/review/");
+    if (role === "user") return path.startsWith(`${link.to}/`) || (link.to === "/user/dashboard" && path === "/user");
     if (role !== "admin") return false;
     if (link.label === "Content") return path.startsWith("/admin/tides/") || path === "/admin/categories";
     if (link.label === "History") return path.startsWith("/admin/review") || path === "/admin/reports";

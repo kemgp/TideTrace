@@ -72,7 +72,7 @@ it("accepts a dropped photo, validates drops, and removes the selection without 
   open("/user/traces/upload");
   const dropArea = (await screen.findByText("Drag and drop your photo here")).parentElement;
   fireEvent.drop(dropArea, { dataTransfer: { files: [file()] } });
-  expect(screen.getByText("coast.png")).toBeTruthy();
+  expect(screen.getByText("coast.png", { selector: ".trace-photo-upload__name" })).toBeTruthy();
   expect(screen.getByText(/Ready to upload/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Remove selected photo" }));
   expect(screen.queryByText("coast.png")).toBeNull();

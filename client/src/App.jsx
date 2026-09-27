@@ -23,6 +23,7 @@ import Profile from "./pages/user/profile/Profile.jsx";
 
 import ModAnalytics from "./pages/moderator/Analytics.jsx";
 import "./pages/moderator/moderator.css";
+import "./pages/user/user.css";
 import ModDashboard from "./pages/moderator/Dashboard.jsx";
 import ReviewTraces, { ModerationHistory } from "./pages/moderator/ReviewTraces.jsx";
 import ManageComments from "./pages/moderator/ManageComments.jsx";
@@ -320,7 +321,7 @@ function AppShell() {
     return <Navigate to={{ pathname: "/auth/callback", hash: location.hash }} replace />;
   }
   return (
-    <div className={`app-shell ${role === "admin" ? "admin-shell" : role === "mod" ? "moderator-shell" : ""}`}>
+    <div className={`app-shell ${role === "admin" ? "admin-shell" : role === "mod" ? "moderator-shell" : role === "user" ? "user-shell" : ""}`}>
       <Navbar />
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}

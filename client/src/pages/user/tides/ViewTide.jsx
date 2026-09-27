@@ -10,7 +10,7 @@ export default function ViewTide() {
   const { id } = useParams();
   const result = useRemoteData(`tides/${encodeURIComponent(id)}`);
   const lesson = result.data;
-  return <div className="wrap" style={{ maxWidth: 800 }}>
+  return <div className="wrap user-lesson" style={{ maxWidth: 800 }}>
     <Link className="btn ghost sm" to="/user/tides" style={{ marginBottom: 16 }}>← Back to Tides</Link>
     <RemoteState {...result} />
     {lesson && (lesson.status === "published" ? <Card><span className="lbl">Tides · Lesson</span><TideLesson title={lesson.title} body={lesson.body} /><TideCompletion tideId={lesson.id} /></Card> : <p role="alert">This lesson is not available.</p>)}

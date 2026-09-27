@@ -4,5 +4,5 @@ import TraceDraftForm from "../../../components/TraceDraftForm.jsx";
 
 export default function UploadTrace() {
   const { profile } = useApp();
-  return <div className="wrap" style={{ maxWidth: 760 }}><TraceDraftForm key={profile.id} /></div>;
+  return <div className="wrap user-upload"><TraceDraftForm key={profile.id} /></div>;
 }
