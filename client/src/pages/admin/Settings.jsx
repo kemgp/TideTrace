@@ -7,7 +7,7 @@ import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
 
 const tabs = [["moderation", "Moderation", "shield"], ["content", "Content", "book"], ["permissions", "User permissions", "key"], ["app", "App configuration", "settings"], ["categories", "Trace categories", "tag"], ["logs", "System logs", "log"]];
 function Setting({ title, description, children }) {
-  return <div className="setrow"><div><div className="l">{title}</div><div className="s">{description}</div></div>{children}</div>;
+  return <div className="setrow admin-setting-row"><div className="admin-setting-copy"><div className="l">{title}</div><div className="s">{description}</div></div>{children}</div>;
 }
 function Switch({ label, value, onChange }) {
   return <button type="button" className={`tgl ${value ? "" : "off"}`} role="switch" aria-label={label} aria-checked={value} onClick={() => onChange(!value)} />;

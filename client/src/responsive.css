@@ -50,6 +50,12 @@ body { min-width: 0; }
 .app-shell .account-detail strong { max-width: 100%; }
 .app-shell .settings-field.full { grid-column: auto; }
 .app-shell .settings-menu span { flex: none; }
+.app-shell .admin-settings-body .admin-setting-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 20px; }
+.app-shell .admin-settings-body .admin-setting-row:has(select) { grid-template-columns: minmax(0, 1fr); }
+.app-shell .admin-settings-body .admin-setting-copy { min-width: 0; overflow-wrap: break-word; }
+.app-shell .admin-setting-copy :is(.l, .s) { overflow-wrap: break-word; word-break: normal; }
+/* More specific than the shared full-width form controls at every breakpoint. */
+.app-shell .admin-settings-body select.admin-small-select { width: 96px; max-width: 100%; min-height: 44px; justify-self: start; }
 .app-shell :is(.settings-sidebar, .admin-settings-nav) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .app-shell .settings-menu { margin: 0; }
 .app-shell .rail { position: static; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; overflow: visible; }
@@ -143,6 +149,8 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
 .app-shell footer { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 
 @media (min-width: 480px) {
+  .app-shell .admin-settings-body .admin-setting-row:has(select) { grid-template-columns: minmax(0, 1fr) auto; }
+  .app-shell .admin-settings-body select.admin-small-select { justify-self: end; }
   .app-shell :is(.g4, .igrid, .settings-sidebar, .admin-settings-nav) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-shell .fake-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .app-shell .nav-right .role-tag { display: inline-block; }
@@ -157,7 +165,6 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
   .app-shell .settings-field.full { grid-column: 1 / -1; }
   .app-shell .lrow .grow { flex-basis: 0; }
   .app-shell .lrow .act { width: auto; justify-content: flex-end; }
-  .app-shell .admin-small-select { width: 75px; }
   .app-shell :is(.admin-bar-row, .mod-chart-row) { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 34px; gap: 16px; }
   .app-shell .foot-in { grid-template-columns: minmax(0, 1fr) auto; text-align: left; }
   .app-shell .foot-main { align-items: flex-start; }
