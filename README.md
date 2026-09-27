@@ -260,6 +260,22 @@ Run `npm test`, `npm run build`, and `npm run verify:tides`. The automated tests
 
 For signed-in live verification, use separate admin and member browser sessions: save the sample as a draft; confirm the member cannot open its direct link; publish and confirm the member can open and reload it; return to draft and confirm the link becomes unavailable; publish again, archive, and confirm it is unavailable again. Open the admin editor in two tabs and save different edits to verify that the second stale save is rejected. Reload pages after each change. These checks require access to your signed-in development accounts and are not proved by mocked tests. Already-open lesson pages show the fetched content until navigation or reload; publication changes are not pushed in real time.
 
+## Reporting and report moderation
+
+Members can select **Report Trace** on a public Trace detail or **Report comment** beside a comment, enter a reason and submit. Confirmation appears only after the API confirms the save. The database permits one open report per member and target. After an uncertain response, **Check saved report** verifies the current member's open report before allowing another submission.
+
+Moderators open **Reports** (`/moderator/reports`); admins use `/admin/reports`. The paginated queue supports open, resolved and dismissed reports. **View reported content** shows the Trace description/photos or comment text. Enter a decision reason, then choose **Dismiss report** to keep content or **Remove content** to hide it. Removal is a soft hide, not permanent deletion. Decisions reload from the API; concurrent decisions or uncertain responses require **Reload saved report** before another action. Resolved/dismissed views and **Moderation history** show saved decisions. Reporters receive a review notification; content owners receive a notification when their content is hidden.
+
+This uses the existing initial-schema report policies, unique indexes and transactional `resolve_report` function: **no new Supabase migration is needed for reporting**. The separate moderator Comments screen remains a demo; use Reports to moderate reported comments.
+
+Live verification before release:
+
+1. As a member, report a published Trace and a visible comment. Reload and repeat a report to check duplicate prevention.
+2. As a moderator, dismiss one report and verify the content remains visible. Remove another and verify it disappears from public views after refresh.
+3. Check resolved/dismissed lists, moderation history and recipient notifications. Hidden Trace photos/comments must also be inaccessible to ordinary visitors.
+4. Open the same report in two staff sessions. Resolve it in one, then attempt a decision in the other; reload the second session's saved report instead of overwriting the first decision.
+5. Verify another member cannot read someone else's reports or access staff report routes. Local automated tests verify these rules against PostgreSQL with Auth/Storage stubs; they do not prove hosted-project configuration.
+
 ## Remaining integration
 
 The original sequence is retained below. Notifications and basic Tides reading/authoring are now connected; single-page lesson completion is also connected; the later integrations remain planned work.
@@ -274,7 +290,7 @@ The original sequence is retained below. Notifications and basic Tides reading/a
 
 5. **Tides completion - implemented.** Apply the incremental migration above. Members choose **Mark as complete** on a published lesson; the library shows **Not started** or **Completed** from saved records. Completion survives reloads, devices and lesson text edits. There is no in-progress state, percentage, multi-page navigation or Continue learning. RLS isolates each member; repeated or simultaneous requests preserve one record and its original completion time.
 
-6. **Connect comments, reports and their moderation.** Connect Trace comments to the existing `GET/POST /api/traces/:id/comments` routes with pagination, inline errors and duplicate-click protection. Connect report forms to `POST /api/reports`, requiring exactly one Trace or comment target and a reason. Then connect staff report queues and decisions to the moderation API; add any missing comment-management endpoints before wiring their buttons. Verify permissions, hidden-content behavior, saved reasons and audit history. Launch community posting together with working reporting/moderation.
+6. **Comments and report moderation - connected.** Trace comment reading/posting, member reporting, staff report queues, content hiding, dismissal and saved decision history use the API. Complete the live checks above. General comment administration outside the report workflow remains deferred.
 
 7. **Replace remaining dashboard and administration demos.** Connect member contribution totals, reviewer queue totals and admin summaries to authorized aggregate queries/endpoints. Do not calculate totals from a paginated list. Connect profile editing, category management and account/moderator administration to existing APIs, adding missing operations deliberately. Verify role restrictions, reload persistence and session changes after account suspension or role updates. Remove demo notices only from features that actually use saved records.
 

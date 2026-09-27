@@ -5,6 +5,8 @@ import { first, result, HttpError } from "../errors.js";
 import { category, decision, page, paginate, text, tide, uuid } from "../validation.js";
 import { reviewSelect, traceSelect } from "./content.js";
 
+const reportSelect = "*,reporter:profiles!reports_reporter_id_fkey(id,display_name),resolver:profiles!reports_resolved_by_fkey(id,display_name),trace:traces(id,title,description,is_hidden,deleted_at,trace_media(*)),comment:comments(id,body,trace_id,status,trace:traces(id,title))";
+
 export function staffRoutes(gateway) {
   const router = Router();
   router.use(authenticate(gateway, { roles: ["moderator", "admin"] }));
@@ -27,7 +29,10 @@ export function staffRoutes(gateway) {
   });
   router.get("/reports", async (req, res) => {
     const input = page.extend({ status: z.enum(["open", "resolved", "dismissed"]).default("open") }).parse(req.query);
-    res.json({ data: await result(paginate(req.db.from("reports").select("*,trace:traces(id,title),comment:comments(id,body,trace_id)").eq("status", input.status).order("created_at").order("id"), input)) });
+    res.json({ data: await result(paginate(req.db.from("reports").select(reportSelect).eq("status", input.status).order("created_at").order("id"), input)) });
+  });
+  router.get("/reports/:id", async (req, res) => {
+    res.json({ data: first(await result(req.db.from("reports").select(reportSelect).eq("id", uuid.parse(req.params.id)).limit(1))) });
   });
   router.post("/reports/:id/resolve", async (req, res) => {
     const input = z.object({ remove_content: z.boolean(), reason: text(2000) }).strict().parse(req.body);
@@ -35,7 +40,7 @@ export function staffRoutes(gateway) {
     res.sendStatus(204);
   });
   router.get("/history", async (req, res) => {
-    res.json({ data: await result(paginate(req.db.from("moderation_actions").select("*,trace:traces(id,title),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
+    res.json({ data: await result(paginate(req.db.from("moderation_actions").select("*,trace:traces(id,title),comment:comments(id,body),report:reports(id,status,trace:traces(id,title),comment:comments(id,body)),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
   });
   return router;
 }

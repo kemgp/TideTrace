@@ -790,3 +790,57 @@ test("unpublished Tide cannot be completed", async () => {
   await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(404);
   assert.equal(calls.some(({ url }) => url.pathname === "/rest/v1/tide_completions"), false);
 });
+
+test("member report status checks stay owner-scoped and filter the exact target", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/reports" ? json([]) : undefined });
+  await bearer(request(app).get(`/api/reports?trace_id=${traceId}&status=open&limit=1`)).expect(200);
+  const query = businessCalls(calls)[0].url.searchParams;
+  assert.equal(query.get("reporter_id"), `eq.${userId}`);
+  assert.equal(query.get("trace_id"), `eq.${traceId}`);
+  assert.equal(query.get("status"), "eq.open");
+  await bearer(request(app).get("/api/reports?reporter_id=other")).expect(400);
+});
+
+test("staff report queue and detail include content, reporter and saved decision", async () => {
+  for (const role of ["moderator", "admin"]) {
+    const record = { id: mediaId, trace_id: traceId, status: "open" };
+    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/reports" ? json([record]) : undefined });
+    await bearer(request(app).get("/api/moderation/reports?status=dismissed&limit=25&offset=25")).expect(200);
+    const query = businessCalls(calls)[0].url.searchParams;
+    assert.equal(query.get("status"), "eq.dismissed");
+    assert.equal(query.get("offset"), "25");
+    assert.match(query.get("select"), /description/);
+    assert.match(query.get("select"), /reports_reporter_id_fkey/);
+    assert.match(query.get("select"), /reports_resolved_by_fkey/);
+    const response = await bearer(request(app).get(`/api/moderation/reports/${mediaId}`)).expect(200);
+    assert.deepEqual(response.body.data, record);
+    assert.equal(businessCalls(calls)[1].url.searchParams.get("id"), `eq.${mediaId}`);
+  }
+});
+
+test("report decisions require staff, a reason and a boolean decision", async () => {
+  const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/resolve_report" ? json(null) : undefined });
+  for (const remove_content of [false, true]) {
+    await bearer(request(app).post(`/api/moderation/reports/${mediaId}/resolve`).send({ remove_content, reason: " Review evidence " })).expect(204);
+    assert.deepEqual(businessCalls(calls).at(-1).body, { p_id: mediaId, p_remove_content: remove_content, p_reason: "Review evidence" });
+  }
+  for (const body of [{ remove_content: true, reason: " " }, { reason: "Review" }, { remove_content: true, reason: "Review", resolved_by: userId }]) {
+    await bearer(request(app).post(`/api/moderation/reports/${mediaId}/resolve`).send(body)).expect(400);
+  }
+  const member = fixture();
+  await bearer(request(member.app).get("/api/moderation/reports")).expect(403);
+  await bearer(request(member.app).get(`/api/moderation/reports/${mediaId}`)).expect(403);
+  await bearer(request(member.app).post(`/api/moderation/reports/${mediaId}/resolve`).send({ remove_content: true, reason: "Review" })).expect(403);
+  await request(app).get(`/api/moderation/reports/${mediaId}`).expect(401);
+  assert.equal(businessCalls(member.calls).length, 0);
+});
+
+test("already closed reports and duplicate open reports return errors", async () => {
+  const { app } = fixture({ role: "moderator", handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/rpc/resolve_report") return json({ code: "P0001", message: "Report is not open" }, 400);
+    if (url.pathname === "/rest/v1/reports") return json({ code: "23505", message: "Duplicate open report" }, 409);
+  } });
+  await bearer(request(app).post(`/api/moderation/reports/${mediaId}/resolve`).send({ remove_content: false, reason: "Review" })).expect(400);
+  const response = await bearer(request(app).post("/api/reports").send({ comment_id: mediaId, reason: "Review" })).expect(409);
+  assert.equal(response.body.error.code, "ALREADY_EXISTS");
+});

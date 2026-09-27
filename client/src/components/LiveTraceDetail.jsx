@@ -8,6 +8,7 @@ import TracePhotos from "./TracePhotos.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import TraceFeedback from "./TraceFeedback.jsx";
 import Card from "./Card.jsx";
+import ReportContent from "./ReportContent.jsx";
 import TraceComments from "./TraceComments.jsx";
 import "./trace-detail.css";
 
@@ -47,6 +48,7 @@ function TraceContent({ initialTrace, contribution }) {
       <span className="lbl">Description</span>
       <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
       {fieldError("description")}
+      {!contribution && <ReportContent targetId={current.id} type="trace" />}
       {!contribution && <TraceComments traceId={current.id} />}
       {contribution && trace.status === "pending" && <p role="status">Pending review. Your Trace is awaiting a reviewer; editing and uploads are disabled until a revision is requested.</p>}
       {contribution && current.status !== "draft" && <TraceFeedback key={`${current.id}:${current.status}`} id={current.id} />}

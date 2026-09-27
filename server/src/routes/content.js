@@ -97,7 +97,10 @@ export function contentRoutes(gateway) {
     send(res, first(await result(req.db.from("reports").insert(report.parse(req.body)).select())), 201);
   });
   router.get("/reports", member, async (req, res) => {
-    send(res, await result(paginate(req.db.from("reports").select("*").eq("reporter_id", req.user.id).order("created_at", { ascending: false }).order("id"), page.parse(req.query))));
+    const input = page.extend({ trace_id: uuid.optional(), comment_id: uuid.optional(), status: z.enum(["open", "resolved", "dismissed"]).optional() }).parse(req.query);
+    let query = req.db.from("reports").select("*").eq("reporter_id", req.user.id);
+    for (const field of ["trace_id", "comment_id", "status"]) if (input[field]) query = query.eq(field, input[field]);
+    send(res, await result(paginate(query.order("created_at", { ascending: false }).order("id"), input)));
   });
   router.get("/notifications", member, async (req, res) => {
     send(res, await result(paginate(req.db.from("notifications").select("*").eq("recipient_id", req.user.id).order("created_at", { ascending: false }).order("id"), page.parse(req.query))));

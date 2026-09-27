@@ -318,7 +318,7 @@ function AppShell() {
       <Navbar />
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
-      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission, Trace moderation, member notifications and Tides lessons use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
+      {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission, Trace moderation, member notifications, Tides lessons, comments and report moderation use saved records. Dashboards and other actions are still demos; changes there are not saved.</div>}
       <main>
         <Routes>
           <Route path="/" element={<div className="view"><Home /></div>} />
@@ -348,6 +348,7 @@ function AppShell() {
           <Route path="/admin/review/history" element={<RequireRole role="admin"><div className="view"><ModerationHistory /></div></RequireRole>} />
           <Route path="/admin/review/:id" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
           <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
+          <Route path="/admin/reports" element={<RequireRole role="admin"><div className="view"><ManageReports /></div></RequireRole>} />
           <Route path="/moderator/reports" element={<RequireRole role="mod"><div className="view"><ManageReports /></div></RequireRole>} />
           <Route path="/moderator/profile" element={<RequireRole role="mod"><ModeratorProfile /></RequireRole>} />
 

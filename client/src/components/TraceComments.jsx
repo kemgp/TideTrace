@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
+import ReportContent from "./ReportContent.jsx";
 import RemoteState, { Pagination } from "./RemoteState.jsx";
 
 export default function TraceComments({ traceId }) {
@@ -49,6 +50,7 @@ export default function TraceComments({ traceId }) {
         <div className="body"><span className="who">{comment.author_id === profile?.id ? "You" : comment.author?.display_name || "Community member"}</span>
           <time className="when" dateTime={comment.created_at}>{comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ""}</time>
           <p>{comment.body}</p>
+          <ReportContent targetId={comment.id} type="comment" />
         </div>
       </div>)}
       {result.data && !comments.length && <p className="hint">{offset ? "No more comments." : "No comments yet — be the first to say something."}</p>}
