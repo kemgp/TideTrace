@@ -66,6 +66,23 @@ function flowSetup({ uploadFailure, submitFailure, slowUpload } = {}) {
   return calls;
 }
 
+it("accepts a dropped photo, validates drops, and removes the selection without uploading", async () => {
+  const calls = setup(() => undefined);
+  vi.stubGlobal("URL", class extends URL { static createObjectURL = () => "blob:photo"; static revokeObjectURL = () => {}; });
+  open("/user/traces/upload");
+  const dropArea = (await screen.findByText("Drag and drop your photo here")).parentElement;
+  fireEvent.drop(dropArea, { dataTransfer: { files: [file()] } });
+  expect(screen.getByText("coast.png")).toBeTruthy();
+  expect(screen.getByText(/Ready to upload/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Remove selected photo" }));
+  expect(screen.queryByText("coast.png")).toBeNull();
+  fireEvent.drop(dropArea, { dataTransfer: { files: [new File(["text"], "notes.txt", { type: "text/plain" })] } });
+  expect(screen.getByRole("alert").textContent).toBe("Choose a JPEG, PNG or WebP photo.");
+  fireEvent.drop(dropArea, { dataTransfer: { files: [file(), file()] } });
+  expect(screen.getByRole("alert").textContent).toBe("Choose one photo at a time.");
+  expect(calls.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
+});
+
 it("uses Submit Trace as primary, validates inline without writes, and clears corrected errors", async () => {
   const calls = setup(() => undefined);
   open("/user/traces/upload");

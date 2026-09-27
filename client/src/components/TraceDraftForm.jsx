@@ -9,6 +9,7 @@ import Card from "./Card.jsx";
 import TracePhotos from "./TracePhotos.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { PHOTO_TYPES, photoError } from "../api/photos.js";
+import "./TracePhotoUpload.css";
 
 function SelectedPhoto({ file }) {
   const [url, setUrl] = useState("");
@@ -17,7 +18,7 @@ function SelectedPhoto({ file }) {
     setUrl(preview);
     return () => URL.revokeObjectURL(preview);
   }, [file]);
-  return url ? <img src={url} alt="Selected photo preview" style={{ display: "block", maxWidth: "100%", maxHeight: 240, marginTop: 12, borderRadius: 8 }} /> : null;
+  return url ? <img src={url} alt="Selected photo preview" className="trace-photo-upload__thumbnail" /> : null;
 }
 
 export default function TraceDraftForm({ trace = null, onReload }) {
@@ -38,6 +39,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   const [savedDraft, setSavedDraft] = useState(null);
   const [initialUpload, setInitialUpload] = useState(null);
   const photoInput = useRef(null);
+  const [draggingPhoto, setDraggingPhoto] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
   const [blocked, setBlocked] = useState(false);
@@ -62,6 +64,18 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     const next = { ...fields, [event.target.name]: event.target.value };
     setFields(next);
     if (validating) setFieldErrors(validate(next));
+    setDirty(true);
+  };
+  const selectPhoto = (files) => {
+    if (busy || !files?.length) return;
+    const selected = files[0];
+    const validation = files.length > 1 ? "Choose one photo at a time." : photoError(selected);
+    setPhoto(null);
+    setPhotoValidation(validation);
+    if (photoInput.current) photoInput.current.value = "";
+    if (validating) setFieldErrors(validate(fields, intent, validation ? null : selected));
+    if (validation) return;
+    setPhoto(selected);
     setDirty(true);
   };
   const save = async (event) => {
@@ -197,23 +211,30 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           <label className="lbl" htmlFor="draft-description" style={{ marginTop: 16 }}>Description</label>
           <textarea className="input" id="draft-description" required={revision} name="description" {...fieldProps("description")} maxLength={20000} rows={6} value={fields.description} onChange={change} />
           {fieldError("description")}
-          {!trace && <div style={{ marginTop: 16 }}>
+          {!trace && <div className="trace-photo-upload">
             <label className="lbl" htmlFor="draft-photo">Choose a photo (Required)</label>
-            <input ref={photoInput} id="draft-photo" {...fieldProps("photo")} type="file" accept={PHOTO_TYPES.join(",")} onChange={(event) => {
-              const selected = event.target.files?.[0];
-              setPhoto(null);
-              setPhotoValidation("");
-              if (!selected) return;
-              const validation = photoError(selected);
-              if (validation) { setPhotoValidation(validation); event.target.value = ""; return; }
-              setPhoto(selected);
-              if (validating) setFieldErrors(validate(fields, intent, selected));
-              setDirty(true);
-            }} />
-            <p className="hint">JPEG, PNG or WebP, up to 20 MB. Your selected photo uploads only when you submit. Save draft saves the details only; you will need to select the photo again when you return.</p>
+            <div className="trace-photo-upload__card">
+              <div className={`trace-photo-upload__drop${draggingPhoto ? " is-dragging" : ""}`}
+                onDragOver={(event) => { event.preventDefault(); if (!busy) setDraggingPhoto(true); }}
+                onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDraggingPhoto(false); }}
+                onDrop={(event) => { event.preventDefault(); setDraggingPhoto(false); selectPhoto(event.dataTransfer.files); }}>
+                <svg className="trace-photo-upload__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 33H11a8 8 0 0 1-2-15.7A12 12 0 0 1 32 13a10 10 0 0 1 5 20h-5M24 40V21m-7 7 7-7 7 7" />
+                </svg>
+                <strong>Drag and drop your photo here</strong>
+                <span>or</span>
+                <input className="trace-photo-upload__input" ref={photoInput} id="draft-photo" {...fieldProps("photo")} aria-describedby={[fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation", "draft-photo-hint"].filter(Boolean).join(" ")} type="file" accept={PHOTO_TYPES.join(",")} onChange={(event) => selectPhoto(event.target.files)} />
+                <button className="trace-photo-upload__browse" type="button" onClick={() => photoInput.current?.click()}>Browse files</button>
+              </div>
+              {photo && <div className="trace-photo-upload__row">
+                <SelectedPhoto file={photo} />
+                <div className="trace-photo-upload__details"><span className="trace-photo-upload__name">{photo.name}</span><small>{photo.size < 1024 * 1024 ? `${Math.max(1, Math.ceil(photo.size / 1024))} KB` : `${(photo.size / (1024 * 1024)).toFixed(1)} MB`} · {uploading ? "Uploading…" : "Ready to upload"}</small></div>
+                <button className="trace-photo-upload__remove" type="button" aria-label="Remove selected photo" title="Remove selected photo" onClick={() => { setPhoto(null); if (validating) setFieldErrors(validate(fields, intent, null)); if (photoInput.current) photoInput.current.value = ""; }}>×</button>
+              </div>}
+            </div>
+            <p className="hint" id="draft-photo-hint">JPEG, PNG or WebP, up to 20 MB. Your selected photo uploads only when you submit. Save draft saves the details only; you will need to select the photo again when you return.</p>
             {fieldError("photo")}
-            {photoValidation && <p role="alert">{photoValidation}</p>}
-            {photo && <><SelectedPhoto file={photo} /><p>{photo.name}</p><button className="btn outline sm" type="button" onClick={() => { setPhoto(null); if (validating) setFieldErrors(validate(fields, intent, null)); if (photoInput.current) photoInput.current.value = ""; }}>Remove selected photo</button></>}
+            {photoValidation && <p id="draft-photo-validation" role="alert">{photoValidation}</p>}
           </div>}
           {trace && <div><p className="hint">Manage attached photos from the saved Trace's detail page.</p>{fieldError("photo")}{fieldErrors.photo && <Link to={`/user/contributions/${trace.id}`}>Add a photo</Link>}</div>}
           {uploading && <div role="status"><progress aria-label="Photo operation in progress" />Draft saved. Uploading and attaching photo…</div>}

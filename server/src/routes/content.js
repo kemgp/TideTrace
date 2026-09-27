@@ -38,6 +38,17 @@ export function contentRoutes(gateway) {
   router.get("/tides/:id", async (req, res) => {
     send(res, first(await result(req.db.from("tides").select("*").eq("status", "published").eq("id", uuid.parse(req.params.id)).limit(1))));
   });
+  router.get("/tide-completions", member, async (req, res) => {
+    send(res, await result(req.db.from("tide_completions").select("tide_id,completed_at").eq("user_id", req.user.id).order("completed_at", { ascending: false })));
+  });
+  router.put("/tides/:id/completion", member, async (req, res) => {
+    const tideId = uuid.parse(req.params.id);
+    first(await result(req.db.from("tides").select("id").eq("status", "published").eq("id", tideId).limit(1)));
+    const existingRows = await result(req.db.from("tide_completions").select("user_id,tide_id,completed_at").eq("user_id", req.user.id).eq("tide_id", tideId).limit(1));
+    const existing = existingRows[0];
+    if (existing) return send(res, existing);
+    send(res, first(await result(req.db.from("tide_completions").insert({ user_id: req.user.id, tide_id: tideId }).select("user_id,tide_id,completed_at"))), 201);
+  });
   router.patch("/profile", member, async (req, res) => {
     const body = z.object({ display_name: text(100) }).strict().parse(req.body);
     send(res, first(await result(req.db.from("profiles").update(body).eq("id", req.user.id).select("id,display_name"))));

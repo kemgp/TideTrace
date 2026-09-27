@@ -195,6 +195,21 @@ describe("backend authentication", () => {
     await waitFor(() => expect(screen.getByTestId("route").textContent).toBe("/login"));
   });
 
+  it("lets a user log out from the navbar", async () => {
+    const calls = mockApi((url) => {
+      if (url === "/api/auth/login") return response({ session: session() });
+      if (url === "/api/auth/me") return response(profile("user"));
+      if (url === "/api/auth/logout") return response(null, 204);
+    });
+    openApp();
+    const user = userEvent.setup();
+    await submitLogin(user);
+    await user.click(await screen.findByRole("button", { name: "Log out" }));
+    await waitFor(() => expect(screen.getByTestId("route").textContent).toBe("/login"));
+    expect(calls.mock.calls.some(([url]) => url === "/api/auth/logout")).toBe(true);
+    expect(window.localStorage.getItem(SESSION_KEY)).toBeNull();
+  });
+
   it("shows a useful message when the backend cannot be reached", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
     openApp();

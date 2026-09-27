@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useApp } from "../../../context/AppContext.jsx";
 import Sidebar from "../../../components/Sidebar.jsx";
 
@@ -17,8 +17,7 @@ function Toggle({ on, onClick }) {
 }
 
 export default function Profile() {
-  const { profile, traces, logout, showToast } = useApp();
-  const navigate = useNavigate();
+  const { profile, traces, showToast } = useApp();
   const [pane, setPane] = useState("account");
   const [name, setName] = useState(profile?.display_name || "");
   const [email, setEmail] = useState(profile?.email || "");
@@ -142,13 +141,6 @@ export default function Profile() {
               <div className="setrow"><div className="l">Comments posted</div><span className="hint">14</span></div>
               <div className="setrow"><div className="l">Learning minutes</div><span className="hint">46</span></div>
               <div className="setrow"><div className="l">Member since</div><span className="hint">January 2026</span></div>
-              <button
-                className="btn outline sm"
-                style={{ marginTop: 16, color: "var(--clay)", borderColor: "var(--clay)" }}
-                onClick={() => { logout(); navigate("/login", { replace: true }); }}
-              >
-                Log out
-              </button>
             </div>
           )}
         </div>
