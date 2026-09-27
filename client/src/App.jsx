@@ -21,6 +21,8 @@ import ViewTide from "./pages/user/tides/ViewTide.jsx";
 import Notifications from "./pages/user/notifications/Notifications.jsx";
 import Profile from "./pages/user/profile/Profile.jsx";
 
+import ModAnalytics from "./pages/moderator/Analytics.jsx";
+import "./pages/moderator/moderator.css";
 import ModDashboard from "./pages/moderator/Dashboard.jsx";
 import ReviewTraces, { ModerationHistory } from "./pages/moderator/ReviewTraces.jsx";
 import ManageComments from "./pages/moderator/ManageComments.jsx";
@@ -318,7 +320,7 @@ function AppShell() {
     return <Navigate to={{ pathname: "/auth/callback", hash: location.hash }} replace />;
   }
   return (
-    <div className={`app-shell ${role === "admin" ? "admin-shell" : ""}`}>
+    <div className={`app-shell ${role === "admin" ? "admin-shell" : role === "mod" ? "moderator-shell" : ""}`}>
       <Navbar />
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
@@ -351,6 +353,7 @@ function AppShell() {
           <Route path="/admin/review" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
           <Route path="/admin/review/history" element={<RequireRole role="admin"><div className="view"><AdminHistory /></div></RequireRole>} />
           <Route path="/admin/review/:id" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
+          <Route path="/moderator/analytics" element={<RequireRole role="mod"><div className="view"><ModAnalytics /></div></RequireRole>} />
           <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
           <Route path="/admin/reports" element={<RequireRole role="admin"><div className="view"><ManageReports /></div></RequireRole>} />
           <Route path="/moderator/reports" element={<RequireRole role="mod"><div className="view"><ManageReports /></div></RequireRole>} />

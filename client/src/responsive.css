@@ -1,0 +1,196 @@
+/* Shared mobile-first layout. Import after index.css and the role styles.
+   Colors, component variants, and existing content remain in their original files. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { min-width: 0; }
+.app-shell { min-width: 0; min-height: 100svh; overflow-wrap: anywhere; }
+.app-shell *, .app-shell *::before, .app-shell *::after { box-sizing: border-box; }
+.app-shell :is(main, section, article, aside, form, fieldset, .grow, .body, .tx, .settings-content, .admin-settings-body) { min-width: 0; }
+.app-shell :is(fieldset, input, select, textarea) { min-inline-size: 0; }
+.app-shell .wrap { width: 100%; padding-inline: clamp(16px, 3vw, 32px); }
+.app-shell :is(.view, .settings-page) { padding-block: clamp(28px, 4vw, 52px) clamp(48px, 6vw, 90px); }
+.app-shell .settings-page { padding-inline: clamp(16px, 3vw, 30px); }
+.app-shell .view-home, .app-shell .view-auth { padding-block: 0; }
+.app-shell .hsec { padding-block: clamp(40px, 5vw, 64px); }
+.app-shell :is(.card, .mcard, .settings-content) { padding: clamp(14px, 2.2vw, 22px); }
+.app-shell :is(h1, h2, h3, h4, p, li, a, label, .badge) { overflow-wrap: anywhere; }
+.app-shell :is(.vhead h2, .sh h2, .settings-title h1) { font-size: clamp(22px, 2.6vw, 32px); line-height: 1.3; }
+.app-shell .hero h1 { font-size: clamp(28px, 3.3vw, 38px); }
+.app-shell .hero { padding-top: clamp(36px, 5vw, 64px); }
+.app-shell .hero-visual { width: 100%; max-width: 440px; margin-inline: auto; }
+.app-shell .float-chip.c1 { right: 0; }
+.app-shell .float-chip.c2 { left: 0; }
+.app-shell .device-frame .content { padding: clamp(12px, 2vw, 20px); }
+.app-shell .fake-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.app-shell .banner { padding: clamp(18px, 2.5vw, 26px); }
+.app-shell .banner > div { flex: 1 1 180px; min-width: 0; }
+.app-shell .banner > svg { flex: none; }
+.app-shell .banner b { font-size: clamp(16px, 1.8vw, 21px); }
+
+/* A single column is the default. Tracks never impose their content's minimum width. */
+.app-shell :is(.g2, .g3, .g4, .pgrid, .igrid, .sgrid3, .hero-grid, .upgrid, .sgrid, .settings-layout, .settings-form-grid, .admin-account-grid, .admin-settings-grid) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(14px, 2vw, 26px);
+}
+.app-shell :is(.g2, .g3, .g4, .pgrid, .igrid, .hero-grid, .settings-layout, .admin-settings-grid) > * { min-width: 0; }
+.app-shell :is(.row, .wrow, .mrow, .headrow, .toolbar, .security-actions, .activity-item, .settings-profile-header, .admin-history-tools) { flex-wrap: wrap; }
+.app-shell :is(.row, .headrow, .wrow, .mrow, .toolbar) > * { min-width: 0; max-width: 100%; }
+.app-shell :is(.row, .wrow, .mrow) > .input { flex: 1 1 180px; width: auto; }
+.app-shell .headrow > div { min-width: 0; }
+.app-shell .search { min-width: 0; width: 100%; flex: 1 1 220px; height: auto; min-height: 44px; }
+.app-shell .search input { min-width: 0; width: 100%; min-height: 42px; font-size: 16px; }
+.app-shell .search svg { flex: none; }
+.app-shell .lrow { flex-wrap: wrap; align-items: center; }
+.app-shell .lrow .grow { flex: 1 1 150px; min-width: 0; }
+.app-shell .lrow .act { width: 100%; justify-content: flex-start; gap: 8px; }
+.app-shell .badge { white-space: normal; max-width: 100%; }
+.app-shell .chip { max-width: 100%; white-space: normal; }
+.app-shell :is(.setrow, .preference-box, .account-detail) > :first-child { min-width: 0; }
+.app-shell :is(.account-detail, .rrow, .preference-box) { flex-wrap: wrap; }
+.app-shell .account-detail strong { max-width: 100%; }
+.app-shell .settings-field.full { grid-column: auto; }
+.app-shell .settings-menu span { flex: none; }
+.app-shell :is(.settings-sidebar, .admin-settings-nav) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.app-shell .settings-menu { margin: 0; }
+.app-shell .rail { position: static; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; overflow: visible; }
+.app-shell .rail .ri { flex: 1 1 160px; width: auto; min-width: 0; }
+.app-shell .rail .ri small { display: block; }
+.app-shell .settings-avatar { flex: none; }
+
+/* Keep navigation and account actions in a keyboard-accessible disclosure panel. */
+.app-shell .nav { padding-top: env(safe-area-inset-top); }
+.app-shell .nav-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; min-height: 68px; padding-block: 10px; }
+.app-shell .brand { grid-column: 1; grid-row: 1; min-width: 0; gap: 7px; white-space: nowrap; }
+.app-shell .brand svg { flex: none; }
+.app-shell .brand span { font-size: 17px; }
+.app-shell .nav-right { grid-column: 2; grid-row: 1; gap: 6px; min-width: 0; }
+.app-shell .nav-right .role-tag { display: none; }
+.app-shell .menu-btn { display: grid; place-items: center; width: 44px; height: 44px; color: var(--navy); border-radius: 8px; }
+.app-shell .nav-panel { display: none; grid-column: 1 / -1; width: 100%; min-width: 0; max-height: calc(100dvh - 88px); overflow-y: auto; overscroll-behavior: contain; padding: 8px 0; }
+.app-shell .nav.open .nav-panel { display: grid; gap: 12px; }
+.app-shell .nav .nav-links, .app-shell .nav.open .nav-links { display: flex; position: static; width: 100%; flex-direction: column; flex-wrap: nowrap; align-items: stretch; padding: 0; gap: 4px; border: 0; grid-column: auto; grid-row: auto; }
+.app-shell .nav-links a { padding: 10px 12px; white-space: normal; min-height: 44px; font-size: 14px; }
+.app-shell .nav-actions { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.app-shell .nav-actions .btn { flex: 1 1 120px; }
+.app-shell .nav-actions .role-tag { align-self: center; flex: none; }
+.app-shell :is(.avatar-btn, .avatar-btn.mod, .avatar-btn.admin) { width: 44px; height: 44px; flex: none; }
+
+/* Comfortable tap targets, without enlarging decorative badges and chips. */
+.app-shell :is(button, a.btn, a.mini, a.chip, .auth-tab, summary) { min-height: 44px; touch-action: manipulation; }
+.app-shell :is(.btn, .mini, button.chip, a.chip) { white-space: normal; line-height: 1.4; }
+.app-shell :is(.btn, a.mini, a.chip) { display: inline-flex; align-items: center; justify-content: center; }
+.app-shell :is(.input, .fp-input, .settings-field input, select, textarea) { max-width: 100%; width: 100%; min-height: 44px; font-size: 16px; }
+.app-shell input[type=file] { max-width: 100%; font-size: 14px; }
+.app-shell textarea { resize: vertical; }
+.app-shell :is(.toggle-password, .password-input button, .fp-toggle-eye) { width: 44px; height: 44px; right: 2px; }
+.app-shell :is(.password-wrap, .password-input, .fp-input-wrap) input { padding-right: 50px; }
+.app-shell :is(.trace-photo-upload__remove, .admin-chip-remove, .traychip button) { min-width: 44px; min-height: 44px; }
+.app-shell .admin-chip-remove { padding: 0; }
+.app-shell .tgl { width: 44px; height: 44px; min-height: 44px; background: transparent; }
+.app-shell .tgl::before { content: ''; position: absolute; width: 37px; height: 21px; top: 11px; left: 3px; border-radius: 12px; background: var(--teal); }
+.app-shell .tgl.off::before { background: #c7dcee; }
+.app-shell .tgl::after { top: 13.5px; left: 21px; }
+.app-shell .tgl.off::after { left: 5.5px; }
+.app-shell .toggle { width: 44px; height: 44px; flex: none; }
+.app-shell .toggle span { inset: 10px 2px 11px 3px; }
+.app-shell label:has(input[type=checkbox]) { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.app-shell :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+/* Media respects its natural ratio; only existing thumbnail crops remain cropped. */
+.app-shell :is(img, video, iframe, canvas) { max-width: 100%; }
+.app-shell :is(video, iframe) { width: 100%; }
+.app-shell video { height: auto; object-fit: contain; }
+.app-shell iframe { aspect-ratio: 16 / 9; height: auto; border: 0; }
+.app-shell .trace-detail__media-item > img { min-height: 0; height: auto; }
+.app-shell .trace-detail__media-item { min-height: 0; }
+.app-shell .trace-photo-upload__drop { padding: 16px 10px; }
+.app-shell .trace-photo-upload__row { flex-wrap: wrap; }
+.app-shell .trace-photo-upload__details { flex: 1 1 100px; }
+.app-shell .trace-detail__comment-form { flex-wrap: wrap; }
+.app-shell .trace-detail__comment-form .input { flex: 1 1 180px; }
+.app-shell .mod-review-media { padding: 10px; }
+.app-shell .mod-decision .row { align-items: stretch; }
+.app-shell .mod-decision .btn { flex: 1 1 150px; }
+
+/* Content-heavy UI: contain scrolling inside the table or dialog, not the page. */
+.app-shell .table-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; border-radius: 6px; }
+.app-shell .table-scroll table { min-width: 420px; width: 100%; }
+.app-shell .admin-permissions { overflow: visible; }
+.app-shell :is(.modal, dialog) { overscroll-behavior: contain; }
+.app-shell .modal { padding: 12px; overflow-y: auto; height: 100dvh; }
+.app-shell .mcard { width: 100%; min-width: 0; max-height: calc(100dvh - 24px); overflow-y: auto; }
+.app-shell .admin-dialog { width: min(460px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: clamp(16px, 3vw, 26px); }
+body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
+.app-shell .pagination { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: center; }
+.app-shell .pagination > span { grid-column: 1 / -1; grid-row: 1; text-align: center; }
+.app-shell .pagination > button { width: 100%; padding-inline: 10px; }
+.app-shell .notification-item { display: grid; grid-template-columns: 32px minmax(0, 1fr); }
+.app-shell .notification-read-action { grid-column: 2; justify-self: start; }
+.app-shell :is(.admin-bar-row, .mod-chart-row, .brow) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px; gap: 8px; }
+.app-shell .brow .bl { white-space: normal; overflow: visible; }
+.app-shell .auth-wrap { padding: 28px 16px 48px; }
+.app-shell :is(.auth-card, .login-container) { width: 100%; max-width: 440px; padding: clamp(18px, 4vw, 36px); }
+.app-shell .fp-shell { padding: 84px 16px 32px; overflow: visible; }
+.app-shell .fp-card { padding: clamp(18px, 4vw, 36px); }
+.app-shell :is(.code-inputs, .fp-code-row) { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.app-shell :is(.code-input, .fp-code-input) { width: 100%; min-width: 0; font-size: 16px; }
+.app-shell .foot-in { grid-template-columns: minmax(0, 1fr); gap: 18px; text-align: center; }
+.app-shell .foot-main { flex-direction: column; gap: 10px; }
+.app-shell .foot-tagline { padding: 0; border: 0; }
+.app-shell .foot-meta { justify-content: center; flex-wrap: wrap; white-space: normal; }
+.app-shell .foot-copy { text-align: center; white-space: normal; }
+.app-shell .toast { width: max-content; max-width: calc(100vw - 32px); bottom: max(16px, env(safe-area-inset-bottom)); }
+.app-shell footer { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+
+@media (min-width: 480px) {
+  .app-shell :is(.g4, .igrid, .settings-sidebar, .admin-settings-nav) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .fake-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .app-shell .nav-right .role-tag { display: inline-block; }
+  .app-shell .pagination { display: flex; justify-content: flex-start; }
+  .app-shell .pagination > button { width: auto; }
+  .app-shell .notification-item { grid-template-columns: 32px minmax(0, 1fr) auto; }
+  .app-shell .notification-read-action { grid-column: 3; grid-row: 1; }
+  .app-shell :is(.code-inputs, .fp-code-row) { gap: 8px; }
+}
+@media (min-width: 768px) {
+  .app-shell :is(.g2, .g3, .pgrid, .settings-form-grid, .admin-account-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .settings-field.full { grid-column: 1 / -1; }
+  .app-shell .lrow .grow { flex-basis: 0; }
+  .app-shell .lrow .act { width: auto; justify-content: flex-end; }
+  .app-shell .admin-small-select { width: 75px; }
+  .app-shell :is(.admin-bar-row, .mod-chart-row) { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 34px; gap: 16px; }
+  .app-shell .foot-in { grid-template-columns: minmax(0, 1fr) auto; text-align: left; }
+  .app-shell .foot-main { align-items: flex-start; }
+  .app-shell .foot-copy { text-align: right; }
+}
+@media (min-width: 1024px) {
+  .app-shell :is(.g3, .sgrid3) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .app-shell :is(.g4, .igrid) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .app-shell .hero-grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 40px; }
+  .app-shell .hero-visual { max-width: none; }
+  .app-shell .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell :is(.upgrid, .sgrid, .admin-settings-grid) { grid-template-columns: 230px minmax(0, 1fr); }
+  .app-shell .settings-layout { grid-template-columns: 260px minmax(0, 1fr); }
+  .app-shell :is(.settings-sidebar, .admin-settings-nav) { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .rail { display: block; position: sticky; top: 90px; }
+  .app-shell .rail .ri { width: 100%; }
+  .app-shell .foot-in { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; }
+  .app-shell:is(.admin-shell, .moderator-shell) .foot-in { grid-template-columns: minmax(0, 1fr) auto; }
+  .app-shell .foot-main { flex-direction: row; align-items: center; }
+  .app-shell .foot-tagline { border-left: 1px solid rgba(169,186,222,.35); padding-left: 18px; }
+}
+@media (min-width: 1280px) {
+  .app-shell .nav-grid { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 14px; }
+  .app-shell .nav-right { grid-column: 4; }
+  .app-shell .menu-btn { display: none; }
+  .app-shell .nav-panel, .app-shell .nav.open .nav-panel { display: contents; }
+  .app-shell .nav .nav-links, .app-shell .nav.open .nav-links { grid-column: 2; grid-row: 1; justify-self: center; flex-direction: row; width: auto; gap: 0; }
+  .app-shell .nav-links a { font-size: 12px; padding: 9px 8px; white-space: nowrap; }
+  .app-shell .nav-actions { grid-column: 3; grid-row: 1; align-items: center; justify-self: end; flex-wrap: nowrap; border: 0; padding: 0; gap: 14px; }
+  .app-shell .nav-actions .btn { flex: none; padding-inline: 8px; font-size: 12px; white-space: nowrap; }
+  .app-shell .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .app-shell *, .app-shell *::before, .app-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto; }
+}

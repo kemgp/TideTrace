@@ -43,7 +43,7 @@ it("loads the live queue, reviews photos, approves and refreshes queue and histo
     if (url === decisionPath) { reviewed = true; return response(trace({ status: "approved", version: 4 })); }
     if (url.startsWith("/api/moderation/history?")) return response([{ id: "audit", trace_id: trace().id, trace: { title: "Saved seagrass survey" }, actor: { display_name: "Actual Reviewer" }, action: "review_trace", to_state: "approved", reason: "Verified evidence", created_at: "2026-09-24T12:00:00Z" }]);
   });
-  open();
+  const view = open();
   fireEvent.click(await screen.findByRole("link", { name: /Saved seagrass survey/ }));
   await screen.findByAltText("Trace photo 1");
   expect(screen.queryByRole("button", { name: "Upload photo" })).toBeNull();
@@ -56,7 +56,9 @@ it("loads the live queue, reviews photos, approves and refreshes queue and histo
   expect(write.headers.Authorization).toBe("Bearer live-access");
   fireEvent.click(screen.getByRole("link", { name: /Back to queue/ }));
   await screen.findByText("No pending submissions on this page.");
-  fireEvent.click(screen.getByRole("link", { name: "Moderation history" }));
+  expect(screen.queryByRole("link", { name: "Moderation history" })).toBeNull();
+  view.unmount();
+  open("/moderator/review/history");
   await screen.findByText("Verified evidence");
   expect(screen.getByText(/Actual Reviewer/)).toBeTruthy();
   fireEvent.click(screen.getByRole("link", { name: "Saved seagrass survey" }));

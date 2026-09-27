@@ -1,0 +1,105 @@
+/* Moderator styling follows the supplied SVGs and stays within this role. */
+.moderator-shell { --navy: #203463; --teal: #59a3ab; --blue: #334fa2; --clay: #d16c35; --line: #c8dff5; --soft: #7186aa; --bg: #edf7ff; }
+.moderator-shell .wrap { max-width: 1240px; }
+.moderator-shell .nav { border-bottom: 0; }
+.moderator-shell .nav-grid { min-height: 72px; grid-template-columns: auto 1fr auto; gap: 28px; }
+.moderator-shell .brand { white-space: nowrap; }
+.moderator-shell .nav-links a { font-size: 12px; padding: 9px 10px; }
+.moderator-shell .nav-right { gap: 12px; }
+.moderator-shell .avatar-btn.mod { color: white; }
+.moderator-shell .demo-notice { background: #f5f9fd; color: var(--soft); font-size: 11px; line-height: 1.6; padding: 8px 24px; border-color: #e6eff7; }
+.moderator-shell .view { padding: 48px 0 88px; }
+.moderator-shell .vhead { margin-bottom: 28px; }
+.moderator-shell .vhead h2 { font-size: clamp(26px, 3vw, 32px); line-height: 1.3; margin-top: 3px; }
+.moderator-shell .vhead p { max-width: 650px; font-size: 14px; line-height: 1.65; margin-top: 10px; }
+.moderator-shell .eyebrow { font-size: 10px; padding: 7px 13px; }
+.moderator-shell .banner.mod { border-radius: 12px; padding: 25px 26px; background: var(--teal); }
+.moderator-shell .banner b { font-size: 21px; }
+.moderator-shell .banner .s { font-size: 14px; margin-top: 4px; }
+.moderator-shell .stat { padding: 20px 14px; border-radius: 10px; }
+.moderator-shell .stat b { font-size: 26px; font-family: inherit; font-weight: 650; }
+.moderator-shell .stat span { display: block; font-size: 12px; margin-top: 6px; }
+.moderator-shell .sec-t { margin: 28px 0 16px; font-size: 19px; }
+.moderator-shell .card { padding: 20px; border-radius: 12px; box-shadow: none; }
+.moderator-shell .lrow { padding: 16px 2px; gap: 15px; border-bottom: 0; }
+.moderator-shell .lrow .t { font-size: 14px; }
+.moderator-shell .lrow .m { font-size: 12px; gap: 7px; }
+.moderator-shell .hint { font-size: 12px; }
+.moderator-shell .mod-narrow { max-width: 760px; }
+.moderator-shell .mod-trace-marker { display: block; width: 44px; height: 44px; border-radius: 8px; flex: none; }
+.moderator-shell .mod-review-link { border: 1px solid var(--line); border-radius: 20px; padding: 5px 12px; color: var(--soft); white-space: nowrap; font-size: 12px; }
+.moderator-shell .mod-queue-filters { margin: -4px 0 18px; }
+.moderator-shell .mod-queue-filters .hint { margin-top: 10px; }
+.moderator-shell .mod-status-tabs { margin-bottom: 16px; }
+.moderator-shell .mod-demo-note { margin-bottom: 18px; line-height: 1.6; }
+.moderator-shell .mod-comment-list { display: grid; gap: 16px; }
+.moderator-shell .mod-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.moderator-shell .mod-card-top h3 { font-family: inherit; font-size: 13px; font-weight: 600; }
+.moderator-shell .mod-comment-author { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
+.moderator-shell .mod-comment-author strong { font-size: 12px; }
+.moderator-shell .mod-comment-author p { margin-top: 5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.moderator-shell .mod-comment-avatar { display: grid; place-items: center; width: 27px; height: 27px; flex: none; border-radius: 50%; background: var(--clay); color: white; font-size: 12px; }
+.moderator-shell .mod-reason, .moderator-shell .mod-report-reason { background: #fbe8dc; color: #a85429; border-radius: 7px; padding: 12px; margin: 14px 0; font-size: 12px; }
+.moderator-shell .mod-reason .lbl { font-size: 9px; color: #a85429; margin-bottom: 4px; }
+.moderator-shell .mod-report-card h3 { font-size: 15px; margin-bottom: 6px; }
+.moderator-shell .mod-report-card details { padding: 10px 0; font-size: 13px; }
+.moderator-shell .mod-report-card summary { cursor: pointer; font-weight: 600; }
+.moderator-shell .mod-report-card details p { margin-top: 10px; }
+.moderator-shell .mod-report-card > p { font-size: 12px; margin: 8px 0; }
+.moderator-shell .mod-report-card form { margin-top: 16px; }
+.moderator-shell .mod-report-card textarea { min-height: 75px; height: 75px; }
+.moderator-shell .mod-report-tools { margin-bottom: 14px; gap: 12px; }
+.moderator-shell .mod-report-tools label { font-size: 11px; color: var(--soft); }
+.moderator-shell .mod-report-tools select { margin-top: 5px; }
+.moderator-shell .mod-empty { text-align: center; padding: 32px 20px; font-size: 13px; color: var(--soft); }
+.moderator-shell .mod-review-media { margin-top: 16px; padding: 14px; border: 1px dashed var(--line); background: var(--bg); border-radius: 10px; }
+.moderator-shell .mod-review-media section { margin: 0 !important; }
+.moderator-shell .mod-review-media h3 { font-size: 12px; }
+.moderator-shell .mod-review-detail > h2 { font-size: 23px; }
+.moderator-shell .mod-review-detail > .hint { margin: 8px 0 12px; }
+.moderator-shell .mod-review-detail > h3 { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); border-top: 1px solid var(--line); padding-top: 18px; margin-top: 20px; margin-bottom: 10px; }
+.moderator-shell .mod-review-detail > p { font-size: 13px; line-height: 1.7; }
+.moderator-shell .mod-decision { padding: 20px; border: 1px dashed var(--clay); border-radius: 10px; }
+.moderator-shell .mod-decision h3 { font-size: 16px; margin-bottom: 8px; }
+.moderator-shell .mod-decision .hint { margin-bottom: 16px; line-height: 1.7; }
+.moderator-shell .mod-decision .btn { padding: 12px 17px; font-size: 12px; }
+.moderator-shell .mod-decision .btn.outline { color: var(--clay); border-color: var(--clay); }
+.moderator-shell .mod-analytics-grid { margin-top: 24px; align-items: start; }
+.moderator-shell .mod-chart .lbl { margin-bottom: 18px; }
+.moderator-shell .mod-chart-row { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr 34px; gap: 16px; align-items: center; font-size: 12px; padding: 10px 0; }
+.moderator-shell .mod-chart-row > :last-child { text-align: right; }
+.moderator-shell .mod-chart-track { height: 7px; border-radius: 8px; background: var(--bg); overflow: hidden; }
+.moderator-shell .mod-chart-track > span { display: block; height: 100%; background: var(--teal); border-radius: inherit; }
+.moderator-shell footer { padding: 28px 0; }
+.moderator-shell .foot-in { grid-template-columns: 1fr auto; }
+.moderator-shell .foot-meta { display: none; }
+.moderator-shell .foot-tagline { font-size: 12px; }
+.moderator-shell button:focus-visible, .moderator-shell a:focus-visible, .moderator-shell summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .moderator-shell .nav-grid { gap: 12px; grid-template-columns: 1fr auto; }
+  .moderator-shell .nav-links { display: none; }
+  .moderator-shell .menu-btn { display: block; }
+  .moderator-shell .nav.open .nav-links { display: flex; position: static; flex-direction: row; border-bottom: 0; grid-column: 1 / -1; grid-row: 2; width: 100%; flex-wrap: wrap; justify-content: center; padding: 12px 0; }
+  .moderator-shell .nav-right { grid-column: 2; grid-row: 1; }
+}
+@media (max-width: 700px) {
+  .moderator-shell .wrap { padding-left: 20px; padding-right: 20px; }
+  .moderator-shell .view { padding-top: 28px; padding-bottom: 48px; }
+  .moderator-shell .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .moderator-shell .g2 { grid-template-columns: 1fr; }
+  .moderator-shell .banner b { font-size: 18px; }
+  .moderator-shell .card { padding: 16px; }
+  .moderator-shell .mod-decision { padding: 14px; }
+  .moderator-shell .mod-decision .row { align-items: stretch; }
+  .moderator-shell .mod-decision .btn { flex: 1 1 130px; }
+  .moderator-shell .lrow { gap: 10px; }
+  .moderator-shell .lrow .t { overflow-wrap: anywhere; }
+  .moderator-shell .mod-trace-marker { width: 34px; height: 34px; }
+  .moderator-shell .mod-review-link { font-size: 10px; padding: 5px 8px; }
+  .moderator-shell .foot-in { grid-template-columns: 1fr; }
+  .moderator-shell .foot-main { flex-direction: column; gap: 8px; }
+  .moderator-shell .foot-tagline { border: 0; padding: 0; }
+  .moderator-shell .foot-copy { text-align: center; }
+  .moderator-shell .mod-chart-row { gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .moderator-shell * { scroll-behavior: auto; animation: none; transition: none; } }

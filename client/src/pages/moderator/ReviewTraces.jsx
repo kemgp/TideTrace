@@ -9,6 +9,8 @@ import TraceStatusBadge from "../../components/TraceStatusBadge.jsx";
 import TraceFeedback from "../../components/TraceFeedback.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
 
+import TraceMarker, { categoryLabel } from "./TraceMarker.jsx";
+
 const labels = { approved: "Approved", revision_requested: "Needs revision", rejected: "Rejected" };
 const reviewBase = (role) => role === "admin" ? "/admin/review" : "/moderator/review";
 
@@ -17,26 +19,32 @@ export default function ReviewTraces() {
   const { profile, role } = useApp();
   const base = reviewBase(role);
   return <div className="wrap" style={id ? { maxWidth: 760 } : undefined}>
-    <div className="row" style={{ marginBottom: 16 }}>
+    {(id || role === "admin") && <div className="row" style={{ marginBottom: 16 }}>
       {id && <Link className="btn ghost sm" to={base}>← Back to queue</Link>}
-      <Link className="btn outline sm" to={`${base}/history`}>Moderation history</Link>
-    </div>
+      {role === "admin" && <Link className="btn outline sm" to={`${base}/history`}>Moderation history</Link>}
+    </div>}
     {id ? <ReviewDetail key={`${profile.id}:${id}`} id={id} /> : <ReviewQueue key={profile.id} base={base} />}
   </div>;
 }
 
 function ReviewQueue({ base }) {
   const [offset, setOffset] = useState(0);
+  const [category, setCategory] = useState("All");
+  const { role } = useApp();
   const result = useRemoteData(`moderation/traces?status=pending&limit=25&offset=${offset}`, { collection: true });
   const traces = (result.data || []).map(displayTrace);
+  const categories = [...new Set(["Coral", "Oral history", "Pollution", "Fisheries", "Seagrass", "Other", ...traces.map((trace) => categoryLabel(trace.category))])];
+  const filtered = role === "mod" && category !== "All" ? traces.filter((trace) => categoryLabel(trace.category) === category) : traces;
   return <>
     <div className="vhead"><span className="eyebrow teale">Review Traces</span><h2>Pending submissions</h2><p>Review the saved details and photos before approving, requesting changes, or rejecting a Trace.</p></div>
+    {role === "mod" && <div className="mod-queue-filters"><div className="chiprow" aria-label="Filter traces by category">{["All", ...categories].map((label) => <button type="button" key={label} className={`chip ${category === label ? "on" : ""}`} aria-pressed={category === label} onClick={() => setCategory(label)}>{label}</button>)}</div><p className="hint">Categories filter the current page of pending submissions.</p></div>}
     <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>Refresh queue</button>
     <RemoteState {...result} />
-    {!result.loading && !result.error && (traces.length ? <div className="card" style={{ marginTop: 16 }}>
-      {traces.map((trace) => <Link className="lrow click" key={trace.id} to={`${base}/${encodeURIComponent(trace.id)}`} style={{ color: "inherit", textDecoration: "none" }}>
-        <div className="grow"><div className="t">{trace.title}</div><div className="m">{trace.author} · {trace.location}</div></div>
-        <TraceStatusBadge status={trace.status} />
+    {!result.loading && !result.error && (filtered.length ? <div className="card" style={{ marginTop: 16 }}>
+      {filtered.map((trace) => <Link className="lrow click" key={trace.id} to={`${base}/${encodeURIComponent(trace.id)}`} style={{ color: "inherit", textDecoration: "none" }}>
+        {role === "mod" && <TraceMarker category={trace.category} />}
+        <div className="grow"><div className="t">{trace.title}</div><div className="m">{trace.author} · {trace.category} · {trace.location}{trace.when && ` · ${trace.when}`}</div></div>
+        {role === "mod" ? <span className="mod-review-link">Review ›</span> : <TraceStatusBadge status={trace.status} />}
       </Link>)}
     </div> : <p className="hint">No pending submissions on this page.</p>)}
     <Pagination offset={offset} count={traces.length} size={25} onChange={setOffset} loading={result.loading} />
@@ -49,7 +57,7 @@ function ReviewDetail({ id }) {
 }
 
 function Decision({ initialTrace, onReload }) {
-  const { profile, writeData } = useApp();
+  const { profile, writeData, role } = useApp();
   const [current, setCurrent] = useState(initialTrace);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,17 +102,18 @@ function Decision({ initialTrace, onReload }) {
       request.current = null;
     }
   };
-  return <div className="card">
+  return <div className="card mod-review-detail">
     <TraceStatusBadge status={trace.status} />
+    {role === "mod" && <div className="mod-review-media"><TracePhotos trace={current} /></div>}
     <h2 style={{ marginTop: 16 }}>{trace.title}</h2>
     <p className="hint">Submitted by {trace.author}</p>
     <div className="chiprow"><span className="chip">{trace.category}</span><span className="chip">{trace.location}</span></div>
     <h3>Description</h3><p style={{ whiteSpace: "pre-wrap" }}>{trace.description}</p>
-    <TracePhotos trace={current} />
+    {role !== "mod" && <TracePhotos trace={current} />}
     <TraceFeedback key={`${current.id}:${current.version}`} id={current.id} staff />
     {own && <p role="alert">You cannot review your own submission.</p>}
     {!own && !eligible && <p className="hint">This Trace is not awaiting a decision.</p>}
-    {eligible && <section style={{ marginTop: 24 }}>
+    {eligible && <section className="mod-decision" style={{ marginTop: 24 }}>
       <h3>Review decision</h3>
       <p className="hint">Approval publishes the Trace in the community archive. Revision requests ask the author for changes. Rejection is final and preserves the record in the author's contributions.</p>
       <label className="lbl" htmlFor="review-reason">Feedback (required for revision or rejection)</label>

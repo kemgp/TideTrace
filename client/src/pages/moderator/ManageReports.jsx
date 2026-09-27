@@ -16,14 +16,15 @@ function ReportQueue() {
   const [offset, setOffset] = useState(0);
   const result = useRemoteData(`moderation/reports?status=${status}&limit=25&offset=${offset}`, { collection: true });
   const reports = result.data || [];
-  return <div className="wrap" style={{ maxWidth: 800 }}>
+  return <div className="wrap mod-reports-page" style={{ maxWidth: 800 }}>
     <div className="vhead"><span className="eyebrow teale">Manage reports</span><h2>Reported content</h2><p>Review the content and report reason. Dismissing keeps the content; removing hides it from public views. Every decision requires a reason and is saved in moderation history.</p></div>
-    <div className="row" style={{ flexWrap: "wrap" }}>
+    {role === "mod" && <div className="chiprow mod-status-tabs" aria-label="Report filters">{[["open", "Open"], ["dismissed", "Dismissed"], ["resolved", "Removed"]].map(([value, label]) => <button key={value} className={`chip ${status === value ? "on" : ""}`} aria-pressed={status === value} onClick={() => { setStatus(value); setOffset(0); }}>{label}</button>)}</div>}
+    <div className="row mod-report-tools" style={{ flexWrap: "wrap" }}>
       <label>Report status <select className="input" aria-label="Report status" value={status} onChange={(event) => { setStatus(event.target.value); setOffset(0); }}>
         <option value="open">Open</option><option value="resolved">Resolved — content removed</option><option value="dismissed">Dismissed</option>
       </select></label>
       <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>Refresh reports</button>
-      <Link className="btn ghost sm" to={`/${role === "admin" ? "admin" : "moderator"}/review/history`}>Moderation history</Link>
+      {role === "admin" && <Link className="btn ghost sm" to="/admin/review/history">Moderation history</Link>}
     </div>
     <RemoteState {...result} />
     {!result.loading && !result.error && (reports.length ? reports.map((report) => <ReportDecision key={`${report.id}:${report.status}`} initialReport={report} />) : <p>No {status} reports on this page.</p>)}
@@ -32,7 +33,7 @@ function ReportQueue() {
 }
 
 function ReportDecision({ initialReport }) {
-  const { writeData, readData } = useApp();
+  const { writeData, readData, role } = useApp();
   const inputId = useId();
   const [report, setReport] = useState(initialReport);
   const [reason, setReason] = useState("");
@@ -66,10 +67,11 @@ function ReportDecision({ initialReport }) {
     } finally { pending.current = null; if (!controller.signal.aborted) setBusy(false); }
   }
   const title = report.trace?.title || report.comment?.trace?.title || "Unavailable Trace";
-  return <article className="card" style={{ marginTop: 16, overflowWrap: "anywhere" }} aria-label={`Report: ${title}`}>
+  return <article className="card mod-report-card" style={{ marginTop: 16, overflowWrap: "anywhere" }} aria-label={`Report: ${title}`}>
+    {role === "mod" && <div className="mod-card-top"><span className={`badge ${report.status === "resolved" ? "removed" : report.status}`}>{report.status === "resolved" ? "Removed" : report.status}</span></div>}
     <h3>{report.trace_id ? "Trace" : "Comment"}: {title}</h3>
     <p className="hint">Reported by {report.reporter?.display_name || "Community member"}{report.created_at ? ` · ${new Date(report.created_at).toLocaleString()}` : ""}</p>
-    <p><b>Report reason:</b> {report.reason}</p>
+    <div className="mod-report-reason"><p><b>Report reason:</b> {report.reason}</p></div>
     <details><summary>View reported content</summary>
       {report.trace_id ? report.trace ? <><p style={{ whiteSpace: "pre-wrap" }}>{report.trace.description}</p><TracePhotos trace={report.trace} /><p>{report.trace.is_hidden || report.trace.deleted_at ? "This Trace is already hidden or deleted." : "This Trace is visible."}</p></> : <p>Content is no longer available.</p>
         : report.comment ? <><p style={{ whiteSpace: "pre-wrap" }}>{report.comment.body}</p><p>Comment status: {report.comment.status}</p></> : <p>Content is no longer available.</p>}

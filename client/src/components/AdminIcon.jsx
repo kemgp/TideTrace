@@ -1,6 +1,9 @@
 import React from "react";
 
 const paths = {
+  review: "M14 3H4v18h16V11 M8 8h3 M8 12h3 M8 16h8 M15 5l2 2 4-4",
+  comment: "M21 3H3v14h4v4l5-4h9z",
+  flag: "M4 22V3 M4 3c6-4 10 4 16 0v11c-6 4-10-4-16 0",
   dashboard: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
   users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
   shield: "M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7z",

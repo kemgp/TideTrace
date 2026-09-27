@@ -136,7 +136,7 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
   return <section aria-label="Trace photos" className={hero ? "trace-detail__media" : undefined} style={hero ? undefined : { marginTop: 24 }}>
     {!hero && <h3>Photos</h3>}
     {media.length === 0 && <p className={hero ? "trace-detail__media-empty" : "hint"}>No photos attached yet.</p>}
-    <div className={hero ? "trace-detail__media-grid" : undefined} style={hero ? undefined : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+    <div className={hero ? "trace-detail__media-grid" : undefined} style={hero ? undefined : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 16 }}>
       {media.map((item, index) => <div className={hero ? "trace-detail__media-item" : undefined} key={item.id}>
         {TYPES.includes(item.mime_type) ? <SavedPhoto media={item} index={index} /> : <p className="hint">Video attachment (playback is not available yet).</p>}
         {editable && <button className="btn outline sm" style={{ marginTop: 8 }} disabled={locked || Boolean(busy) || uncertain} onClick={() => run("remove", item.id)}>Remove {TYPES.includes(item.mime_type) ? "photo" : "attachment"} {index + 1}</button>}

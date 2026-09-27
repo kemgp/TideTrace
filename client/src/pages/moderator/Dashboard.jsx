@@ -1,5 +1,7 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import TraceMarker from "./TraceMarker.jsx";
+import StaffIcon from "../../components/AdminIcon.jsx";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import TraceStatusBadge from "../../components/TraceStatusBadge.jsx";
 import useRemoteData from "../../hooks/useRemoteData.js";
@@ -32,28 +34,28 @@ export default function Dashboard() {
 
       <div className="g4" style={{ marginTop: 16 }}>
         <div className="stat"><b>{result.loading || result.error ? "—" : pending.length}</b><span>pending shown (up to 4)</span></div>
-        <div className="stat"><b>{flagged}</b><span>flagged comments</span></div>
-        <div className="stat"><b>{openReports}</b><span>open reports</span></div>
-        <div className="stat"><b>6</b><span>reviewed today</span></div>
+        <div className="stat"><b>{flagged}</b><span>flagged comments · demo</span></div>
+        <div className="stat"><b>{openReports}</b><span>open reports · demo</span></div>
+        <div className="stat"><b>—</b><span>reviewed today · unavailable</span></div>
       </div>
 
       <h3 className="sec-t">Quick actions</h3>
       <div className="g2">
         <Button variant="teal" onClick={() => navigate("/moderator/review")}>✓ Review pending traces</Button>
-        <Button variant="outline" onClick={() => navigate("/moderator/reports")}>🚩 Open reported content</Button>
+        <Button variant="outline" onClick={() => navigate("/moderator/reports")}><StaffIcon name="flag" size={16} /> Open reported content</Button>
       </div>
 
       <h3 className="sec-t">Oldest in the queue</h3>
       <RemoteState {...result} />
       <div className="card">
         {!result.loading && !result.error && (oldest.length ? oldest.map((t) => (
-          <div className="lrow click" key={t.id} onClick={() => navigate(`/moderator/review/${encodeURIComponent(t.id)}`)}>
+          <Link className="lrow click" key={t.id} to={`/moderator/review/${encodeURIComponent(t.id)}`}><TraceMarker category={t.category} />
             <div className="grow">
               <div className="t">{t.title}</div>
               <div className="m"><span>{t.author}</span> · <span>{t.location}</span></div>
             </div>
             <TraceStatusBadge status={t.status} />
-          </div>
+          </Link>
         )) : <p className="hint">Queue clear — nothing pending right now.</p>)}
       </div>
     </div>
