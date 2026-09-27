@@ -7,7 +7,6 @@ import Sidebar from "../../../components/Sidebar.jsx";
 const PANES = [
   { key: "account", label: "Account", number: "👤" },
   { key: "privacy", label: "Privacy", number: "🔒" },
-  { key: "personal", label: "Personalization", number: "🌐" },
   { key: "app", label: "App settings", number: "📱" },
   { key: "security", label: "Security", number: "🔑" },
   { key: "usage", label: "Usage & activity", number: "📊" },
@@ -32,7 +31,7 @@ export default function Profile() {
         <Sidebar items={PANES} active={pane} onSelect={setPane} />
         <div>
           {pane === "account" && <div className="card"><ProfileNameForm /></div>}
-          {["privacy", "personal", "app"].includes(pane) && <p role="status">These preferences are not available yet. No changes are saved here.</p>}
+          {["privacy", "app"].includes(pane) && <p role="status">These preferences are not available yet. No changes are saved here.</p>}
 
           {pane === "privacy" && (
             <div className="card">
@@ -46,21 +45,6 @@ export default function Profile() {
               </div>
               <div className="setrow">
                 <div><div className="l">Searchable by community</div><div className="s">Neighbors can find my profile</div></div>
-                <Toggle />
-              </div>
-            </div>
-          )}
-
-          {pane === "personal" && (
-            <div className="card">
-              <span className="lbl">Language</span>
-              <div className="chiprow">
-                {["Filipino", "English", "Cebuano"].map((l) => (
-                  <button key={l} className="chip" disabled>{l}</button>
-                ))}
-              </div>
-              <div className="setrow" style={{ marginTop: 8 }}>
-                <div><div className="l">Local names first</div><div className="s">Show local species names before scientific ones</div></div>
                 <Toggle />
               </div>
             </div>
