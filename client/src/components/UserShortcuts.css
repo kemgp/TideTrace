@@ -1,0 +1,33 @@
+.app-shell .user-shortcuts__list {
+  margin: 0;
+  padding: 8px 16px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.app-shell .user-shortcuts__list > li + li {
+  border-top: 1px solid var(--bg);
+}
+.app-shell .user-shortcuts__link {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 4px;
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  border-radius: 6px;
+}
+.app-shell .user-shortcuts__label { min-width: 0; overflow-wrap: anywhere; }
+.app-shell .user-shortcuts__arrow { justify-self: end; font-size: 20px; }
+.app-shell .user-shortcuts__link:hover { color: var(--blue); background: var(--bg); }
+.app-shell .user-shortcuts__link:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (min-width: 768px) {
+  .app-shell .user-shortcuts__list { padding: 10px 22px; }
+  .app-shell .user-shortcuts__link { gap: 14px; min-height: 56px; }
+}

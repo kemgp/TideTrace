@@ -11,9 +11,6 @@
 .app-shell.user-shell .stat span { font-size: 13px; }
 .app-shell.user-shell .stat b { font-size: 28px; }
 .app-shell.user-shell .sec-t { margin-top: 30px; }
-.app-shell.user-shell .shortcut { width: 100%; text-align: left; }
-.app-shell.user-shell .shortcut > span:first-child { display: flex; align-items: center; gap: 9px; }
-.app-shell.user-shell .shortcut svg { flex: none; }
 .app-shell.user-shell .user-learning-callout { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; justify-content: space-between; }
 .app-shell.user-shell .user-learning-callout > div { flex: 1 1 240px; }
 .app-shell.user-shell .user-learning-callout p { margin-bottom: 0; }
