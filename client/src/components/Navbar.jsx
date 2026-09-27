@@ -93,13 +93,18 @@ export default function Navbar() {
               </button>
               <button
                 className={avatarClass}
-                title="Profile"
-                onClick={() => {
-                  if (role === "user") navigate("/user/profile");
-                  else { logout(); navigate("/login", { replace: true }); }
-                }}
-              >
-                {avatarLetter}
+                  title="Profile Settings"
+                    onClick={() => {
+            if (role === "user") {
+                navigate("/user/profile");
+          } else if (role === "mod") {
+                navigate("/moderator/profile");
+          } else if (role === "admin") {
+              navigate("/admin/profile");
+      }
+        }}
+        >
+            {avatarLetter}
               </button>
             </>
           ) : (
