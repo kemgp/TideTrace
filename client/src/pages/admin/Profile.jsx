@@ -1,22 +1,25 @@
-import React, { useState } from "react";
+import React,{useState} from "react";
+import {Link} from "react-router-dom";
 import ProfileNameForm from "../../components/ProfileNameForm.jsx";
-import ProfileSecurity from "../../components/ProfileSecurity.jsx";
-import { useApp } from "../../context/AppContext.jsx";
+import {useApp} from "../../context/AppContext.jsx";
 
-export default function AdminProfile() {
-  const { profile } = useApp();
-  const [activeTab, setActiveTab] = useState("account");
-  const name = profile?.display_name || "";
-  const email = profile?.email || "";
-  const profilePhoto = "";
+export default function AdminProfile(){
+  const {profile}=useApp();
+  const [activeTab,setActiveTab]=useState("account");
 
-  return (
+  const name=profile?.display_name||"";
+  const email=profile?.email||"";
+  const profilePhoto="";
+
+  return(
     <main className="settings-page">
       <div className="settings-container">
 
         <div className="settings-title">
-          <span>SETTINGS</span>
-          <h1>Account & preferences</h1>
+          <div className="settings-heading">
+            <span>SETTINGS</span>
+            <h1>Account & preferences</h1>
+          </div>
         </div>
 
         <div className="settings-layout">
@@ -24,50 +27,40 @@ export default function AdminProfile() {
           <aside className="settings-sidebar">
 
             <button
-              className={`settings-menu ${
-                activeTab === "account" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("account")}
+              className={`settings-menu ${activeTab==="account"?"active":""}`}
+              onClick={()=>setActiveTab("account")}
             >
               <span>♟</span>
               Account
             </button>
 
             <button
-              className={`settings-menu ${
-                activeTab === "basic" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("basic")}
+              className={`settings-menu ${activeTab==="basic"?"active":""}`}
+              onClick={()=>setActiveTab("basic")}
             >
               <span>👤</span>
               Basic information
             </button>
 
             <button
-              className={`settings-menu ${
-                activeTab === "security" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("security")}
+              className={`settings-menu ${activeTab==="security"?"active":""}`}
+              onClick={()=>setActiveTab("security")}
             >
               <span>🔑</span>
               Security
             </button>
 
             <button
-              className={`settings-menu ${
-                activeTab === "activity" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("activity")}
+              className={`settings-menu ${activeTab==="activity"?"active":""}`}
+              onClick={()=>setActiveTab("activity")}
             >
               <span>📊</span>
               Recent activity
             </button>
 
             <button
-              className={`settings-menu ${
-                activeTab === "actions" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("actions")}
+              className={`settings-menu ${activeTab==="actions"?"active":""}`}
+              onClick={()=>setActiveTab("actions")}
             >
               <span>⚡</span>
               Quick actions
@@ -77,9 +70,7 @@ export default function AdminProfile() {
 
           <section className="settings-content">
 
-            {/* ==================== ACCOUNT ==================== */}
-
-            {activeTab === "account" && (
+            {activeTab==="account"&&(
               <div>
 
                 <div className="settings-section-title">
@@ -91,21 +82,19 @@ export default function AdminProfile() {
 
                 <div className="admin-account-grid">
 
-                  {/* LEFT ACCOUNT CARD */}
                   <div className="admin-account-info">
 
-                    {/* ADMIN PROFILE CARD */}
                     <div className="admin-profile-card">
 
                       <div className="admin-avatar">
 
-                        {profilePhoto ? (
+                        {profilePhoto?(
                           <img
                             src={profilePhoto}
                             alt="Admin profile"
                             className="admin-profile-image"
                           />
-                        ) : (
+                        ):(
                           <svg
                             width="92"
                             height="92"
@@ -133,11 +122,11 @@ export default function AdminProfile() {
                           </svg>
                         )}
 
-                        {/* CAMERA BUTTON */}
                         <label
                           htmlFor="admin-profile-upload"
                           className="admin-camera-icon"
-                          title="Profile photo uploads are not available yet" aria-disabled="true"
+                          title="Profile photo uploads are not available yet"
+                          aria-disabled="true"
                         >
                           <svg
                             width="15"
@@ -149,43 +138,45 @@ export default function AdminProfile() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           >
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                            <circle cx="12" cy="13" r="4" />
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
                           </svg>
                         </label>
 
-                        {/* HIDDEN FILE INPUT */}
                         <input
                           id="admin-profile-upload"
                           type="file"
                           accept="image/*"
-                          disabled aria-label="Profile photo upload unavailable"
+                          disabled
+                          aria-label="Profile photo upload unavailable"
                           hidden
                         />
 
                       </div>
 
-                      <h2>
-                        {name}
-                      </h2>
-                      <p className="hint">Profile photo uploads are not available yet.</p>
+                      <h2>{name}</h2>
+
+                      <p className="hint">
+                        Profile photo uploads are not available yet.
+                      </p>
 
                       <span className="admin-badge">
                         ADMIN
                       </span>
 
                       <p className="admin-email">
-                        {email || "Email unavailable"}
+                        {email||"Email unavailable"}
                       </p>
 
                       <p className="admin-joined">
                         <span>▣</span>
-                        Joined: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "Not available"}
+                        Joined:{" "}
+                        {profile?.created_at
+                          ?new Date(profile.created_at).toLocaleDateString()
+                          :"Not available"}
                       </p>
 
                     </div>
-
-                    {/* ==================== EXISTING ACCOUNT TYPE ==================== */}
 
                     <div className="account-detail">
                       <span>ACCOUNT TYPE</span>
@@ -209,13 +200,13 @@ export default function AdminProfile() {
                     <div className="account-detail">
                       <span>ACCOUNT CREATED</span>
                       <strong>
-                        {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "Not available"}
+                        {profile?.created_at
+                          ?new Date(profile.created_at).toLocaleDateString()
+                          :"Not available"}
                       </strong>
                     </div>
 
                   </div>
-
-                  {/* ==================== ROLE & PERMISSIONS ==================== */}
 
                   <div className="admin-permissions">
 
@@ -262,17 +253,45 @@ export default function AdminProfile() {
               </div>
             )}
 
-            {/* ==================== BASIC INFORMATION ==================== */}
+            {activeTab==="basic"&&(
+              <ProfileNameForm/>
+            )}
 
-            {activeTab === "basic" && <ProfileNameForm />}
+            {activeTab==="security"&&(
+              <div className="security-section">
 
-            {/* ==================== SECURITY ==================== */}
+                <div className="settings-section-title">
+                  <h2>Security</h2>
+                  <p>
+                    Manage your password and account security.
+                  </p>
+                </div>
 
-            {activeTab === "security" && <ProfileSecurity />}
+                <div className="account-security-card">
 
-            {/* ==================== RECENT ACTIVITY ==================== */}
+  <div className="account-security-content">
+    <h3>Account security</h3>
 
-            {activeTab === "activity" && (
+    <p>
+      Use an email recovery link to choose a new password
+      for your account. Your password changes only after
+      you complete the reset form.
+    </p>
+
+    <Link
+      to="/forgot-password"
+      className="btn blue sm"
+    >
+      Reset password
+    </Link>
+  </div>
+
+</div>
+
+              </div>
+            )}
+
+            {activeTab==="activity"&&(
               <div>
 
                 <div className="settings-section-title">
@@ -285,39 +304,23 @@ export default function AdminProfile() {
                 <div className="activity-list">
 
                   <div className="activity-item">
-                    <strong>
-                      Reviewed a user trace
-                    </strong>
-                    <span>
-                      Today · 9:15 AM
-                    </span>
+                    <strong>Reviewed a user trace</strong>
+                    <span>Today · 9:15 AM</span>
                   </div>
 
                   <div className="activity-item">
-                    <strong>
-                      Managed moderator accounts
-                    </strong>
-                    <span>
-                      Today · 8:42 AM
-                    </span>
+                    <strong>Managed moderator accounts</strong>
+                    <span>Today · 8:42 AM</span>
                   </div>
 
                   <div className="activity-item">
-                    <strong>
-                      Updated trace categories
-                    </strong>
-                    <span>
-                      Yesterday · 4:30 PM
-                    </span>
+                    <strong>Updated trace categories</strong>
+                    <span>Yesterday · 4:30 PM</span>
                   </div>
 
                   <div className="activity-item">
-                    <strong>
-                      Viewed system logs
-                    </strong>
-                    <span>
-                      Yesterday · 2:15 PM
-                    </span>
+                    <strong>Viewed system logs</strong>
+                    <span>Yesterday · 2:15 PM</span>
                   </div>
 
                 </div>
@@ -325,9 +328,7 @@ export default function AdminProfile() {
               </div>
             )}
 
-            {/* ==================== QUICK ACTIONS ==================== */}
-
-            {activeTab === "actions" && (
+            {activeTab==="actions"&&(
               <div>
 
                 <div className="settings-section-title">
@@ -339,31 +340,34 @@ export default function AdminProfile() {
 
                 <div className="quick-actions">
 
-                  <button type="button" disabled title="This account action is not available yet">
-                    <strong>
-                      View system logs
-                    </strong>
-
+                  <button
+                    type="button"
+                    disabled
+                    title="This account action is not available yet"
+                  >
+                    <strong>View system logs</strong>
                     <span>
                       Check recent system activity and events.
                     </span>
                   </button>
 
-                  <button type="button" disabled title="This account action is not available yet">
-                    <strong>
-                      Manage users
-                    </strong>
-
+                  <button
+                    type="button"
+                    disabled
+                    title="This account action is not available yet"
+                  >
+                    <strong>Manage users</strong>
                     <span>
                       View and manage registered users.
                     </span>
                   </button>
 
-                  <button type="button" disabled title="This account action is not available yet">
-                    <strong>
-                      System settings
-                    </strong>
-
+                  <button
+                    type="button"
+                    disabled
+                    title="This account action is not available yet"
+                  >
+                    <strong>System settings</strong>
                     <span>
                       Manage system-wide settings.
                     </span>

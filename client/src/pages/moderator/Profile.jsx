@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+import React,{useState} from "react";
+import {Link} from "react-router-dom";
 import ProfileNameForm from "../../components/ProfileNameForm.jsx";
-import ProfileSecurity from "../../components/ProfileSecurity.jsx";
-import { useApp } from "../../context/AppContext.jsx";
+import {useApp} from "../../context/AppContext.jsx";
 
-export default function ModeratorProfile() {
-  const { profile } = useApp();
-  const [activeTab, setActiveTab] = useState("account");
-  const name = profile?.display_name || "";
-  const email = profile?.email || "";
-  const profilePhoto = "";
+export default function ModeratorProfile(){
+  const {profile}=useApp();
+  const [activeTab,setActiveTab]=useState("account");
 
-  return (
+  const name=profile?.display_name||"";
+  const email=profile?.email||"";
+  const profilePhoto="";
+
+  return(
     <main className="settings-page">
       <div className="settings-container">
 
@@ -24,32 +25,32 @@ export default function ModeratorProfile() {
           <aside className="settings-sidebar">
 
             <button
-              className={`settings-menu ${activeTab === "account" ? "active" : ""}`}
-              onClick={() => setActiveTab("account")}
+              className={`settings-menu ${activeTab==="account"?"active":""}`}
+              onClick={()=>setActiveTab("account")}
             >
               <span>♟</span>
               Account
             </button>
 
             <button
-              className={`settings-menu ${activeTab === "basic" ? "active" : ""}`}
-              onClick={() => setActiveTab("basic")}
+              className={`settings-menu ${activeTab==="basic"?"active":""}`}
+              onClick={()=>setActiveTab("basic")}
             >
               <span>👤</span>
               Basic information
             </button>
 
             <button
-              className={`settings-menu ${activeTab === "security" ? "active" : ""}`}
-              onClick={() => setActiveTab("security")}
+              className={`settings-menu ${activeTab==="security"?"active":""}`}
+              onClick={()=>setActiveTab("security")}
             >
               <span>🔑</span>
               Security
             </button>
 
             <button
-              className={`settings-menu ${activeTab === "preferences" ? "active" : ""}`}
-              onClick={() => setActiveTab("preferences")}
+              className={`settings-menu ${activeTab==="preferences"?"active":""}`}
+              onClick={()=>setActiveTab("preferences")}
             >
               <span>⚙</span>
               Preferences
@@ -60,118 +61,200 @@ export default function ModeratorProfile() {
           <section className="settings-content">
 
             {/* ACCOUNT */}
-            {activeTab === "account" && (
-  <div>
+            {activeTab==="account"&&(
+              <div>
 
-    <div className="moderator-profile-card">
+                <div className="moderator-profile-card">
 
-      <div className="moderator-avatar">
+                  <div className="moderator-avatar">
 
-  {profilePhoto ? (
-    <img
-      src={profilePhoto}
-      alt="Moderator profile"
-      className="moderator-profile-image"
-    />
-  ) : (
-    <svg width="92" height="92" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="32" fill="#e8edf5"/>
-      <circle cx="32" cy="24" r="10" fill="#344054"/>
-      <path
-        d="M17 49c0-8 6.5-14 15-14s15 6 15 14"
-        fill="#344054"
-      />
-    </svg>
-  )}
+                    {profilePhoto?(
+                      <img
+                        src={profilePhoto}
+                        alt="Moderator profile"
+                        className="moderator-profile-image"
+                      />
+                    ):(
+                      <svg
+                        width="92"
+                        height="92"
+                        viewBox="0 0 64 64"
+                        fill="none"
+                      >
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="32"
+                          fill="#e8edf5"
+                        />
 
-  <label
-    htmlFor="moderator-profile-upload"
-    className="camera-icon"
-    title="Profile photo uploads are not available yet" aria-disabled="true"
-  >
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-      <circle cx="12" cy="13" r="4"/>
-    </svg>
-  </label>
+                        <circle
+                          cx="32"
+                          cy="24"
+                          r="10"
+                          fill="#344054"
+                        />
 
-  <input
-    id="moderator-profile-upload"
-    type="file"
-    accept="image/*"
-    disabled aria-label="Profile photo upload unavailable"
-    hidden
-  />
+                        <path
+                          d="M17 49c0-8 6.5-14 15-14s15 6 15 14"
+                          fill="#344054"
+                        />
+                      </svg>
+                    )}
 
-</div>
+                    <label
+                      htmlFor="moderator-profile-upload"
+                      className="camera-icon"
+                      title="Profile photo uploads are not available yet"
+                      aria-disabled="true"
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                      </svg>
+                    </label>
 
-      <h2>{name}</h2>
-      <p className="hint">Profile photo uploads are not available yet.</p>
+                    <input
+                      id="moderator-profile-upload"
+                      type="file"
+                      accept="image/*"
+                      disabled
+                      aria-label="Profile photo upload unavailable"
+                      hidden
+                    />
 
-      <span className="moderator-badge">
-        MODERATOR
-      </span>
+                  </div>
 
-      <p className="moderator-email">
-        {email || "Email unavailable"}
-      </p>
+                  <h2>{name}</h2>
 
-      <p className="moderator-joined">
-        <span>▣</span>
-        Joined: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "Not available"}
-      </p>
+                  <p className="hint">
+                    Profile photo uploads are not available yet.
+                  </p>
 
-    </div>
+                  <span className="moderator-badge">
+                    MODERATOR
+                  </span>
 
-    <div className="settings-section-title moderator-permission-title">
-      <h2>Role & permissions</h2>
-      <p>Access available to your moderator account.</p>
-    </div>
+                  <p className="moderator-email">
+                    {email||"Email unavailable"}
+                  </p>
 
-    <div className="permission-list">
+                  <p className="moderator-joined">
+                    <span>▣</span>
+                    Joined:{" "}
+                    {profile?.created_at
+                      ?new Date(profile.created_at).toLocaleDateString()
+                      :"Not available"}
+                  </p>
 
-      <div className="permission-item">
-        <span>✓</span>
-        View and manage comments
-      </div>
+                </div>
 
-      <div className="permission-item">
-        <span>✓</span>
-        Access user reports
-      </div>
+                <div className="settings-section-title moderator-permission-title">
+                  <h2>Role & permissions</h2>
+                  <p>
+                    Access available to your moderator account.
+                  </p>
+                </div>
 
-      <div className="permission-item">
-        <span>✓</span>
-        Moderate flagged comments
-      </div>
+                <div className="permission-list">
 
-      <div className="permission-item">
-        <span>✓</span>
-        Review Traces
-      </div>
+                  <div className="permission-item">
+                    <span>✓</span>
+                    View and manage comments
+                  </div>
 
-    </div>
+                  <div className="permission-item">
+                    <span>✓</span>
+                    Access user reports
+                  </div>
 
-  </div>
-)}
+                  <div className="permission-item">
+                    <span>✓</span>
+                    Moderate flagged comments
+                  </div>
+
+                  <div className="permission-item">
+                    <span>✓</span>
+                    Review Traces
+                  </div>
+
+                </div>
+
+              </div>
+            )}
 
             {/* BASIC INFORMATION */}
-            {activeTab === "basic" && <ProfileNameForm />}
+            {activeTab==="basic"&&(
+              <ProfileNameForm/>
+            )}
 
             {/* SECURITY */}
-            {activeTab === "security" && <ProfileSecurity />}
+            {activeTab==="security"&&(
+              <div className="security-section">
+
+                <div className="settings-section-title">
+                  <h2>Security</h2>
+                  <p>
+                    Manage your password and account security.
+                  </p>
+                </div>
+
+                <div className="account-security-card">
+
+                  <div className="account-security-content">
+
+                    <h3>Account security</h3>
+
+                    <p>
+                      Use an email recovery link to choose a new password
+                      for your account. Your password changes only after
+                      you complete the reset form.
+                    </p>
+
+                    <Link
+                      to="/forgot-password"
+                      className="btn blue sm"
+                    >
+                      Reset password
+                    </Link>
+
+                  </div>
+
+                </div>
+
+              </div>
+            )}
 
             {/* PREFERENCES */}
-            {activeTab === "preferences" && <div><h2>Preferences</h2><p>Email notification preferences are not available yet. No changes are saved here.</p></div>}
+            {activeTab==="preferences"&&(
+              <div>
+
+                <div className="settings-section-title">
+                  <h2>Preferences</h2>
+                  <p>
+                    Manage your notification preferences.
+                  </p>
+                </div>
+
+                <div className="preference-box">
+                  <strong>Email notifications</strong>
+                  <p>
+                    Email notification preferences are not available yet.
+                    No changes are saved here.
+                  </p>
+                </div>
+
+              </div>
+            )}
 
           </section>
 
