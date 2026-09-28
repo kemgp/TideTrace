@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./TraceMap.css";
-import { coordinates, loadMaps, mapId, mapsConfigured, onMapAuthFailure } from "../api/maps.js";
+import { coordinates, lookupPinLocation, loadMaps, mapId, mapsConfigured, onMapAuthFailure } from "../api/maps.js";
 
 export default function TraceMap({ latitude, longitude, onChange, disabled = false }) {
   const position = coordinates(latitude, longitude);
   const editable = typeof onChange === "function";
   const enabled = mapsConfigured() && (editable || Boolean(position));
   const [state, setState] = useState("loading");
+  const [pinLabel, setPinLabel] = useState(null);
+  const pinKey = position ? `${position.lat},${position.lng}` : null;
   const [error, setError] = useState("");
   const host = useRef(null);
   const instance = useRef(null);
@@ -61,10 +63,24 @@ export default function TraceMap({ latitude, longitude, onChange, disabled = fal
     current.map.setOptions({ gestureHandling: disabled ? "none" : "cooperative", keyboardShortcuts: !disabled });
   }, [latitude, longitude, disabled, editable, state]);
 
+  useEffect(() => {
+    if (!enabled || !pinKey) return;
+    const controller = new AbortController();
+    let active = true;
+    // Debounce clicks; dragging only changes coordinates when released.
+    const timer = setTimeout(() => {
+      lookupPinLocation({ lat: Number(pinKey.split(",")[0]), lng: Number(pinKey.split(",")[1]) }, controller.signal)
+        .then((name) => { if (active) setPinLabel({ key: pinKey, text: name || "No nearby address found." }); })
+        .catch(() => { if (active) setPinLabel({ key: pinKey, text: "Location name unavailable." }); });
+    }, 400);
+    return () => { active = false; clearTimeout(timer); controller.abort(); };
+  }, [pinKey, enabled]);
+
   if (!editable && !position) return <p className="hint">No map pin was saved for this Trace.</p>;
   return <section aria-label={editable ? "Choose Trace location" : "Saved Trace location"} style={{ marginBlock: 16 }}>
     {editable && <p className="hint">Optional: click the map to place a pin, or drag the pin to adjust it. Keep the location name descriptive.</p>}
     {position && <p className="hint" role="status">{editable ? "Selected" : "Saved"} coordinates: {position.lat.toFixed(6)}, {position.lng.toFixed(6)}</p>}
+    {position && <p className="hint" aria-live="polite"><b>Pin location (approximate):</b> {enabled ? pinLabel?.key === pinKey ? pinLabel.text : "Looking up location…" : "Location name unavailable."}</p>}
     {!mapsConfigured() && <p className="hint">Map preview is unavailable.{editable ? " You can still save the location name." : ""}</p>}
     {enabled && <>
       {error && <p role="alert">{error}</p>}

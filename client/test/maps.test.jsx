@@ -2,12 +2,13 @@ import React, { StrictMode, useState } from "react";
 import { it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import TraceMap from "../src/components/TraceMap.jsx";
-import { loadMaps, mapsConfigured, onMapAuthFailure } from "../src/api/maps.js";
+import { loadMaps, lookupPinLocation, mapsConfigured, onMapAuthFailure } from "../src/api/maps.js";
 
-vi.mock("../src/api/maps.js", async (original) => ({ ...await original(), loadMaps: vi.fn(), mapsConfigured: vi.fn(() => true), onMapAuthFailure: vi.fn(() => () => {}) }));
+vi.mock("../src/api/maps.js", async (original) => ({ ...await original(), loadMaps: vi.fn(), lookupPinLocation: vi.fn(), mapsConfigured: vi.fn(() => true), onMapAuthFailure: vi.fn(() => () => {}) }));
 let maps, markers;
 beforeEach(() => {
   maps = []; markers = [];
+  lookupPinLocation.mockReset().mockResolvedValue(null);
   class Map {
     constructor(host, options) { this.options = options; this.handlers = {}; this.removers = []; maps.push(this); }
     addListener(name, handler) { this.handlers[name] = handler; const remove = vi.fn(); this.removers.push(remove); return { remove }; }
@@ -138,4 +139,26 @@ it("saves a picked pin through the real draft form, restores it and persists cle
   await screen.findByRole("link", { name: "Edit draft" });
   expect(saved).toMatchObject({ latitude: null, longitude: null });
   expect(fetch.mock.calls.filter(([, options]) => ["POST", "PUT"].includes(options.method))).toHaveLength(2);
+});
+
+
+it("shows the pin address as a guide without editing the entered location", async () => {
+  const change = vi.fn();
+  lookupPinLocation.mockResolvedValue("Lawis, Philippines");
+  render(<TraceMap latitude={10} longitude={124} onChange={change} />);
+  await screen.findByText(/Lawis, Philippines/);
+  expect(screen.getByText(/Selected coordinates: 10.000000, 124.000000/)).toBeTruthy();
+  expect(change).not.toHaveBeenCalled();
+});
+
+it("ignores an old lookup when the pin moves and handles lookup failures", async () => {
+  let finish;
+  lookupPinLocation.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; })).mockRejectedValueOnce(new Error("Quota"));
+  const view = render(<TraceMap latitude={10} longitude={124} />);
+  await waitFor(() => expect(lookupPinLocation).toHaveBeenCalledTimes(1));
+  view.rerender(<TraceMap latitude={11} longitude={125} />);
+  await act(async () => finish("Old location"));
+  expect(screen.queryByText(/Old location/)).toBeNull();
+  await screen.findByText(/Location name unavailable/);
+  expect(screen.getByText("Saved coordinates: 11.000000, 125.000000")).toBeTruthy();
 });

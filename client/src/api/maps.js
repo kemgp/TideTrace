@@ -54,3 +54,24 @@ export function coordinates(latitude, longitude) {
   const lat = Number(latitude), lng = Number(longitude);
   return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
 }
+
+// Display-only reverse lookup; never writes Google's address into a Trace.
+export async function lookupPinLocation(position, signal) {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  if (signal?.aborted) abort();
+  const timer = setTimeout(abort, 10000);
+  try {
+    const response = await fetch(`https://geocode.googleapis.com/v4/geocode/location/${position.lat},${position.lng}`, {
+      signal: controller.signal,
+      headers: { "X-Goog-Api-Key": import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || "", "X-Goog-FieldMask": "results.formattedAddress" },
+    });
+    if (!response.ok) throw new Error("Location lookup unavailable");
+    const data = await response.json();
+    return data.results?.find((result) => typeof result.formattedAddress === "string" && result.formattedAddress.trim())?.formattedAddress || null;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
+}
