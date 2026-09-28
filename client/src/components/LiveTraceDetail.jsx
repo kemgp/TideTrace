@@ -4,6 +4,7 @@ import useRemoteData from "../hooks/useRemoteData.js";
 import { displayTrace } from "../api/data.js";
 import RemoteState from "./RemoteState.jsx";
 import TraceStatusBadge from "./TraceStatusBadge.jsx";
+import TraceMap from "./TraceMap.jsx";
 import TracePhotos from "./TracePhotos.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import TraceFeedback from "./TraceFeedback.jsx";
@@ -43,6 +44,7 @@ function TraceContent({ initialTrace, contribution }) {
       <div className="chiprow trace-detail__tags"><span className="chip on">{trace.category}</span><span className="chip">{!contribution && <span aria-hidden="true">📍 </span>}{trace.location}</span></div>
       {fieldError("category_id")}
       {fieldError("location_name")}
+      <TraceMap latitude={current.latitude} longitude={current.longitude} />
       <div className="trace-detail__author">{!contribution && <span className="avatar trace-detail__avatar" aria-hidden="true" />}<p className="hint"><span>{trace.author}</span>{!contribution && trace.when && <> · {trace.when}</>}</p></div>
       <div className="divider" />
       <span className="lbl">Description</span>

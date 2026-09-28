@@ -1,0 +1,7 @@
+.trace-map-frame { position: relative; width: 100%; height: 320px; margin-block: 12px; border-radius: 12px; overflow: hidden; background: var(--bg, #edf7ff); }
+.trace-map-canvas { width: 100%; height: 100%; }
+.trace-map-skeleton { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--navy, #203463); background: linear-gradient(35deg, transparent 42%, var(--line, #c7dcee) 43%, var(--line, #c7dcee) 46%, transparent 47%), linear-gradient(115deg, transparent 52%, var(--line, #c7dcee) 53%, var(--line, #c7dcee) 56%, transparent 57%), var(--bg, #edf7ff); font-size: 13px; }
+.trace-map-skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 25%, #ffffff70 50%, transparent 75%); transform: translateX(-100%); animation: trace-map-shimmer 1.6s ease-in-out infinite; }
+.trace-map-skeleton__pin { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--teal, #5aa2a8); opacity: .5; }
+@keyframes trace-map-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .trace-map-skeleton::after { animation: none; transform: none; opacity: .3; } }

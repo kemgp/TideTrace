@@ -260,6 +260,23 @@ Run `npm test`, `npm run build`, and `npm run verify:tides`. The automated tests
 
 For signed-in live verification, use separate admin and member browser sessions: save the sample as a draft; confirm the member cannot open its direct link; publish and confirm the member can open and reload it; return to draft and confirm the link becomes unavailable; publish again, archive, and confirm it is unavailable again. Open the admin editor in two tabs and save different edits to verify that the second stale save is rejected. Reload pages after each change. These checks require access to your signed-in development accounts and are not proved by mocked tests. Already-open lesson pages show the fetched content until navigation or reload; publication changes are not pushed in real time.
 
+## Trace map pinning
+
+Set these in `client/.env.local` (ignored by Git), then restart `npm run dev`:
+
+```env
+VITE_GOOGLE_MAPS_API_KEY=your_browser_key
+VITE_GOOGLE_MAPS_MAP_ID=DEMO_MAP_ID
+```
+
+On the Trace creation or revision form, enter a location name. The map appears inline automatically, with a loading skeleton until its tiles are ready. Click the map to place a pin or drag the pin to adjust it; **Clear pin** removes both coordinates. Pins are optional. Save draft / Save changes and submission include the selected latitude and longitude using the existing API and database columns. Changing the location name preserves the pin, so adjust or clear it when moving the observation to another place. The initial map view is centered on the Philippines without selecting a location automatically.
+
+Member Trace details, contribution details and staff review screens display saved coordinates and an inline map. These maps cannot edit the pin. Maps load automatically on these pages when configured; details without saved coordinates do not load a map. With no key, a loading failure or an exhausted quota, the typed location and previously selected coordinates remain usable. A failed loader requires a page reload; preserve unsaved edits first. No new Supabase migration is required.
+
+Google's [Maps Demo Key](https://developers.google.com/maps/documentation/javascript/demo-key) supports prototyping with limited usage; it is not for production. `DEMO_MAP_ID` is a testing map identifier, not the API key. Before production, configure a production Maps project/key and map ID. Browser keys are visible in client code, including Vite environment variables: apply website restrictions for your actual frontend origins and API restrictions for Maps JavaScript API where supported. For local work allow `http://localhost:5173/*` and `http://127.0.0.1:5173/*`. Add the corresponding Vite variables to your frontend hosting environment and rebuild for deployment. Never use a server secret as the browser key.
+
+Live verification: create a draft with a pin, reload it, edit the location label without moving the pin, drag and save, clear and save, and confirm each saved result. Submit a Trace with a pin and inspect it from a staff review account. Test a requested revision, mobile map interaction, and a missing/invalid key. Automated tests mock Google's API; they do not verify your key, Google quota or hosted configuration. Address search, automatic address lookup and device geolocation are not part of this implementation.
+
 ## Reporting and report moderation
 
 Members can select **Report Trace** on a public Trace detail or **Report comment** beside a comment, enter a reason and submit. Confirmation appears only after the API confirms the save. The database permits one open report per member and target. After an uncertain response, **Check saved report** verifies the current member's open report before allowing another submission.
@@ -294,7 +311,7 @@ The original sequence is retained below. Notifications and basic Tides reading/a
 
 7. **Replace remaining dashboard and administration demos.** Connect member contribution totals, reviewer queue totals and admin summaries to authorized aggregate queries/endpoints. Do not calculate totals from a paginated list. Connect profile editing, category management and account/moderator administration to existing APIs, adding missing operations deliberately. Verify role restrictions, reload persistence and session changes after account suspension or role updates. Remove demo notices only from features that actually use saved records.
 
-8. **Prepare the MVP for deployment.** Configure and test email confirmation/recovery for ordinary users, production frontend/API URLs, allowed origins and Auth redirects. Run the full automated suite, production build and signed-in smoke checks for each role against a development/staging project before release. Set up monitoring and a deliberate cleanup process for orphaned/detached Storage files. Map pinning, video playback/uploads, quizzes and MFA can remain later work unless they become release requirements.
+8. **Prepare the MVP for deployment.** Configure and test email confirmation/recovery for ordinary users, production frontend/API URLs, allowed origins and Auth redirects. Run the full automated suite, production build and signed-in smoke checks for each role against a development/staging project before release. Set up monitoring and a deliberate cleanup process for orphaned/detached Storage files. Video playback/uploads, quizzes and MFA can remain later work unless they become release requirements.
 
 ## User Flow Diagram ##
 <img width="10471" height="5822" alt="Tide Trace_userflow" src="https://github.com/user-attachments/assets/c45946a1-d19d-4206-ac75-3bc93f1c68ca" />

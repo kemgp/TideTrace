@@ -82,7 +82,7 @@ it("preserves saved coordinates on an edit and sends the loaded version", async 
   expect(body).toMatchObject({ version: 4, latitude: 10, longitude: 124, title: "Edited title" });
 });
 
-it("clears old coordinates when the location name changes", async () => {
+it("preserves the pin when the location name changes", async () => {
   const saved = trace({ latitude: 10, longitude: 124 });
   const calls = setup((url, options) => {
     if ((url.startsWith("/api/contributions/") && !url.includes("/reviews?"))) return response(saved);
@@ -93,7 +93,7 @@ it("clears old coordinates when the location name changes", async () => {
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Another shore" } });
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
   await screen.findByRole("link", { name: "Edit draft" });
-  expect(JSON.parse(calls.mock.calls.find(([, options]) => options.method === "PUT")[1].body)).toMatchObject({ latitude: null, longitude: null });
+  expect(JSON.parse(calls.mock.calls.find(([, options]) => options.method === "PUT")[1].body)).toMatchObject({ latitude: 10, longitude: 124 });
 });
 
 it("keeps edits on a version conflict and requires an explicit reload", async () => {

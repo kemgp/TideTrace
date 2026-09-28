@@ -7,6 +7,7 @@ import RemoteState from "./RemoteState.jsx";
 import TraceFeedback from "./TraceFeedback.jsx";
 import TraceDraftLayout, { TraceDraftSection, TraceDraftSummary } from "./TraceDraftLayout.jsx";
 import Card from "./Card.jsx";
+import TraceMap from "./TraceMap.jsx";
 import TracePhotos from "./TracePhotos.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { PHOTO_TYPES, photoError } from "../api/photos.js";
@@ -28,7 +29,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   const revision = trace?.status === "revision_requested";
   const saveLabel = revision ? "Save changes" : "Save draft";
   const categories = useRemoteData("categories", { collection: true });
-  const [fields, setFields] = useState(() => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "" }));
+  const [fields, setFields] = useState(() => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null }));
   const [activeStep, setActiveStep] = useState("category");
   const jumpToStep = (step) => {
     setActiveStep(step);
@@ -106,10 +107,9 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     let savedRecord = null;
     let submitting = false;
     try {
-      const sameLocation = trace && fields.location_name.trim() === trace.location_name;
       const saved = await writeData(trace ? `traces/${encodeURIComponent(trace.id)}` : "traces", {
         method: trace ? "PUT" : "POST", signal: controller.signal,
-        body: { ...fields, latitude: sameLocation ? trace.latitude ?? null : null, longitude: sameLocation ? trace.longitude ?? null : null, ...(trace ? { version: trace.version } : {}) },
+        body: { ...fields, ...(trace ? { version: trace.version } : {}) },
       });
       if (controller.signal.aborted) return;
       if (!saved?.id || saved.status !== (trace?.status || "draft") || !Number.isInteger(saved.version) || saved.version < 1 || (trace && saved.id !== trace.id)) {
@@ -215,7 +215,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           <label className="lbl" htmlFor="draft-location" style={{ marginTop: 16 }}>Location</label>
           <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
           {fieldError("location_name")}
-          <p className="hint">Enter the location name yourself. Map pinning is not available yet.{trace?.latitude != null && " Changing the location name clears the previously saved coordinates."}</p>
+          <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => { setFields((current) => ({ ...current, ...point })); setDirty(true); }} />
           </TraceDraftSection>
           <TraceDraftSection step="description" onActivate={setActiveStep}>
           <label className="lbl" htmlFor="draft-title" style={{ marginTop: 16 }}>Title</label>
