@@ -50,9 +50,9 @@ export default function Login() {
       {error && <div className="err show" role="alert">{error}</div>}
       <div className="fgroup">
         <label htmlFor="login-email">Email</label>
-        <input id="login-email" className="input" type="email" autoComplete="email" required maxLength={254} disabled={busy} value={email} onChange={(event) => setEmail(event.target.value)} />
+        <input id="login-email" className="input" type="email" autoComplete="email" placeholder="Email address" required maxLength={254} disabled={busy} value={email} onChange={(event) => setEmail(event.target.value)}/>
       </div>
-      <PasswordField id="login-password" value={password} busy={busy} onChange={(event) => setPassword(event.target.value)} />
+      <PasswordField id="login-password" value={password} busy={busy} placeholder="Password" onChange={(event) => setPassword(event.target.value)}/>
       <div className="auth-forgot"><Link to="/forgot-password">Forgot password?</Link></div>
       <button className="btn clay" style={{ width: "100%" }} type="submit" disabled={busy}>{busy ? "Signing in…" : "Log in"}</button>
     </form>
