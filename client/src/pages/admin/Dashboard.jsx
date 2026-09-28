@@ -1,13 +1,19 @@
 
+import useDashboard from "../../hooks/useDashboard.js";
+import DashboardStats from "../../components/DashboardStats.jsx";
+import useRemoteData from "../../hooks/useRemoteData.js";
+import RemoteState from "../../components/RemoteState.jsx";
 import React from "react";
 import AdminIcon from "../../components/AdminIcon.jsx";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 
 export default function Dashboard() {
-  const { profile, users, traces, moderators, logs } = useApp();
+  const { profile } = useApp();
   const navigate = useNavigate();
-  const pending = traces.filter((t) => t.status === "pending").length;
+  const totals = useDashboard();
+  const activity = useRemoteData("admin/audit-logs?limit=5&offset=0", { collection: true });
+  const logs = activity.data || [];
 
   return (
     <div className="wrap">
@@ -22,12 +28,7 @@ export default function Dashboard() {
         </svg>
       </div>
 
-      <div className="g4" style={{ marginTop: 16 }}>
-        <div className="stat"><b>{users.length}</b><span>total users</span></div>
-        <div className="stat"><b>{traces.length}</b><span>total traces</span></div>
-        <div className="stat"><b>{moderators.length}</b><span>moderators</span></div>
-        <div className="stat"><b>{pending}</b><span>pending review</span></div>
-      </div>
+      <DashboardStats result={totals} items={[["users", "Registered accounts"], ["active_users", "Active accounts"], ["moderators", "Active moderators"], ["published_traces", "Published Traces"], ["published_tides", "Published Tides"], ["pending", "Pending review"], ["open_reports", "Open reports"]]} />
 
       <h3 className="sec-t">Quick actions</h3>
       <div className="g4">
@@ -37,14 +38,16 @@ export default function Dashboard() {
         <button className="btn outline" onClick={() => navigate("/admin/review/history")}><AdminIcon name="history" /> Moderation history</button>
       </div>
 
-      <h3 className="sec-t">Recent system activity</h3>
+      <h3 className="sec-t">Recent account administration</h3>
+      <RemoteState {...activity} />
+      {activity.data && !logs.length && <p>No account administration activity yet.</p>}
       <div className="card">
         {logs.map((l) => (
           <div className="lrow" key={l.id}>
             <span className="admin-log-icon"><AdminIcon name="log" size={16} /></span>
             <div className="grow">
-              <div className="t">{l.text}</div>
-              <div className="m">{l.when}</div>
+              <div className="t">{l.action.replaceAll("_", " ")}: {l.reason}</div>
+              <div className="m">{new Date(l.created_at).toLocaleString()}</div>
             </div>
           </div>
         ))}

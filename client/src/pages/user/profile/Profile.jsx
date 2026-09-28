@@ -1,3 +1,4 @@
+import UsageActivity from "../../../components/UsageActivity.jsx";
 import React, { useState } from "react";
 import { useApp } from "../../../context/AppContext.jsx";
 import ProfileNameForm from "../../../components/ProfileNameForm.jsx";
@@ -18,9 +19,8 @@ function Toggle() {
 }
 
 export default function Profile() {
-  const { traces, profile } = useApp();
+  const { profile } = useApp();
   const [pane, setPane] = useState("account");
-  const mine = traces.filter((t) => t.author === "Ana Ramos").length;
 
   return (
     <div className="wrap user-settings">
@@ -66,14 +66,7 @@ export default function Profile() {
 
           {pane === "security" && <div className="card"><ProfileSecurity /></div>}
 
-          {pane === "usage" && (
-            <div className="card"><p className="hint">Sample activity preview. These numbers are not your saved account statistics.</p>
-              <div className="setrow"><div className="l">Your traces (sample)</div><span className="hint">{mine}</span></div>
-              <div className="setrow"><div className="l">Comments posted</div><span className="hint">14</span></div>
-              <div className="setrow"><div className="l">Learning minutes</div><span className="hint">46</span></div>
-              <div className="setrow"><div className="l">Member since</div><span className="hint">January 2026</span></div>
-            </div>
-          )}
+          {pane === "usage" && <UsageActivity />}
         </div>
       </div>
     </div>

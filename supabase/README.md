@@ -106,3 +106,8 @@ The harness also checks that first-admin bootstrap works once and rejects a repe
 ### Tide completions
 
 The incremental `20260927000100_tide_completions.sql` migration adds a unique member/lesson record with a database-assigned completion timestamp, foreign keys, RLS and restricted column grants. Active members read only their own records and insert only for published lessons; update/delete and caller-supplied timestamps are prohibited. Existing compatible tables are retained and experimental RLS policies are replaced. Duplicate existing member/lesson pairs cause the migration to fail atomically; inspect them rather than deleting learning history blindly. Ordinary lesson edits do not reset completion.
+
+
+### Dashboard and usage totals
+
+After both existing migrations, apply `migrations/20260928000100_dashboard_summary.sql` as `postgres`. It adds `get_dashboard_summary()` with explicit active-account and role checks; it accepts no owner or role arguments. Reads use one database snapshot and return only the appropriate role's counts. Existing tables, records and RLS policies remain unchanged. The frontend polls the authenticated `/api/dashboard` endpoint every 30 seconds while visible and on focus; there is no Realtime publication setup. See the root README for metric definitions and live checks.

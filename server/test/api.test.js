@@ -844,3 +844,20 @@ test("already closed reports and duplicate open reports return errors", async ()
   const response = await bearer(request(app).post("/api/reports").send({ comment_id: mediaId, reason: "Review" })).expect(409);
   assert.equal(response.body.error.code, "ALREADY_EXISTS");
 });
+
+test("dashboard uses caller-authorized aggregates and rejects owner or role overrides", async () => {
+  for (const role of ["user", "moderator", "admin"]) {
+    const summary = { id: userId, role, traces: 52 };
+    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_dashboard_summary" ? json(summary) : undefined });
+    const response = await bearer(request(app).get("/api/dashboard")).expect(200);
+    assert.deepEqual(response.body.data, summary);
+    const rpc = businessCalls(calls)[0];
+    assert.equal(rpc.headers.get("authorization"), "Bearer member-token");
+    assert.deepEqual(rpc.body, {});
+    await bearer(request(app).get(`/api/dashboard?user_id=${userId}`)).expect(400);
+    await bearer(request(app).get("/api/dashboard?role=admin")).expect(400);
+    await request(app).get("/api/dashboard").expect(401);
+  }
+  const suspended = fixture({ status: "suspended" });
+  await bearer(request(suspended.app).get("/api/dashboard")).expect(403);
+});

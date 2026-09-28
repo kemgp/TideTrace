@@ -204,4 +204,33 @@ set local role anon;
 select tidetrace_test.reject($q$select * from public.tide_completions$q$,'42501');
 select tidetrace_test.reject($q$insert into public.tide_completions(user_id,tide_id) values('10000000-0000-0000-0000-000000000003',current_setting('test.tide_id')::uuid)$q$,'42501');
 reset role;
+
+-- Aggregate permissions and counts beyond one API page.
+reset role;
+update public.profiles set status='active' where id='10000000-0000-0000-0000-000000000002';
+insert into public.traces(author_id,category_id,title)
+ select '10000000-0000-0000-0000-000000000002',current_setting('test.category_id')::uuid,'Draft '||n from generate_series(1,31) n;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'drafts')::int=32,'Counts include more than one API page');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'traces')::int=33,'Member totals include own nondeleted drafts and hidden Trace');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'approved')::int=0,'Hidden approved Trace is not a published total');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'tides_finished')::int=1,'Completed lessons count saved records');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'comments_posted')::int=0,'Another author comments are excluded');
+select tidetrace_test.assert_ok(not (public.get_dashboard_summary() ? 'users'),'Member cannot read global account totals');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'open_reports')::int=0,'Resolved and dismissed reports leave the open queue count');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'reviewed_today')::int >= 3,'Staff reviews count report decisions');
+select tidetrace_test.assert_ok(not (public.get_dashboard_summary() ? 'users'),'Moderator cannot read global account totals');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'users')::int=4,'Admin counts every account');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'published_traces')::int=0,'Admin published count excludes hidden content');
+reset role;
+update public.profiles set status='suspended' where id='10000000-0000-0000-0000-000000000002';
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select tidetrace_test.reject($q$select public.get_dashboard_summary()$q$,'42501');
+set local role anon;
+select tidetrace_test.reject($q$select public.get_dashboard_summary()$q$,'42501');
+reset role;
 rollback;

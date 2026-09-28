@@ -595,3 +595,6 @@ html.dark-mode .login-page .code-input{background:#fff!important;color:#203463!i
 html.dark-mode .account-security-card{background:#172235;border-color:#34445d}
 html.dark-mode .account-security-content h3{color:#e7eef7}
 html.dark-mode .account-security-content p{color:#9eafc6}
+.stat-placeholder{display:inline-block;width:3ch;height:1em;border-radius:4px;background:var(--line);animation:stat-pulse 1.4s ease-in-out infinite;}
+@keyframes stat-pulse{50%{opacity:.35;}}
+@media(prefers-reduced-motion:reduce){.stat-placeholder{animation:none;}}

@@ -82,7 +82,7 @@ it("checks a recovery link once, clears URL tokens, and does not grant dashboard
   expect(screen.getByText(`Choose a new password for ${email}.`)).toBeTruthy();
   expect(calls).toHaveBeenCalledTimes(1);
   expect(calls.mock.calls[0][1].headers.Authorization).toBe("Bearer recovery-access");
-  expect(window.localStorage.length).toBe(0);
+  expect(Object.keys(window.localStorage).filter((key) => key !== "tidetrace-dark-mode")).toEqual([]);
   expect(window.sessionStorage.length).toBe(0);
 });
 

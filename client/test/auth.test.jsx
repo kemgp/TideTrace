@@ -62,7 +62,7 @@ describe("backend authentication", () => {
     expect(JSON.parse(calls.mock.calls[0][1].body)).toEqual({ email, password });
     expect(calls.mock.calls[1][1].headers.Authorization).toBe("Bearer test-access-token");
     expect(screen.getByText(/Signed in as Test Member/)).toBeTruthy();
-    expect(window.localStorage.length).toBe(0);
+    expect(Object.keys(window.localStorage).filter((key) => key !== "tidetrace-dark-mode")).toEqual([]);
     expect(JSON.parse(window.sessionStorage.getItem(SESSION_KEY))).toEqual({ access_token: "test-access-token", refresh_token: "test-refresh-token", expires_at: expect.any(Number) });
   });
 
@@ -223,8 +223,8 @@ describe("backend authentication", () => {
     render(<StrictMode><BrowserRouter><App /><RouteProbe /></BrowserRouter></StrictMode>);
     await waitFor(() => expect(screen.getByTestId("route").textContent).toBe("/admin/dashboard"));
     expect(window.location.hash).toBe("");
-    expect(calls).toHaveBeenCalledTimes(1);
-    expect(window.localStorage.length).toBe(0);
+    expect(calls.mock.calls.filter(([url]) => url === "/api/auth/me")).toHaveLength(1);
+    expect(Object.keys(window.localStorage).filter((key) => key !== "tidetrace-dark-mode")).toEqual([]);
   });
 
   it("also handles confirmation links redirected to the site root", async () => {

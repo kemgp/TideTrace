@@ -1,3 +1,5 @@
+import useDashboard from "../../hooks/useDashboard.js";
+import DashboardStats from "../../components/DashboardStats.jsx";
 import React from "react";
 import TraceMarker from "./TraceMarker.jsx";
 import StaffIcon from "../../components/AdminIcon.jsx";
@@ -10,13 +12,12 @@ import RemoteState from "../../components/RemoteState.jsx";
 import Button from "../../components/Button.jsx";
 
 export default function Dashboard() {
-  const { profile, comments, reports } = useApp();
+  const { profile } = useApp();
   const navigate = useNavigate();
 
   const result = useRemoteData("moderation/traces?status=pending&limit=4&offset=0", { collection: true });
   const pending = (result.data || []).map(displayTrace);
-  const flagged = comments.filter((c) => c.status === "open").length;
-  const openReports = reports.filter((r) => r.status === "open").length;
+  const totals = useDashboard();
   const oldest = pending.slice(0, 4);
 
   return (
@@ -32,12 +33,7 @@ export default function Dashboard() {
         </svg>
       </div>
 
-      <div className="g4" style={{ marginTop: 16 }}>
-        <div className="stat"><b>{result.loading || result.error ? "—" : pending.length}</b><span>pending shown (up to 4)</span></div>
-        <div className="stat"><b>{flagged}</b><span>flagged comments · demo</span></div>
-        <div className="stat"><b>{openReports}</b><span>open reports · demo</span></div>
-        <div className="stat"><b>—</b><span>reviewed today · unavailable</span></div>
-      </div>
+      <DashboardStats result={totals} items={[["pending", "Pending review"], ["flagged_comments", "Comments with open reports"], ["open_reports", "Open reports"], ["reviewed_today", "My reviews today (Manila)"]]} />
 
       <h3 className="sec-t">Quick actions</h3>
       <div className="g2">

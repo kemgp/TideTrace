@@ -293,6 +293,21 @@ Live verification before release:
 4. Open the same report in two staff sessions. Resolve it in one, then attempt a decision in the other; reload the second session's saved report instead of overwriting the first decision.
 5. Verify another member cannot read someone else's reports or access staff report routes. Local automated tests verify these rules against PostgreSQL with Auth/Storage stubs; they do not prove hosted-project configuration.
 
+## Dashboard totals and Usage & activity
+
+Apply `supabase/migrations/20260928000100_dashboard_summary.sql` in the Supabase SQL Editor as `postgres`, after the initial schema and Tides completion migration. This adds a role-checked aggregate function without changing existing records. Do not rerun the initial schema. Deploy both the API and frontend after applying it.
+
+`GET /api/dashboard` returns a database snapshot for the authenticated caller. There are no caller-supplied owner/role filters. Members see only their own activity; moderators see queue totals and their own reviews; admins see platform/account totals. Suspended and anonymous accounts cannot use the endpoint or database function.
+
+- **Member dashboard:** the original three cards: Your Traces (all nondeleted owned Traces, including drafts and hidden records), Approved (approved and not hidden), and In review (pending and not hidden). Tides finished remains in Settings → Usage & activity.
+- **Settings → Usage & activity:** the same owned Trace total, all comments posted by the member (including moderated comments), **Tides finished**, and the profile creation date. Completions remain counted when a lesson is archived; text edits do not reset them.
+- **Moderator dashboard:** visible/nondeleted pending submissions, distinct comments with open reports, all open reports, and the current moderator's Trace/report review decisions since midnight in Asia/Manila. Content-hide audit entries do not double-count review decisions.
+- **Admin dashboard:** registered profiles, active profiles, active moderators, visible/nondeleted published Traces, published Tides, pending reviews and open reports. Active means account status, not currently online.
+
+Totals refresh on entry, every 30 seconds while visible, on tab focus/visibility return, and via **Refresh totals**. This is polling, not WebSocket push. Requests stop on unmount/logout and late responses cannot cross accounts. Loading uses skeletons; errors show unavailable values and retry rather than fabricated zeros. Recent community Traces and recent admin account actions now load from their existing API lists; those lists reload on page entry independently of the totals timer.
+
+Live verification: compare member totals with saved contributions and Tides; complete another lesson and return to Usage & activity; resolve a report and return to the moderator dashboard; verify a second member sees only their own counts. Keep a visible page open for 30 seconds after a change in another session, then verify it refreshes. Local SQL tests cover ownership, staff restrictions, counts beyond one page and hidden-content exclusions; apply the migration and verify your hosted project separately.
+
 ## Remaining integration
 
 The original sequence is retained below. Notifications and basic Tides reading/authoring are now connected; single-page lesson completion is also connected; the later integrations remain planned work.
@@ -309,7 +324,7 @@ The original sequence is retained below. Notifications and basic Tides reading/a
 
 6. **Comments and report moderation - connected.** Trace comment reading/posting, member reporting, staff report queues, content hiding, dismissal and saved decision history use the API. Complete the live checks above. General comment administration outside the report workflow remains deferred.
 
-7. **Replace remaining dashboard and administration demos.** Connect member contribution totals, reviewer queue totals and admin summaries to authorized aggregate queries/endpoints. Do not calculate totals from a paginated list. Connect profile editing, category management and account/moderator administration to existing APIs, adding missing operations deliberately. Verify role restrictions, reload persistence and session changes after account suspension or role updates. Remove demo notices only from features that actually use saved records.
+7. **Finish remaining administration.** Dashboard totals and member Usage & activity are connected through authorized database aggregates. Connect profile editing, category management and account/moderator administration to existing APIs, adding missing operations deliberately. Verify role restrictions, reload persistence and session changes after account suspension or role updates. Remove demo notices only from features that actually use saved records.
 
 8. **Prepare the MVP for deployment.** Configure and test email confirmation/recovery for ordinary users, production frontend/API URLs, allowed origins and Auth redirects. Run the full automated suite, production build and signed-in smoke checks for each role against a development/staging project before release. Set up monitoring and a deliberate cleanup process for orphaned/detached Storage files. Video playback/uploads, quizzes and MFA can remain later work unless they become release requirements.
 
