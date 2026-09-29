@@ -1,4 +1,5 @@
-import React from "react";
+
+import React,{useEffect,useState} from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ROLE_HOME } from "./api/auth.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
@@ -47,10 +48,11 @@ const WAVE = (
     <path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0" />
     <path d="M2 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0" />
   </svg>
-);  
+);
 
 function Home() {
   const navigate = useNavigate();
+
   return (
     <div className="view-home">
       <header className="hero" id="home-top">
@@ -248,6 +250,97 @@ function Toast() {
   return <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>;
 }
 
+function PageTransitionSkeleton() {
+  return (
+    <section
+      className="page-transition-skeleton"
+      aria-label="Loading page"
+      aria-busy="true"
+    >
+      <style>{`
+        @keyframes page-skeleton-shimmer{
+          0%{background-position:200% 0}
+          100%{background-position:-200% 0}
+        }
+        .page-transition-skeleton{
+          width:min(1120px,calc(100% - 32px));
+          margin:32px auto;
+          min-height:420px;
+        }
+        .page-transition-skeleton .sk{
+          display:block;
+          background:linear-gradient(90deg,#e5eaf1 25%,#f7f9fc 50%,#e5eaf1 75%);
+          background-size:200% 100%;
+          animation:page-skeleton-shimmer 1.4s ease-in-out infinite;
+          border-radius:8px;
+        }
+        .page-transition-skeleton .sk-banner{
+          height:112px;
+          border-radius:14px;
+          margin-bottom:24px;
+        }
+        .page-transition-skeleton .sk-stats{
+          display:grid;
+          grid-template-columns:repeat(3,minmax(0,1fr));
+          gap:20px;
+          margin-bottom:24px;
+        }
+        .page-transition-skeleton .sk-stat{
+          height:112px;
+          border:1px solid #d5e2ef;
+          border-radius:12px;
+        }
+        .page-transition-skeleton .sk-heading{
+          height:24px;
+          width:210px;
+          margin:28px 0 18px;
+        }
+        .page-transition-skeleton .sk-card{
+          height:140px;
+          border:1px solid #d5e2ef;
+          border-radius:12px;
+          margin-bottom:16px;
+        }
+        .page-transition-skeleton .sk-row{
+          display:grid;
+          grid-template-columns:repeat(2,minmax(0,1fr));
+          gap:20px;
+        }
+        @media(max-width:640px){
+          .page-transition-skeleton .sk-stats{
+            grid-template-columns:1fr;
+            gap:12px;
+          }
+          .page-transition-skeleton .sk-stat{
+            height:78px;
+          }
+          .page-transition-skeleton .sk-row{
+            grid-template-columns:1fr;
+            gap:0;
+          }
+        }
+        @media(prefers-reduced-motion:reduce){
+          .page-transition-skeleton .sk{animation:none}
+        }
+      `}</style>
+
+      <div className="sk sk-banner" />
+      <div className="sk-stats">
+        <div className="sk sk-stat" />
+        <div className="sk sk-stat" />
+        <div className="sk sk-stat" />
+      </div>
+      <div className="sk sk-heading" />
+      <div className="sk-row">
+        <div className="sk sk-card" />
+        <div className="sk sk-card" />
+      </div>
+      <div className="sk sk-heading" />
+      <div className="sk sk-card" />
+    </section>
+  );
+}
+
 const USER_SECTIONS = {
   dashboard: { title: "Your dashboard", description: "A quick view of your community activity." },
   traces: { title: "Community traces", description: "Explore observations shared by coastal communities." },
@@ -300,80 +393,142 @@ function UserSection({ section }) {
 
 function SessionGate({ children }) {
   const { role, sessionReady, sessionError, retrySession, clearSession } = useApp();
+
   if (!sessionReady) return <div className="wrap" role="status">Restoring your session…</div>;
+
   if (!role && sessionError) return <div className="wrap">
     <p role="alert">{sessionError}</p>
     <button className="btn blue" onClick={retrySession}>Retry connection</button>
     <button className="btn ghost" onClick={() => clearSession()}>Back to log in</button>
   </div>;
+
   return children;
 }
 
 function RequireRole({ role: required, children }) {
   const { role } = useApp();
+
   return <SessionGate>{role !== required ? <Navigate to={ROLE_HOME[role] || "/login"} replace /> : children}</SessionGate>;
 }
 
 function AppShell() {
   const { role, profile, sessionError, sessionNotice, retrySession } = useApp();
   const location = useLocation();
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    if (!routeLoading) return;
+
+    const timer = window.setTimeout(() => {
+      setRouteLoading(false);
+    }, 550);
+
+    return () => window.clearTimeout(timer);
+  }, [location.pathname, routeLoading]);
+
+  const handleNavigationStart = (event) => {
+    if (!["user", "admin", "mod"].includes(role)) return;
+
+    const target = event.target;
+
+    if (!(target instanceof Element)) return;
+
+    const link = target.closest("a[href]");
+    const profileButton = target.closest(".nav-profile, .avatar-btn");
+    const logoutButton = target.closest(".nav-logout");
+    const darkModeButton = target.closest(".dark-mode-switch");
+    const quickActionButton = target.closest(".view .g2 button, .view .g4 button");
+
+    // Do not show the loader when changing dark mode or logging out.
+    if (logoutButton || darkModeButton) return;
+
+    const href = link?.getAttribute("href");
+
+    const isInternalNavigation =
+      href &&
+      !href.startsWith("#") &&
+      (
+        href === "/user" ||
+        href.startsWith("/user/") ||
+        href.startsWith("/admin/") ||
+        href.startsWith("/moderator/")
+      );
+
+    if (isInternalNavigation || profileButton || quickActionButton) {
+      setRouteLoading(true);
+    }
+  };
+
   if (location.pathname !== "/auth/callback" && /(?:^#|&)(access_token|error_code|error)=/.test(location.hash)) {
     return <Navigate to={{ pathname: "/auth/callback", hash: location.hash }} replace />;
   }
+
   return (
-    <div className={`app-shell ${role === "admin" ? "admin-shell" : role === "mod" ? "moderator-shell" : role === "user" ? "user-shell" : ""}`}>
+    <div
+      className={`app-shell ${role === "admin" ? "admin-shell" : role === "mod" ? "moderator-shell" : role === "user" ? "user-shell" : ""}`}
+      onClickCapture={handleNavigationStart}
+    >
       <Navbar />
+
       {sessionNotice && <div className="demo-notice" role="status">{sessionNotice}</div>}
+
       {role && sessionError && <div className="demo-notice" role="status">{sessionError} <button className="btn ghost sm" onClick={retrySession}>Retry connection</button></div>}
+
       {role && <div className="demo-notice">Signed in as {profile.display_name}. Trace reading, draft saving, photo uploads, submission, Trace moderation, member notifications, Tides lessons, comments and report moderation use saved records. Dashboard totals and member usage activity use saved records. Some administration and preference controls remain demos.</div>}
+
       <main>
-        <Routes>
-          <Route path="/" element={<div className="view"><Home /></div>} />
-          <Route path="/login" element={<SessionGate><Login /></SessionGate>} />
-          <Route path="/register" element={<SessionGate><Register /></SessionGate>} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+        {routeLoading ? (
+          <PageTransitionSkeleton />
+        ) : (
+          <Routes>
+            <Route path="/" element={<div className="view"><Home /></div>} />
+            <Route path="/login" element={<SessionGate><Login /></SessionGate>} />
+            <Route path="/register" element={<SessionGate><Register /></SessionGate>} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          <Route path="/user" element={<RequireRole role="user"><div className="view"><UserDashboard /></div></RequireRole>} />
-          <Route path="/user/dashboard" element={<RequireRole role="user"><div className="view"><UserDashboard /></div></RequireRole>} />
-          <Route path="/user/traces" element={<RequireRole role="user"><div className="view"><ViewTraces /></div></RequireRole>} />
-          <Route path="/user/traces/upload" element={<RequireRole role="user"><div className="view"><UploadTrace /></div></RequireRole>} />
-          <Route path="/user/traces/:id" element={<RequireRole role="user"><div className="view"><ViewTrace /></div></RequireRole>} />
-          <Route path="/user/contributions" element={<RequireRole role="user"><div className="view"><MyContributions /></div></RequireRole>} />
-          <Route path="/user/contributions/:id/edit" element={<RequireRole role="user"><div className="view"><EditSubmission /></div></RequireRole>} />
-          <Route path="/user/contributions/:id" element={<RequireRole role="user"><div className="view"><ViewSubmission /></div></RequireRole>} />
-          <Route path="/user/tides" element={<RequireRole role="user"><div className="view"><Tides /></div></RequireRole>} />
-          <Route path="/user/tides/:id" element={<RequireRole role="user"><div className="view"><ViewTide /></div></RequireRole>} />
-          <Route path="/user/notifications" element={<RequireRole role="user"><div className="view"><Notifications /></div></RequireRole>} />
-          <Route path="/user/profile" element={<RequireRole role="user"><div className="view"><Profile /></div></RequireRole>} />
+            <Route path="/user" element={<RequireRole role="user"><div className="view"><UserDashboard /></div></RequireRole>} />
+            <Route path="/user/dashboard" element={<RequireRole role="user"><div className="view"><UserDashboard /></div></RequireRole>} />
+            <Route path="/user/traces" element={<RequireRole role="user"><div className="view"><ViewTraces /></div></RequireRole>} />
+            <Route path="/user/traces/upload" element={<RequireRole role="user"><div className="view"><UploadTrace /></div></RequireRole>} />
+            <Route path="/user/traces/:id" element={<RequireRole role="user"><div className="view"><ViewTrace /></div></RequireRole>} />
+            <Route path="/user/contributions" element={<RequireRole role="user"><div className="view"><MyContributions /></div></RequireRole>} />
+            <Route path="/user/contributions/:id/edit" element={<RequireRole role="user"><div className="view"><EditSubmission /></div></RequireRole>} />
+            <Route path="/user/contributions/:id" element={<RequireRole role="user"><div className="view"><ViewSubmission /></div></RequireRole>} />
+            <Route path="/user/tides" element={<RequireRole role="user"><div className="view"><Tides /></div></RequireRole>} />
+            <Route path="/user/tides/:id" element={<RequireRole role="user"><div className="view"><ViewTide /></div></RequireRole>} />
+            <Route path="/user/notifications" element={<RequireRole role="user"><div className="view"><Notifications /></div></RequireRole>} />
+            <Route path="/user/profile" element={<RequireRole role="user"><div className="view"><Profile /></div></RequireRole>} />
 
-          <Route path="/moderator/dashboard" element={<RequireRole role="mod"><div className="view"><ModDashboard /></div></RequireRole>} />
-          <Route path="/moderator/review" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
-          <Route path="/moderator/review/history" element={<RequireRole role="mod"><div className="view"><ModerationHistory /></div></RequireRole>} />
-          <Route path="/moderator/review/:id" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
-          <Route path="/admin/review" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
-          <Route path="/admin/review/history" element={<RequireRole role="admin"><div className="view"><AdminHistory /></div></RequireRole>} />
-          <Route path="/admin/review/:id" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
-          <Route path="/moderator/analytics" element={<RequireRole role="mod"><div className="view"><ModAnalytics /></div></RequireRole>} />
-          <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
-          <Route path="/admin/reports" element={<RequireRole role="admin"><div className="view"><ManageReports /></div></RequireRole>} />
-          <Route path="/moderator/reports" element={<RequireRole role="mod"><div className="view"><ManageReports /></div></RequireRole>} />
-          <Route path="/moderator/profile" element={<RequireRole role="mod"><ModeratorProfile /></RequireRole>} />
+            <Route path="/moderator/dashboard" element={<RequireRole role="mod"><div className="view"><ModDashboard /></div></RequireRole>} />
+            <Route path="/moderator/review" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
+            <Route path="/moderator/review/history" element={<RequireRole role="mod"><div className="view"><ModerationHistory /></div></RequireRole>} />
+            <Route path="/moderator/review/:id" element={<RequireRole role="mod"><div className="view"><ReviewTraces /></div></RequireRole>} />
+            <Route path="/admin/review" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
+            <Route path="/admin/review/history" element={<RequireRole role="admin"><div className="view"><AdminHistory /></div></RequireRole>} />
+            <Route path="/admin/review/:id" element={<RequireRole role="admin"><div className="view"><ReviewTraces /></div></RequireRole>} />
+            <Route path="/moderator/analytics" element={<RequireRole role="mod"><div className="view"><ModAnalytics /></div></RequireRole>} />
+            <Route path="/moderator/comments" element={<RequireRole role="mod"><div className="view"><ManageComments /></div></RequireRole>} />
+            <Route path="/admin/reports" element={<RequireRole role="admin"><div className="view"><ManageReports /></div></RequireRole>} />
+            <Route path="/moderator/reports" element={<RequireRole role="mod"><div className="view"><ManageReports /></div></RequireRole>} />
+            <Route path="/moderator/profile" element={<RequireRole role="mod"><ModeratorProfile /></RequireRole>} />
 
-          <Route path="/admin/dashboard" element={<RequireRole role="admin"><div className="view"><AdminDashboard /></div></RequireRole>} />
-          <Route path="/admin/users" element={<RequireRole role="admin"><div className="view"><ManageUsers /></div></RequireRole>} />
-          <Route path="/admin/moderators" element={<RequireRole role="admin"><div className="view"><ManageModerators /></div></RequireRole>} />
-          <Route path="/admin/tides" element={<RequireRole role="admin"><div className="view"><ManageTides /></div></RequireRole>} />
-          <Route path="/admin/tides/new" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
-          <Route path="/admin/tides/:id/edit" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
-          <Route path="/admin/categories" element={<RequireRole role="admin"><div className="view"><ManageCategories /></div></RequireRole>} />
-          <Route path="/admin/settings" element={<RequireRole role="admin"><div className="view"><AdminSettings /></div></RequireRole>} />
-          <Route path="/admin/analytics" element={<RequireRole role="admin"><div className="view"><AdminAnalytics /></div></RequireRole>} />
-          <Route path="/admin/profile" element={<RequireRole role="admin"><AdminProfile /></RequireRole>} />
+            <Route path="/admin/dashboard" element={<RequireRole role="admin"><div className="view"><AdminDashboard /></div></RequireRole>} />
+            <Route path="/admin/users" element={<RequireRole role="admin"><div className="view"><ManageUsers /></div></RequireRole>} />
+            <Route path="/admin/moderators" element={<RequireRole role="admin"><div className="view"><ManageModerators /></div></RequireRole>} />
+            <Route path="/admin/tides" element={<RequireRole role="admin"><div className="view"><ManageTides /></div></RequireRole>} />
+            <Route path="/admin/tides/new" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
+            <Route path="/admin/tides/:id/edit" element={<RequireRole role="admin"><div className="view"><EditTide /></div></RequireRole>} />
+            <Route path="/admin/categories" element={<RequireRole role="admin"><div className="view"><ManageCategories /></div></RequireRole>} />
+            <Route path="/admin/settings" element={<RequireRole role="admin"><div className="view"><AdminSettings /></div></RequireRole>} />
+            <Route path="/admin/analytics" element={<RequireRole role="admin"><div className="view"><AdminAnalytics /></div></RequireRole>} />
+            <Route path="/admin/profile" element={<RequireRole role="admin"><AdminProfile /></RequireRole>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        )}
       </main>
+
       <Footer />
       <Toast />
     </div>
