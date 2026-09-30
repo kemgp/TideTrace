@@ -4,7 +4,13 @@ import ProfileNameForm from "../../components/ProfileNameForm.jsx";
 import {useApp} from "../../context/AppContext.jsx";
 
 export default function AdminProfile(){
-  const {profile}=useApp();
+
+  const {
+    profile,
+    darkMode,
+    setDarkMode
+  }=useApp();
+
   const [activeTab,setActiveTab]=useState("account");
 
   const name=profile?.display_name||"";
@@ -13,6 +19,7 @@ export default function AdminProfile(){
 
   return(
     <main className="settings-page">
+
       <div className="settings-container">
 
         <div className="settings-title">
@@ -24,10 +31,14 @@ export default function AdminProfile(){
 
         <div className="settings-layout">
 
+          {/* SIDEBAR */}
           <aside className="settings-sidebar">
 
             <button
-              className={`settings-menu ${activeTab==="account"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="account"?"active":""
+              }`}
               onClick={()=>setActiveTab("account")}
             >
               <span>♟</span>
@@ -35,7 +46,10 @@ export default function AdminProfile(){
             </button>
 
             <button
-              className={`settings-menu ${activeTab==="basic"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="basic"?"active":""
+              }`}
               onClick={()=>setActiveTab("basic")}
             >
               <span>👤</span>
@@ -43,7 +57,10 @@ export default function AdminProfile(){
             </button>
 
             <button
-              className={`settings-menu ${activeTab==="security"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="security"?"active":""
+              }`}
               onClick={()=>setActiveTab("security")}
             >
               <span>🔑</span>
@@ -51,7 +68,21 @@ export default function AdminProfile(){
             </button>
 
             <button
-              className={`settings-menu ${activeTab==="activity"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="app"?"active":""
+              }`}
+              onClick={()=>setActiveTab("app")}
+            >
+              <span>⚙</span>
+              App settings
+            </button>
+
+            <button
+              type="button"
+              className={`settings-menu ${
+                activeTab==="activity"?"active":""
+              }`}
               onClick={()=>setActiveTab("activity")}
             >
               <span>📊</span>
@@ -59,7 +90,10 @@ export default function AdminProfile(){
             </button>
 
             <button
-              className={`settings-menu ${activeTab==="actions"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="actions"?"active":""
+              }`}
               onClick={()=>setActiveTab("actions")}
             >
               <span>⚡</span>
@@ -68,13 +102,16 @@ export default function AdminProfile(){
 
           </aside>
 
+          {/* CONTENT */}
           <section className="settings-content">
 
+            {/* ACCOUNT */}
             {activeTab==="account"&&(
               <div>
 
                 <div className="settings-section-title">
                   <h2>Account</h2>
+
                   <p>
                     Account information and administrator permissions.
                   </p>
@@ -154,7 +191,9 @@ export default function AdminProfile(){
 
                       </div>
 
-                      <h2>{name}</h2>
+                      <h2>
+                        {name}
+                      </h2>
 
                       <p className="hint">
                         Profile photo uploads are not available yet.
@@ -170,38 +209,58 @@ export default function AdminProfile(){
 
                       <p className="admin-joined">
                         <span>▣</span>
+
                         Joined:{" "}
+
                         {profile?.created_at
-                          ?new Date(profile.created_at).toLocaleDateString()
+                          ?new Date(
+                            profile.created_at
+                          ).toLocaleDateString()
                           :"Not available"}
                       </p>
 
                     </div>
 
                     <div className="account-detail">
-                      <span>ACCOUNT TYPE</span>
-                      <strong>Admin</strong>
+                      <span>
+                        ACCOUNT TYPE
+                      </span>
+
+                      <strong>
+                        Admin
+                      </strong>
                     </div>
 
                     <div className="account-detail">
-                      <span>STATUS</span>
+                      <span>
+                        STATUS
+                      </span>
+
                       <strong className="status-active">
                         Active
                       </strong>
                     </div>
 
                     <div className="account-detail">
-                      <span>LAST LOGIN</span>
+                      <span>
+                        LAST LOGIN
+                      </span>
+
                       <strong>
                         Not available
                       </strong>
                     </div>
 
                     <div className="account-detail">
-                      <span>ACCOUNT CREATED</span>
+                      <span>
+                        ACCOUNT CREATED
+                      </span>
+
                       <strong>
                         {profile?.created_at
-                          ?new Date(profile.created_at).toLocaleDateString()
+                          ?new Date(
+                            profile.created_at
+                          ).toLocaleDateString()
                           :"Not available"}
                       </strong>
                     </div>
@@ -210,7 +269,9 @@ export default function AdminProfile(){
 
                   <div className="admin-permissions">
 
-                    <h3>Role & permissions</h3>
+                    <h3>
+                      Role & permissions
+                    </h3>
 
                     <div className="permission-list">
 
@@ -253,74 +314,203 @@ export default function AdminProfile(){
               </div>
             )}
 
+            {/* BASIC INFORMATION */}
             {activeTab==="basic"&&(
               <ProfileNameForm/>
             )}
 
+            {/* SECURITY */}
             {activeTab==="security"&&(
               <div className="security-section">
 
                 <div className="settings-section-title">
-                  <h2>Security</h2>
+
+                  <h2>
+                    Security
+                  </h2>
+
                   <p>
                     Manage your password and account security.
                   </p>
+
                 </div>
 
                 <div className="account-security-card">
 
-  <div className="account-security-content">
-    <h3>Account security</h3>
+                  <div className="account-security-content">
 
-    <p>
-      Use an email recovery link to choose a new password
-      for your account. Your password changes only after
-      you complete the reset form.
-    </p>
+                    <h3>
+                      Account security
+                    </h3>
 
-    <Link
-      to="/forgot-password"
-      className="btn blue sm"
-    >
-      Reset password
-    </Link>
-  </div>
+                    <p>
+                      Use an email recovery link to choose a new
+                      password for your account. Your password
+                      changes only after you complete the reset form.
+                    </p>
 
-</div>
+                    <Link
+                      to="/forgot-password"
+                      className="btn blue sm"
+                    >
+                      Reset password
+                    </Link>
+
+                  </div>
+
+                </div>
 
               </div>
             )}
 
+            {/* APP SETTINGS */}
+            {activeTab==="app"&&(
+              <div>
+
+                <div className="settings-section-title">
+
+                  <h2>
+                    App settings
+                  </h2>
+
+                  <p>
+                    Manage your application preferences and appearance.
+                  </p>
+
+                </div>
+
+                {/* NOTIFICATIONS */}
+                <div className="preference-box">
+
+                  <div>
+                    <strong>
+                      In-app notifications
+                    </strong>
+
+                    <p>
+                      Status updates, reports, moderation and system
+                      notifications.
+                    </p>
+                  </div>
+
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      disabled
+                    />
+                    <span></span>
+                  </label>
+
+                </div>
+
+                {/* DATA SAVER */}
+                <div className="preference-box app-setting-row">
+
+                  <div>
+                    <strong>
+                      Data saver
+                    </strong>
+
+                    <p>
+                      Reduce media quality to use less mobile data.
+                    </p>
+                  </div>
+
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      disabled
+                    />
+                    <span></span>
+                  </label>
+
+                </div>
+
+                {/* DARK MODE */}
+                <div className="preference-box app-setting-row">
+
+                  <div>
+                    <strong>
+                      Dark mode
+                    </strong>
+
+                    <p>
+                      Switch between light and dark appearance.
+                    </p>
+                  </div>
+
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={darkMode}
+                      onChange={()=>
+                        setDarkMode(!darkMode)
+                      }
+                    />
+                    <span></span>
+                  </label>
+
+                </div>
+
+              </div>
+            )}
+
+            {/* RECENT ACTIVITY */}
             {activeTab==="activity"&&(
               <div>
 
                 <div className="settings-section-title">
-                  <h2>Recent activity</h2>
+
+                  <h2>
+                    Recent activity
+                  </h2>
+
                   <p>
                     Recent actions performed by the administrator.
                   </p>
+
                 </div>
 
                 <div className="activity-list">
 
                   <div className="activity-item">
-                    <strong>Reviewed a user trace</strong>
-                    <span>Today · 9:15 AM</span>
+                    <strong>
+                      Reviewed a user trace
+                    </strong>
+
+                    <span>
+                      Today · 9:15 AM
+                    </span>
                   </div>
 
                   <div className="activity-item">
-                    <strong>Managed moderator accounts</strong>
-                    <span>Today · 8:42 AM</span>
+                    <strong>
+                      Managed moderator accounts
+                    </strong>
+
+                    <span>
+                      Today · 8:42 AM
+                    </span>
                   </div>
 
                   <div className="activity-item">
-                    <strong>Updated trace categories</strong>
-                    <span>Yesterday · 4:30 PM</span>
+                    <strong>
+                      Updated trace categories
+                    </strong>
+
+                    <span>
+                      Yesterday · 4:30 PM
+                    </span>
                   </div>
 
                   <div className="activity-item">
-                    <strong>Viewed system logs</strong>
-                    <span>Yesterday · 2:15 PM</span>
+                    <strong>
+                      Viewed system logs
+                    </strong>
+
+                    <span>
+                      Yesterday · 2:15 PM
+                    </span>
                   </div>
 
                 </div>
@@ -328,14 +518,20 @@ export default function AdminProfile(){
               </div>
             )}
 
+            {/* QUICK ACTIONS */}
             {activeTab==="actions"&&(
               <div>
 
                 <div className="settings-section-title">
-                  <h2>Quick actions</h2>
+
+                  <h2>
+                    Quick actions
+                  </h2>
+
                   <p>
                     Quick access to important administrator tools.
                   </p>
+
                 </div>
 
                 <div className="quick-actions">
@@ -345,7 +541,10 @@ export default function AdminProfile(){
                     disabled
                     title="This account action is not available yet"
                   >
-                    <strong>View system logs</strong>
+                    <strong>
+                      View system logs
+                    </strong>
+
                     <span>
                       Check recent system activity and events.
                     </span>
@@ -356,7 +555,10 @@ export default function AdminProfile(){
                     disabled
                     title="This account action is not available yet"
                   >
-                    <strong>Manage users</strong>
+                    <strong>
+                      Manage users
+                    </strong>
+
                     <span>
                       View and manage registered users.
                     </span>
@@ -367,7 +569,10 @@ export default function AdminProfile(){
                     disabled
                     title="This account action is not available yet"
                   >
-                    <strong>System settings</strong>
+                    <strong>
+                      System settings
+                    </strong>
+
                     <span>
                       Manage system-wide settings.
                     </span>
@@ -383,6 +588,7 @@ export default function AdminProfile(){
         </div>
 
       </div>
+
     </main>
   );
 }

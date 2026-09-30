@@ -1,7 +1,6 @@
 import React,{useEffect,useRef,useState} from "react";
 import {Link,useLocation,useNavigate} from "react-router-dom";
 import {useApp} from "../context/AppContext.jsx";
-
 import AdminIcon from "./AdminIcon.jsx";
 
 const WAVE=(
@@ -39,10 +38,13 @@ const adminLinks=[
 ];
 
 export default function Navbar(){
-  const {role,profile,logout,unreadNotificationCount,darkMode,setDarkMode}=useApp();
+  const {role,profile,logout,unreadNotificationCount}=useApp();
+
   const location=useLocation();
   const navigate=useNavigate();
+
   const [open,setOpen]=useState(false);
+
   const navRef=useRef(null);
   const menuRef=useRef(null);
 
@@ -61,7 +63,9 @@ export default function Navbar(){
     };
 
     const outside=(event)=>{
-      if(!navRef.current?.contains(event.target))setOpen(false);
+      if(!navRef.current?.contains(event.target)){
+        setOpen(false);
+      }
     };
 
     document.addEventListener("keydown",dismiss);
@@ -87,12 +91,44 @@ export default function Navbar(){
     return()=>desktop.removeEventListener("change",closeOnDesktop);
   },[]);
 
-  const links=role==="mod"?modLinks:role==="admin"?adminLinks:role==="user"?userLinks:[];
+  const links=
+    role==="mod"
+      ?modLinks
+      :role==="admin"
+        ?adminLinks
+        :role==="user"
+          ?userLinks
+          :[];
+
   const unread=unreadNotificationCount;
-  const isAuthPage=["/login","/register","/forgot-password"].includes(location.pathname);
-  const avatarClass=role==="mod"?"avatar-btn mod":role==="admin"?"avatar-btn admin":"avatar-btn";
-  const avatarLetter=profile?.display_name?.trim().charAt(0).toUpperCase()||"?";
-  const homeLink=role==="mod"?"/moderator/dashboard":role==="admin"?"/admin/dashboard":role==="user"?"/user/dashboard":"/";
+
+  const isAuthPage=[
+    "/login",
+    "/register",
+    "/forgot-password"
+  ].includes(location.pathname);
+
+  const avatarClass=
+    role==="mod"
+      ?"avatar-btn mod"
+      :role==="admin"
+        ?"avatar-btn admin"
+        :"avatar-btn";
+
+  const avatarLetter=
+    profile?.display_name
+      ?.trim()
+      .charAt(0)
+      .toUpperCase()||"?";
+
+  const homeLink=
+    role==="mod"
+      ?"/moderator/dashboard"
+      :role==="admin"
+        ?"/admin/dashboard"
+        :role==="user"
+          ?"/user/dashboard"
+          :"/";
 
   const isActive=(link)=>{
     const path=location.pathname;
@@ -100,31 +136,51 @@ export default function Navbar(){
     if(path===link.to)return true;
 
     if(role==="mod"){
-      return link.to==="/moderator/review"&&path.startsWith("/moderator/review/");
+      return (
+        link.to==="/moderator/review" &&
+        path.startsWith("/moderator/review/")
+      );
     }
 
     if(role==="user"){
-      return path.startsWith(`${link.to}/`)||(link.to==="/user/dashboard"&&path==="/user");
+      return (
+        path.startsWith(`${link.to}/`) ||
+        (link.to==="/user/dashboard" && path==="/user")
+      );
     }
 
     if(role!=="admin")return false;
 
     if(link.label==="Content"){
-      return path.startsWith("/admin/tides/")||path==="/admin/categories";
+      return (
+        path.startsWith("/admin/tides/") ||
+        path==="/admin/categories"
+      );
     }
 
     if(link.label==="History"){
-      return path.startsWith("/admin/review")||path==="/admin/reports";
+      return (
+        path.startsWith("/admin/review") ||
+        path==="/admin/reports"
+      );
     }
 
     return false;
   };
 
-  const profilePath=role==="admin"?"/admin/profile":role==="mod"?"/moderator/profile":"/user/profile";
+  const profilePath=
+    role==="admin"
+      ?"/admin/profile"
+      :role==="mod"
+        ?"/moderator/profile"
+        :"/user/profile";
 
   return(
-    <nav ref={navRef} className={`nav ${open?"open":""}`} aria-label="Main navigation">
-
+    <nav
+      ref={navRef}
+      className={`nav ${open?"open":""}`}
+      aria-label="Main navigation"
+    >
       <div className="wrap nav-grid">
 
         <Link
@@ -139,34 +195,18 @@ export default function Navbar(){
         <div className="nav-right">
 
           {role&&(
-            <>
-              <button
-                type="button"
-                className={avatarClass}
-                title="Profile Settings"
-                aria-label="Profile settings"
-                onClick={()=>{
-                  setOpen(false);
-                  navigate(profilePath);
-                }}
-              >
-                {avatarLetter}
-              </button>
-
-              <div className="navbar-dark-mode">
-                <button
-                  type="button"
-                  className={`dark-mode-switch ${darkMode?"on":""}`}
-                  onClick={()=>setDarkMode(!darkMode)}
-                  aria-label={darkMode?"Turn off dark mode":"Turn on dark mode"}
-                  aria-pressed={darkMode}
-                >
-                  <span className="dark-mode-circle">
-                    {darkMode?"☀":"☾"}
-                  </span>
-                </button>
-              </div>
-            </>
+            <button
+              type="button"
+              className={avatarClass}
+              title="Profile Settings"
+              aria-label="Profile settings"
+              onClick={()=>{
+                setOpen(false);
+                navigate(profilePath);
+              }}
+            >
+              {avatarLetter}
+            </button>
           )}
 
           <button
@@ -188,7 +228,11 @@ export default function Navbar(){
               strokeWidth={2}
             >
               <path
-                d={open?"M6 6l12 12M6 18 18 6":"M3 6h18M3 12h18M3 18h18"}
+                d={
+                  open
+                    ?"M6 6l12 12M6 18 18 6"
+                    :"M3 6h18M3 12h18M3 18h18"
+                }
               />
             </svg>
           </button>
@@ -199,7 +243,9 @@ export default function Navbar(){
           id="main-navigation-panel"
           className="nav-panel"
           onClick={event=>{
-            if(event.target.closest("a"))setOpen(false);
+            if(event.target.closest("a")){
+              setOpen(false);
+            }
           }}
         >
 
@@ -208,18 +254,24 @@ export default function Navbar(){
 
               {links.map(link=>(
                 <li key={link.to}>
-
                   <Link
                     aria-label={
                       link.label==="Notifications"&&unread>0
                         ?`Notifications (${unread} unread)`
                         :undefined
                     }
-                    aria-current={isActive(link)?"page":undefined}
-                    className={isActive(link)?"on":""}
+                    aria-current={
+                      isActive(link)
+                        ?"page"
+                        :undefined
+                    }
+                    className={
+                      isActive(link)
+                        ?"on"
+                        :""
+                    }
                     to={link.to}
                   >
-
                     {link.icon&&(
                       <AdminIcon
                         name={link.icon}
@@ -234,9 +286,7 @@ export default function Navbar(){
                         {unread}
                       </span>
                     )}
-
                   </Link>
-
                 </li>
               ))}
 
@@ -252,8 +302,16 @@ export default function Navbar(){
               ].map(([id,label])=>(
                 <li key={id}>
                   {isAuthPage
-                    ?<Link to={`/#${id}`}>{label}</Link>
-                    :<a href={`#${id}`}>{label}</a>
+                    ?(
+                      <Link to={`/#${id}`}>
+                        {label}
+                      </Link>
+                    )
+                    :(
+                      <a href={`#${id}`}>
+                        {label}
+                      </a>
+                    )
                   }
                 </li>
               ))}
@@ -270,9 +328,10 @@ export default function Navbar(){
                   <span
                     className="role-tag"
                     style={{
-                      background:role==="mod"
-                        ?"var(--teal)"
-                        :"var(--blue)"
+                      background:
+                        role==="mod"
+                          ?"var(--teal)"
+                          :"var(--blue)"
                     }}
                   >
                     {role==="mod"?"Moderator":"Admin"}
@@ -338,7 +397,6 @@ export default function Navbar(){
         </div>
 
       </div>
-
     </nav>
   );
 }

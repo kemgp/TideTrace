@@ -4,7 +4,13 @@ import ProfileNameForm from "../../components/ProfileNameForm.jsx";
 import {useApp} from "../../context/AppContext.jsx";
 
 export default function ModeratorProfile(){
-  const {profile}=useApp();
+
+  const {
+    profile,
+    darkMode,
+    setDarkMode
+  }=useApp();
+
   const [activeTab,setActiveTab]=useState("account");
 
   const name=profile?.display_name||"";
@@ -13,6 +19,7 @@ export default function ModeratorProfile(){
 
   return(
     <main className="settings-page">
+
       <div className="settings-container">
 
         <div className="settings-title">
@@ -22,10 +29,14 @@ export default function ModeratorProfile(){
 
         <div className="settings-layout">
 
+          {/* SIDEBAR */}
           <aside className="settings-sidebar">
 
             <button
-              className={`settings-menu ${activeTab==="account"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="account"?"active":""
+              }`}
               onClick={()=>setActiveTab("account")}
             >
               <span>♟</span>
@@ -33,7 +44,10 @@ export default function ModeratorProfile(){
             </button>
 
             <button
-              className={`settings-menu ${activeTab==="basic"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="basic"?"active":""
+              }`}
               onClick={()=>setActiveTab("basic")}
             >
               <span>👤</span>
@@ -41,7 +55,10 @@ export default function ModeratorProfile(){
             </button>
 
             <button
-              className={`settings-menu ${activeTab==="security"?"active":""}`}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="security"?"active":""
+              }`}
               onClick={()=>setActiveTab("security")}
             >
               <span>🔑</span>
@@ -49,15 +66,30 @@ export default function ModeratorProfile(){
             </button>
 
             <button
-              className={`settings-menu ${activeTab==="preferences"?"active":""}`}
-              onClick={()=>setActiveTab("preferences")}
+              type="button"
+              className={`settings-menu ${
+                activeTab==="app"?"active":""
+              }`}
+              onClick={()=>setActiveTab("app")}
             >
               <span>⚙</span>
+              App settings
+            </button>
+
+            <button
+              type="button"
+              className={`settings-menu ${
+                activeTab==="preferences"?"active":""
+              }`}
+              onClick={()=>setActiveTab("preferences")}
+            >
+              <span>☷</span>
               Preferences
             </button>
 
           </aside>
 
+          {/* CONTENT */}
           <section className="settings-content">
 
             {/* ACCOUNT */}
@@ -150,9 +182,13 @@ export default function ModeratorProfile(){
 
                   <p className="moderator-joined">
                     <span>▣</span>
+
                     Joined:{" "}
+
                     {profile?.created_at
-                      ?new Date(profile.created_at).toLocaleDateString()
+                      ?new Date(
+                        profile.created_at
+                      ).toLocaleDateString()
                       :"Not available"}
                   </p>
 
@@ -160,6 +196,7 @@ export default function ModeratorProfile(){
 
                 <div className="settings-section-title moderator-permission-title">
                   <h2>Role & permissions</h2>
+
                   <p>
                     Access available to your moderator account.
                   </p>
@@ -203,6 +240,7 @@ export default function ModeratorProfile(){
 
                 <div className="settings-section-title">
                   <h2>Security</h2>
+
                   <p>
                     Manage your password and account security.
                   </p>
@@ -212,12 +250,14 @@ export default function ModeratorProfile(){
 
                   <div className="account-security-content">
 
-                    <h3>Account security</h3>
+                    <h3>
+                      Account security
+                    </h3>
 
                     <p>
-                      Use an email recovery link to choose a new password
-                      for your account. Your password changes only after
-                      you complete the reset form.
+                      Use an email recovery link to choose a new
+                      password for your account. Your password
+                      changes only after you complete the reset form.
                     </p>
 
                     <Link
@@ -234,23 +274,135 @@ export default function ModeratorProfile(){
               </div>
             )}
 
+            {/* APP SETTINGS */}
+            {activeTab==="app"&&(
+              <div>
+
+                <div className="settings-section-title">
+
+                  <h2>
+                    App settings
+                  </h2>
+
+                  <p>
+                    Manage your application preferences and appearance.
+                  </p>
+
+                </div>
+
+                {/* NOTIFICATIONS */}
+                <div className="preference-box">
+
+                  <div>
+                    <strong>
+                      In-app notifications
+                    </strong>
+
+                    <p>
+                      Status updates, comments, reports and review
+                      notifications.
+                    </p>
+                  </div>
+
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      disabled
+                    />
+                    <span></span>
+                  </label>
+
+                </div>
+
+                {/* DATA SAVER */}
+                <div className="preference-box app-setting-row">
+
+                  <div>
+                    <strong>
+                      Data saver
+                    </strong>
+
+                    <p>
+                      Reduce media quality to use less mobile data.
+                    </p>
+                  </div>
+
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      disabled
+                    />
+                    <span></span>
+                  </label>
+
+                </div>
+
+                {/* DARK MODE */}
+                <div className="preference-box app-setting-row">
+
+                  <div>
+                    <strong>
+                      Dark mode
+                    </strong>
+
+                    <p>
+                      Switch between light and dark appearance.
+                    </p>
+                  </div>
+
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={darkMode}
+                      onChange={()=>
+                        setDarkMode(!darkMode)
+                      }
+                    />
+                    <span></span>
+                  </label>
+
+                </div>
+
+              </div>
+            )}
+
             {/* PREFERENCES */}
             {activeTab==="preferences"&&(
               <div>
 
                 <div className="settings-section-title">
-                  <h2>Preferences</h2>
+
+                  <h2>
+                    Preferences
+                  </h2>
+
                   <p>
                     Manage your notification preferences.
                   </p>
+
                 </div>
 
                 <div className="preference-box">
-                  <strong>Email notifications</strong>
-                  <p>
-                    Email notification preferences are not available yet.
-                    No changes are saved here.
-                  </p>
+
+                  <div>
+                    <strong>
+                      Email notifications
+                    </strong>
+
+                    <p>
+                      Email notification preferences are not
+                      available yet. No changes are saved here.
+                    </p>
+                  </div>
+
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      disabled
+                    />
+                    <span></span>
+                  </label>
+
                 </div>
 
               </div>
@@ -261,6 +413,7 @@ export default function ModeratorProfile(){
         </div>
 
       </div>
+
     </main>
   );
 }
