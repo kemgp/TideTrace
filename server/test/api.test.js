@@ -907,3 +907,15 @@ test("admins cannot promote members or moderators to admin", async () => {
   assert.equal(calls.some(({ url }) => url.pathname.endsWith("/admin_update_account")), false);
  }
 });
+
+test("staff report type filters are applied in the database before pagination", async () => {
+ const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname.endsWith("/reports") ? json([]) : undefined });
+ for (const type of ["comment", "trace"]) {
+  await bearer(request(app).get(`/api/moderation/reports?type=${type}&status=dismissed&offset=25`)).expect(200);
+  const query = businessCalls(calls).at(-1).url.searchParams;
+  assert.equal(query.get(`${type}_id`), "not.is.null");
+  assert.equal(query.get("status"), "eq.dismissed");
+  assert.equal(query.get("offset"), "25");
+ }
+ await bearer(request(app).get("/api/moderation/reports?type=invalid")).expect(400);
+});

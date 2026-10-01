@@ -28,8 +28,10 @@ export function staffRoutes(gateway) {
     res.json({ data: await result(req.db.rpc("moderate_trace", { p_id: uuid.parse(req.params.id), p_version: input.version, p_decision: input.decision, p_reason: input.reason })) });
   });
   router.get("/reports", async (req, res) => {
-    const input = page.extend({ status: z.enum(["open", "resolved", "dismissed"]).default("open") }).parse(req.query);
-    res.json({ data: await result(paginate(req.db.from("reports").select(reportSelect).eq("status", input.status).order("created_at").order("id"), input)) });
+    const input = page.extend({ status: z.enum(["open", "resolved", "dismissed"]).default("open"), type: z.enum(["comment", "trace"]).optional() }).parse(req.query);
+    let query = req.db.from("reports").select(reportSelect).eq("status", input.status);
+    if (input.type) query = query.not(input.type === "comment" ? "comment_id" : "trace_id", "is", null);
+    res.json({ data: await result(paginate(query.order("created_at").order("id"), input)) });
   });
   router.get("/reports/:id", async (req, res) => {
     res.json({ data: first(await result(req.db.from("reports").select(reportSelect).eq("id", uuid.parse(req.params.id)).limit(1))) });

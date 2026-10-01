@@ -167,3 +167,23 @@ it("blocks duplicate member reports and ignores the save after logout", async ()
   await act(async () => finish(ok({ id, trace_id: traceId, reporter_id: "current-user" })));
   expect(screen.queryByText("Report submitted for review.")).toBeNull();
 });
+
+ it.each([false, true])("saves a real comment report decision remove=%s", async (remove) => {
+  const commentReport = { ...initial, trace_id: null, trace: null, comment_id: commentId, comment: { id: commentId, body: "Reported comment", status: "visible", trace } };
+  const calls = setup((url) => {
+    if (url.startsWith("/api/moderation/reports?")) return ok([commentReport]);
+    if (url.endsWith("/resolve")) return { ok: true, status: 204 };
+    if (url === `/api/moderation/reports/${id}`) return ok({ ...commentReport, status: remove ? "resolved" : "dismissed", resolution_reason: "Reviewed comment" });
+  }, "moderator");
+  open("/moderator/comments");
+  await click(remove ? "Remove comment" : "Keep comment");
+  await screen.findByText("Enter a reason for your decision.");
+  expect(writes(calls)).toHaveLength(0);
+  fireEvent.change(screen.getByLabelText("Decision reason"), { target: { value: "Reviewed comment" } });
+  await click(remove ? "Remove comment" : "Keep comment");
+  await screen.findByText(remove ? "Content removed. Decision saved." : "Report dismissed. Decision saved.");
+  expect(JSON.parse(writes(calls)[0][1].body)).toEqual({ remove_content: remove, reason: "Reviewed comment" });
+  expect(calls.mock.calls.some(([url]) => url.includes("type=comment"))).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Dismissed", exact: true }));
+  await waitFor(() => expect(calls.mock.calls.some(([url]) => url.includes("status=dismissed") && url.includes("type=comment"))).toBe(true));
+ });

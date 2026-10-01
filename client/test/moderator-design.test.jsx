@@ -42,15 +42,11 @@ it("navigates to moderator analytics and identifies sample data", async () => {
   expect(screen.getByRole("link", { name: "Analytics" }).getAttribute("aria-current")).toBe("page");
 });
 
-it("keeps comment demo actions in the session and makes outcomes visible", async () => {
+it("loads real comment reports without demo records", async () => {
   const fetcher = setup("/moderator/comments");
-  await screen.findByRole("heading", { name: "Flagged comments" });
-  const comment = screen.getByRole("article", { name: "Comment by Guest_204" });
-  fireEvent.click(within(comment).getByRole("button", { name: "Keep comment" }));
-  expect(screen.queryByRole("article", { name: "Comment by Guest_204" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Kept" }));
-  expect(screen.getByRole("article", { name: "Comment by Guest_204" })).toBeTruthy();
-  expect(fetcher.mock.calls.every(([, options]) => !options?.method || options.method === "GET")).toBe(true);
+  await screen.findByText("No open comment reports on this page.");
+  expect(screen.queryByText("Guest_204")).toBeNull();
+  expect(fetcher.mock.calls.some(([url]) => url.includes("type=comment"))).toBe(true);
 });
 
 it("loads the saved report status selected by each tab", async () => {

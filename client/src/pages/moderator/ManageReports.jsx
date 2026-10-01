@@ -5,20 +5,20 @@ import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
 
-export default function ManageReports() {
+export default function ManageReports({ commentsOnly = false }) {
   const { profile } = useApp();
-  return <ReportQueue key={profile.id} />;
+  return <ReportQueue key={`${profile.id}:${commentsOnly}`} commentsOnly={commentsOnly} />;
 }
 
-function ReportQueue() {
+function ReportQueue({ commentsOnly }) {
   const { role } = useApp();
   const [status, setStatus] = useState("open");
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`moderation/reports?status=${status}&limit=25&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`moderation/reports?status=${status}&limit=25&offset=${offset}${commentsOnly ? "&type=comment" : ""}`, { collection: true });
   const reports = result.data || [];
   return <div className="wrap mod-reports-page" style={{ maxWidth: 800 }}>
-    <div className="vhead"><span className="eyebrow teale">Manage reports</span><h2>Reported content</h2><p>Review the content and report reason. Dismissing keeps the content; removing hides it from public views. Every decision requires a reason and is saved in moderation history.</p></div>
-    {role === "mod" && <div className="chiprow mod-status-tabs" aria-label="Report filters">{[["open", "Open"], ["dismissed", "Dismissed"], ["resolved", "Removed"]].map(([value, label]) => <button key={value} className={`chip ${status === value ? "on" : ""}`} aria-pressed={status === value} onClick={() => { setStatus(value); setOffset(0); }}>{label}</button>)}</div>}
+    <div className="vhead"><span className="eyebrow teale">{commentsOnly ? "Manage comments" : "Manage reports"}</span><h2>{commentsOnly ? "Flagged comments" : "Reported content"}</h2><p>Review the content and report reason. Dismissing keeps the content; removing hides it from public views. Every decision requires a reason and is saved in moderation history.</p></div>
+    {role === "mod" && <div className="chiprow mod-status-tabs" aria-label="Report filters">{[["open", commentsOnly ? "Flagged" : "Open"], ["dismissed", "Dismissed"], ["resolved", "Removed"]].map(([value, label]) => <button key={value} className={`chip ${status === value ? "on" : ""}`} aria-pressed={status === value} onClick={() => { setStatus(value); setOffset(0); }}>{label}</button>)}</div>}
     <div className="row mod-report-tools" style={{ flexWrap: "wrap" }}>
       <label>Report status <select className="input" aria-label="Report status" value={status} onChange={(event) => { setStatus(event.target.value); setOffset(0); }}>
         <option value="open">Open</option><option value="resolved">Resolved — content removed</option><option value="dismissed">Dismissed</option>
@@ -27,12 +27,12 @@ function ReportQueue() {
       {role === "admin" && <Link className="btn ghost sm" to="/admin/review/history">Moderation history</Link>}
     </div>
     <RemoteState {...result} />
-    {!result.loading && !result.error && (reports.length ? reports.map((report) => <ReportDecision key={`${report.id}:${report.status}`} initialReport={report} />) : <p>No {status} reports on this page.</p>)}
+    {!result.loading && !result.error && (reports.length ? reports.map((report) => <ReportDecision key={`${report.id}:${report.status}`} initialReport={report} commentsOnly={commentsOnly} />) : <p>No {status} {commentsOnly ? "comment reports" : "reports"} on this page.</p>)}
     <Pagination offset={offset} count={reports.length} size={25} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </div>;
 }
 
-function ReportDecision({ initialReport }) {
+function ReportDecision({ initialReport, commentsOnly }) {
   const { writeData, readData, role } = useApp();
   const inputId = useId();
   const [report, setReport] = useState(initialReport);
@@ -82,8 +82,8 @@ function ReportDecision({ initialReport }) {
         <label className="lbl" htmlFor={inputId}>Decision reason</label>
         <textarea className="input" id={inputId} maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} />
         <div className="row" style={{ marginTop: 12 }}>
-          <button type="button" className="btn outline sm" onClick={() => run(false)}>Dismiss report</button>
-          <button type="button" className="btn clay sm" onClick={() => run(true)}>Remove content</button>
+          <button type="button" className="btn outline sm" onClick={() => run(false)}>{commentsOnly ? "Keep comment" : "Dismiss report"}</button>
+          <button type="button" className="btn clay sm" onClick={() => run(true)}>{commentsOnly ? "Remove comment" : "Remove content"}</button>
         </div>
       </fieldset>
     </form> : <><p><b>Decision reason:</b> {report.resolution_reason}</p><p className="hint">{report.resolver?.display_name || "Staff member"}{report.resolved_at ? ` · ${new Date(report.resolved_at).toLocaleString()}` : ""}</p></>}

@@ -9,7 +9,6 @@ import {
   moderators as seedModerators,
   initialTraces,
   initialTides,
-  initialComments,
   initialReports,
   initialHistory,
   initialLogs,
@@ -51,7 +50,6 @@ export function AppProvider({children}){
 
   const [traces,setTraces]=useState(initialTraces);
   const [tides,setTides]=useState(initialTides);
-  const [comments,setComments]=useState(initialComments);
   const [reports,setReports]=useState(initialReports);
   const [history,setHistory]=useState(initialHistory);
   const [logs,setLogs]=useState(initialLogs);
@@ -244,12 +242,6 @@ export function AppProvider({children}){
     ));
   },[]);
 
-  const resolveFlaggedComment=useCallback((id,action)=>{
-    setComments(prev=>prev.map(c=>(
-      c.id===id?{...c,status:action}:c
-    )));
-  },[]);
-
   const resolveReport=useCallback((id,action)=>{
     setReports(prev=>prev.map(r=>(
       r.id===id?{...r,status:action}:r
@@ -367,8 +359,6 @@ export function AppProvider({children}){
       toggleTideProgress,
       addTide,
 
-      comments,
-      resolveFlaggedComment,
 
       reports,
       resolveReport,
@@ -412,7 +402,6 @@ export function AppProvider({children}){
       showToast,
       traces,
       tides,
-      comments,
       reports,
       notificationState,
       history,
@@ -425,7 +414,6 @@ export function AppProvider({children}){
       addComment,
       toggleTideProgress,
       addTide,
-      resolveFlaggedComment,
       resolveReport,
       suspendUser,
       editUser,

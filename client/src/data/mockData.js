@@ -39,11 +39,6 @@ export const initialTides = [
   { id: "l4", title: "Sustainable fishing basics", duration: "7 min", module: "Fisheries", progress: 0 },
 ];
 
-export const initialComments = [
-  { id: "c1", trace: "Bleaching patch near Sitio Lawis", who: "Guest_204", text: "This is fake, nothing is happening here.", status: "open" },
-  { id: "c2", trace: "40 new mangrove seedlings planted", who: "Guest_118", text: "Spam link removed by filter — visit myshop.example", status: "open" },
-];
-
 export const initialReports = [
   { id: "r1", target: "Reduced catch reported by local fishers", reporter: "Ben Cruz", reason: "Possible duplicate of an earlier trace", status: "open" },
   { id: "r2", target: "Plastic waste washed up after storm", reporter: "Cora Diaz", reason: "Location pin looks incorrect", status: "open" },
