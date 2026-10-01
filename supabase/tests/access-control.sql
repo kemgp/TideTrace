@@ -257,4 +257,16 @@ select tidetrace_test.reject($q$select public.admin_update_account(auth.uid(),'a
 set local role anon;
 select tidetrace_test.reject($q$select public.admin_update_account(null,'admin','active','Escalate',now())$q$,'42501');
 reset role;
+-- Inactive category labels remain visible only through readable Traces.
+reset role;
+insert into public.categories(id,name,is_active) values
+ ('90000000-0000-0000-0000-000000000001','Historic label',false),
+ ('90000000-0000-0000-0000-000000000002','Unused inactive label',false);
+insert into public.traces(author_id,category_id,title,description,location_name,status)
+ values('10000000-0000-0000-0000-000000000002','90000000-0000-0000-0000-000000000001','Historic trace','Observation','Coast','approved');
+select set_config('request.jwt.claim.sub','',true);
+set local role anon;
+select tidetrace_test.assert_ok((select count(*)=1 from public.categories where id='90000000-0000-0000-0000-000000000001'),'Public trace retains inactive category label');
+select tidetrace_test.assert_ok((select count(*)=0 from public.categories where id='90000000-0000-0000-0000-000000000002'),'Unused inactive category remains private');
+reset role;
 rollback;

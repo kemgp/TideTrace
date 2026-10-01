@@ -919,3 +919,16 @@ test("staff report type filters are applied in the database before pagination", 
  }
  await bearer(request(app).get("/api/moderation/reports?type=invalid")).expect(400);
 });
+
+test("category updates require a timestamp and reject stale writes", async () => {
+ const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname.endsWith("/categories") ? json([]) : undefined });
+ const body = { name: "Renamed", is_active: false, updated_at: "2026-10-01T00:00:00Z" };
+ await bearer(request(app).put(`/api/admin/categories/${categoryId}`)).send(body).expect(409);
+ assert.equal(businessCalls(calls).at(-1).url.searchParams.get("updated_at"), `eq.${body.updated_at}`);
+ await bearer(request(app).put(`/api/admin/categories/${categoryId}`)).send({ name: "Renamed" }).expect(400);
+ for (const role of ["user", "moderator"]) {
+  const denied = fixture({ role });
+  await bearer(request(denied.app).post("/api/admin/categories")).send({ name: "New" }).expect(403);
+  await bearer(request(denied.app).put(`/api/admin/categories/${categoryId}`)).send(body).expect(403);
+ }
+});

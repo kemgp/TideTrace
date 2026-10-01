@@ -1,7 +1,9 @@
 import React from "react";
 
 export default function RemoteState({ loading, error, retry }) {
-  if (loading) return <p role="status">Loading…</p>;
+  if (loading) return <div className="remote-skeleton" role="status" aria-label="Loading content" aria-busy="true">
+    <span className="remote-skeleton-line" /><span className="remote-skeleton-line" /><span className="remote-skeleton-line" />
+  </div>;
   if (error) return <div><p role="alert">{error}</p><button className="btn outline sm" onClick={retry}>Try again</button></div>;
   return null;
 }

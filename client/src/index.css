@@ -687,3 +687,11 @@ html.dark-mode .user-shortcuts__label{color:#e7eef7!important;}
 html.dark-mode .user-shortcuts__arrow{color:#a9b8ff!important;}
 html.dark-mode .user-shortcuts__link svg{color:#a9b8ff!important;stroke:#a9b8ff!important;
 }
+/* Data-driven loading: keep placeholders mounted until the request settles. */
+.remote-skeleton{display:grid;gap:12px;padding:20px 0;width:100%;}
+.remote-skeleton-line{display:block;height:24px;border-radius:8px;background:linear-gradient(90deg,#e5edf1 25%,#f2f6f8 50%,#e5edf1 75%);background-size:200% 100%;animation:remote-shimmer 1.5s linear infinite;}
+.remote-skeleton-line:first-child{width:65%;height:30px;}
+.remote-skeleton-line:last-child{width:85%;}
+html.dark-mode .remote-skeleton-line{background-image:linear-gradient(90deg,#26354b 25%,#33465e 50%,#26354b 75%);}
+@keyframes remote-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.remote-skeleton-line{animation:none;}}

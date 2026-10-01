@@ -87,11 +87,11 @@ export function adminRoutes(gateway) {
       res.status(201).json({ data: first(await result(req.db.from(resource).insert(schema.parse(req.body)).select())) });
     });
     router.put(`/${resource}/:id`, async (req, res) => {
-      if (resource === "tides") {
+      if (resource === "tides" || resource === "categories") {
         const { updated_at, ...fields } = req.body || {};
         const expected = z.iso.datetime({ offset: true }).parse(updated_at);
         const rows = await result(req.db.from(resource).update(schema.parse(fields)).eq("id", uuid.parse(req.params.id)).eq("updated_at", expected).select());
-        if (!rows?.length) throw new HttpError(409, "STALE_VERSION", "This lesson changed or is no longer available. Reload it before retrying.");
+        if (!rows?.length) throw new HttpError(409, "STALE_VERSION", "This record changed or is no longer available. Reload it before retrying.");
         return res.json({ data: first(rows) });
       }
       res.json({ data: first(await result(req.db.from(resource).update(schema.parse(req.body)).eq("id", uuid.parse(req.params.id)).select())) });

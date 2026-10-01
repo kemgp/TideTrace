@@ -4,7 +4,6 @@ import {createSessionManager} from "../api/session.js";
 import {getData,requestData} from "../api/data.js";
 import useNotifications from "../hooks/useNotifications.js";
 import {
-  categories as seedCategories,
   users as seedUsers,
   moderators as seedModerators,
   initialTraces,
@@ -55,7 +54,6 @@ export function AppProvider({children}){
   const [logs,setLogs]=useState(initialLogs);
   const [users,setUsers]=useState(seedUsers);
   const [moderators,setModerators]=useState(seedModerators);
-  const [categories,setCategories]=useState(seedCategories);
 
   const showToast=useCallback((msg)=>{
     setToast(msg);
@@ -298,9 +296,7 @@ export function AppProvider({children}){
     setModerators(prev=>prev.filter(mod=>mod.id!==id));
   },[]);
 
-  const removeCategory=useCallback((name)=>{
-    setCategories(prev=>prev.filter(category=>category!==name));
-  },[]);
+
 
   const addTide=useCallback((tide)=>{
     setTides(prev=>[
@@ -313,17 +309,7 @@ export function AppProvider({children}){
     ]);
   },[]);
 
-  const addCategory=useCallback((name)=>{
-    setCategories(prev=>(
-      prev.includes(name)
-        ?prev
-        :[
-            ...prev.filter(c=>c!=="Other"),
-            name,
-            "Other"
-          ]
-    ));
-  },[]);
+
 
   const value=useMemo(
     () => ({
@@ -377,9 +363,6 @@ export function AppProvider({children}){
       editModerator,
       removeModerator,
 
-      removeCategory,
-      categories,
-      addCategory,
     }),
     [
       role,
@@ -408,7 +391,6 @@ export function AppProvider({children}){
       logs,
       users,
       moderators,
-      categories,
       addTrace,
       decideTrace,
       addComment,
@@ -420,8 +402,6 @@ export function AppProvider({children}){
       addModerator,
       editModerator,
       removeModerator,
-      removeCategory,
-      addCategory,
     ]
   );
 

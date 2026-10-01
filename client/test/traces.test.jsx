@@ -87,7 +87,8 @@ it("shows a real loading state and an empty archive without sample records", asy
   setup((url) => url.startsWith("/api/traces?") ? pending : undefined);
   open();
   await screen.findByRole("heading", { name: "Community archive" });
-  expect(screen.getAllByText("Loading…").length).toBeGreaterThan(0);
+  expect(screen.getAllByRole("status", { name: "Loading content" }).length).toBeGreaterThan(0);
+  expect(screen.queryByText("Loading…")).toBeNull();
   expect(screen.queryByText("No approved traces found.")).toBeNull();
   await act(async () => finish(response([])));
   expect(await screen.findByText("No approved traces found.")).toBeTruthy();
@@ -201,4 +202,25 @@ it("discards a private read that finishes after logout", async () => {
   await act(async () => finish(response([trace({ title: "Private late response" })])));
   expect(screen.queryByText("Private late response")).toBeNull();
   expect(window.sessionStorage.getItem(SESSION_KEY)).toBeNull();
+});
+
+it("starts navigation requests without a timer and keeps skeletons until data arrives", async () => {
+  let finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const calls = setup(url => {
+    if (url.startsWith("/api/traces?")) return response([trace()]);
+    if (url === `/api/traces/${trace().id}`) return pending;
+  });
+  open();
+  const link = await screen.findByText("Saved seagrass survey");
+  vi.useFakeTimers();
+  try {
+    await act(async () => fireEvent.click(link));
+    expect(calls.mock.calls.some(([url]) => url === `/api/traces/${trace().id}`)).toBe(true);
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(screen.getAllByRole("status", { name: "Loading content" }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Loading…")).toBeNull();
+    await act(async () => finish(response(trace())));
+    expect(screen.getByText("Saved description")).toBeTruthy();
+  } finally { vi.useRealTimers(); }
 });

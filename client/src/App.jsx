@@ -1,11 +1,10 @@
-import React,{useEffect,useState} from "react";
+import React from "react";
 import {Navigate,Route,Routes,useLocation,useNavigate} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
 import {impactStats} from "./data/mockData.js";
 import Navbar from "./components/Navbar.jsx";
-import SkeletonLoader from "./components/SkeletonLoader.jsx";
 import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.jsx";
@@ -450,55 +449,6 @@ function AppShell(){
     retrySession
   }=useApp();
   const location=useLocation();
-  const [routeLoading,setRouteLoading]=useState(false);
-  const [loadingPath,setLoadingPath]=useState("");
-  useEffect(()=>{
-    if(!routeLoading)return;
-    const timer=window.setTimeout(()=>{
-      setRouteLoading(false);
-    },550);
-    return()=>window.clearTimeout(timer);
-  },[location.pathname,routeLoading]);
-  /*
-    FIX:
-    Quick action buttons are intentionally NOT included here.
-    The buttons already use navigate(), so allowing them to navigate
-    immediately prevents the loading skeleton from replacing <Routes>
-    before React Router changes the page.
-  */
-  const handleNavigationStart=(event)=>{
-    if(!["user","admin","mod"].includes(role))return;
-    const target=event.target;
-    if(!(target instanceof Element))return;
-    const link=target.closest("a[href]");
-    const profileButton=target.closest(".nav-profile,.avatar-btn");
-    const logoutButton=target.closest(".nav-logout");
-    const darkModeButton=target.closest(".dark-mode-switch");
-    if(logoutButton||darkModeButton)return;
-    const href=link?.getAttribute("href");
-    const isInternalNavigation=
-      href&&
-      !href.startsWith("#")&&
-      (
-        href==="/user"||
-        href.startsWith("/user/")||
-        href.startsWith("/admin/")||
-        href.startsWith("/moderator/")
-      );
-    if(isInternalNavigation){
-      setLoadingPath(href.split("?")[0]);
-      setRouteLoading(true);
-      return;
-    }
-    if(profileButton){
-      const profilePath=
-        role==="admin"?"/admin/profile":
-        role==="mod"?"/moderator/profile":
-        "/user/profile";
-      setLoadingPath(profilePath);
-      setRouteLoading(true);
-    }
-  };
   if(
     location.pathname!=="/auth/callback"&&
     /(?:^#|&)(access_token|error_code|error)=/.test(location.hash)
@@ -524,7 +474,6 @@ function AppShell(){
               ?"user-shell"
               :""
       }`}
-      onClickCapture={handleNavigationStart}
     >
       <Navbar/>
       {sessionNotice&&(
@@ -553,9 +502,6 @@ function AppShell(){
         </div>
       )}
       <main>
-        {routeLoading?(
-          <SkeletonLoader path={loadingPath||location.pathname}/>
-        ):(
           <Routes>
             <Route
               path="/"
@@ -933,7 +879,6 @@ function AppShell(){
               element={<Navigate to="/" replace/>}
             />
           </Routes>
-        )}
       </main>
       <Footer/>
       <Toast/>
