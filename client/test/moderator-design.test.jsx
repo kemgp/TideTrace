@@ -23,14 +23,14 @@ function setup(path, role = "moderator") {
 
 it("filters the saved queue by category while preserving review links", async () => {
   setup("/moderator/review");
-  await screen.findByRole("link", { name: /Reef survey/ });
+  await screen.findByRole("heading", { name: "Reef survey" });
   fireEvent.click(screen.getByRole("button", { name: "Coral" }));
-  expect(screen.getByRole("link", { name: /Reef survey/ }).getAttribute("href")).toBe("/moderator/review/reef");
-  expect(screen.queryByRole("link", { name: /Seagrass survey/ })).toBeNull();
+  expect(within(screen.getByRole("heading", { name: "Reef survey" }).closest("article")).getByRole("link", { name: "Review" }).getAttribute("href")).toBe("/moderator/review/reef");
+  expect(screen.queryByRole("heading", { name: "Seagrass survey" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Fisheries" }));
   expect(screen.getByText("No pending submissions on this page.")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "All" }));
-  expect(screen.getByRole("link", { name: /Seagrass survey/ })).toBeTruthy();
+  expect(within(screen.getByRole("heading", { name: "Seagrass survey" }).closest("article")).getByRole("link", { name: "Review" })).toBeTruthy();
 });
 
 it("navigates to moderator analytics and identifies sample data", async () => {

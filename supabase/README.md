@@ -111,3 +111,10 @@ The incremental `20260927000100_tide_completions.sql` migration adds a unique me
 ### Dashboard and usage totals
 
 After both existing migrations, apply `migrations/20260928000100_dashboard_summary.sql` as `postgres`. It adds `get_dashboard_summary()` with explicit active-account and role checks; it accepts no owner or role arguments. Reads use one database snapshot and return only the appropriate role's counts. Existing tables, records and RLS policies remain unchanged. The frontend polls the authenticated `/api/dashboard` endpoint every 30 seconds while visible and on focus; there is no Realtime publication setup. See the root README for metric definitions and live checks.
+
+
+### Guarded account management
+
+Apply `migrations/20261001000100_account_edit_guard.sql` after the other migrations. The admin frontend/API use `admin_update_account(p_user_id,p_role,p_status,p_reason,p_expected_updated_at)` to reject stale edits before invoking the existing audited `admin_set_account` workflow. Existing records, policies and role permissions are preserved. The migration grants execution to authenticated callers, but the function verifies the live active-admin role internally. Run only this new migration on an already configured project.
+
+Apply `supabase/migrations/20261001000200_restrict_admin_assignment.sql` after the account edit guard (path relative to repository root). Account management can assign Member or Moderator, but cannot promote an account to Admin. Existing admins can retain their role during status changes; last-active-admin protection remains enforced. Both account-management RPCs enforce this restriction.

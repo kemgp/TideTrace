@@ -43,22 +43,12 @@ it("navigates between the admin content, settings, and analytics screens", async
   expect(screen.getByText(/Demo analytics/)).toBeTruthy();
 });
 
-it("edits and removes a demo moderator without making account writes", async () => {
+it("loads the real moderator list without offering demo permission edits", async () => {
   const fetcher = setup("/admin/moderators");
-  await screen.findByRole("heading", { name: "Moderation team" });
-  const row = screen.getByText("Rica Lopez").closest(".lrow");
-  fireEvent.click(within(row).getByRole("button", { name: "Edit" }));
-  const dialog = screen.getByRole("dialog");
-  fireEvent.change(within(dialog).getByLabelText("Full name"), { target: { value: "Updated Reviewer" } });
-  fireEvent.click(within(dialog).getByRole("button", { name: "Save moderator" }));
-  const updated = screen.getByText("Updated Reviewer").closest(".lrow");
-  fireEvent.click(within(updated).getByRole("button", { name: "Remove" }));
-  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
-  expect(screen.getByText("Updated Reviewer")).toBeTruthy();
-  fireEvent.click(within(updated).getByRole("button", { name: "Remove" }));
-  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Remove moderator" }));
-  expect(screen.queryByText("Updated Reviewer")).toBeNull();
-  expect(fetcher.mock.calls.every(([, options]) => !options?.method || options.method === "GET")).toBe(true);
+  await screen.findByText("No accounts match these filters.");
+  expect(screen.queryByText("Rica Lopez")).toBeNull();
+  expect(screen.queryByText("Assign permissions")).toBeNull();
+  expect(fetcher.mock.calls.some(([url]) => url.startsWith("/api/admin/users?") && url.includes("role=moderator"))).toBe(true);
 });
 
 it("filters saved history by decision and keeps trace links", async () => {

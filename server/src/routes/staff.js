@@ -49,15 +49,30 @@ export function adminRoutes(gateway) {
   const router = Router();
   router.use(authenticate(gateway, { roles: ["admin"] }));
   router.get("/users", async (req, res) => {
-    res.json({ data: await result(paginate(req.db.rpc("admin_list_profiles").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
+    const input = page.extend({ role: z.enum(["user", "moderator", "admin"]).optional(), status: z.enum(["active", "suspended"]).optional(), q: z.string().trim().max(100).optional() }).parse(req.query);
+    let query = req.db.rpc("admin_list_profiles");
+    if (input.role) query = query.eq("role", input.role);
+    if (input.status) query = query.eq("status", input.status);
+    if (input.q) query = uuid.safeParse(input.q).success ? query.eq("id", input.q) : query.ilike("display_name", `%${input.q.replace(/[\\%_]/g, "\\$&")}%`);
+    res.json({ data: await result(paginate(query.order("created_at", { ascending: false }).order("id"), input)) });
+  });
+  router.get("/users/:id", async (req, res) => {
+    res.json({ data: first(await result(req.db.rpc("admin_list_profiles").eq("id", uuid.parse(req.params.id)).limit(1))) });
   });
   router.patch("/users/:id", async (req, res) => {
-    const input = z.object({ role: z.enum(["user", "moderator", "admin"]), status: z.enum(["active", "suspended"]), reason: text(2000) }).strict().parse(req.body);
-    await result(req.db.rpc("admin_set_account", { p_user_id: uuid.parse(req.params.id), p_role: input.role, p_status: input.status, p_reason: input.reason }));
+    const input = z.object({ role: z.enum(["user", "moderator", "admin"]), status: z.enum(["active", "suspended"]), reason: text(2000), updated_at: z.iso.datetime({ offset: true }) }).strict().parse(req.body);
+    if (input.role === "admin") {
+      const current = first(await result(req.db.rpc("admin_list_profiles").eq("id", uuid.parse(req.params.id)).limit(1)));
+      if (current.role !== "admin") throw new HttpError(403, "ADMIN_ASSIGNMENT_DISABLED", "Admin roles cannot be assigned through account management.");
+    }
+    await result(req.db.rpc("admin_update_account", { p_expected_updated_at: input.updated_at, p_user_id: uuid.parse(req.params.id), p_role: input.role, p_status: input.status, p_reason: input.reason }));
     res.sendStatus(204);
   });
   router.get("/audit-logs", async (req, res) => {
-    res.json({ data: await result(paginate(req.db.from("admin_audit_logs").select("*").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
+    const input = page.extend({ target_user_id: uuid.optional() }).parse(req.query);
+    let query = req.db.from("admin_audit_logs").select("*,actor:profiles!admin_audit_logs_actor_id_fkey(id,display_name)");
+    if (input.target_user_id) query = query.eq("target_user_id", input.target_user_id);
+    res.json({ data: await result(paginate(query.order("created_at", { ascending: false }).order("id"), input)) });
   });
   router.get("/tides/:id", async (req, res) => {
     res.json({ data: first(await result(req.db.from("tides").select("*").eq("id", uuid.parse(req.params.id)).limit(1))) });

@@ -1,6 +1,6 @@
 import React, { StrictMode } from "react";
 import { expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
@@ -44,7 +44,8 @@ it("loads the live queue, reviews photos, approves and refreshes queue and histo
     if (url.startsWith("/api/moderation/history?")) return response([{ id: "audit", trace_id: trace().id, trace: { title: "Saved seagrass survey" }, actor: { display_name: "Actual Reviewer" }, action: "review_trace", to_state: "approved", reason: "Verified evidence", created_at: "2026-09-24T12:00:00Z" }]);
   });
   const view = open();
-  fireEvent.click(await screen.findByRole("link", { name: /Saved seagrass survey/ }));
+  const card = (await screen.findByRole("heading", { name: "Saved seagrass survey" })).closest("article");
+  fireEvent.click(within(card).getByRole("link", { name: "Review" }));
   await screen.findByAltText("Trace photo 1");
   expect(screen.queryByRole("button", { name: "Upload photo" })).toBeNull();
   fireEvent.change(screen.getByLabelText(/Feedback/), { target: { value: "Verified evidence" } });

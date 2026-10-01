@@ -219,11 +219,11 @@ test("moderation requires staff and feedback for rejection", async () => {
 
 test("database ownership and last-admin rejections propagate safely", async () => {
   const { app } = fixture({ role: "admin", handler: ({ url }) => {
-    if (url.pathname.endsWith("/admin_set_account")) return json({ code: "P0001", message: "Cannot remove the last active admin" }, 400);
+    if (url.pathname.endsWith("/admin_update_account")) return json({ code: "P0001", message: "Cannot remove the last active admin" }, 400);
     if (url.pathname.endsWith("/submit_trace")) return json({ code: "42501", message: "Submission is not eligible" }, 403);
   } });
   await bearer(request(app).post(`/api/traces/${traceId}/submit`)).send({ version: 1 }).expect(403);
-  const response = await bearer(request(app).patch(`/api/admin/users/${userId}`)).send({ role: "user", status: "active", reason: "Demote" }).expect(400);
+  const response = await bearer(request(app).patch(`/api/admin/users/${userId}`)).send({ role: "user", status: "active", reason: "Demote", updated_at: "2026-10-01T00:00:00Z" }).expect(400);
   assert.match(response.body.error.message, /last active admin/);
 });
 
@@ -860,4 +860,50 @@ test("dashboard uses caller-authorized aggregates and rejects owner or role over
   }
   const suspended = fixture({ status: "suspended" });
   await bearer(request(suspended.app).get("/api/dashboard")).expect(403);
+});
+
+
+test("admin account search applies server-side filters before pagination", async () => {
+ const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname.endsWith("/admin_list_profiles") ? json([]) : undefined });
+ await bearer(request(app).get("/api/admin/users?role=moderator&status=active&q=Reef&offset=25")).expect(200);
+ const query = businessCalls(calls)[0].url.searchParams;
+ assert.equal(query.get("role"), "eq.moderator"); assert.equal(query.get("status"), "eq.active");
+ assert.equal(query.get("display_name"), "ilike.%Reef%"); assert.equal(query.get("offset"), "25");
+ await bearer(request(app).get("/api/admin/users?role=owner")).expect(400);
+});
+
+test("account updates require the reviewed timestamp and use the guarded RPC", async () => {
+ const stamp = "2026-10-01T00:00:00Z";
+ const { app, calls } = fixture({ role: "admin", handler: ({ url }) => {
+  if (url.pathname.endsWith("/admin_update_account")) return json(null);
+  if (url.pathname.endsWith("/admin_list_profiles")) return json([{ id: userId }]);
+  if (url.pathname.endsWith("/admin_audit_logs")) return json([]);
+ } });
+ const body = { role: "moderator", status: "active", reason: "Assigned reviewer", updated_at: stamp };
+ await bearer(request(app).patch(`/api/admin/users/${userId}`)).send(body).expect(204);
+ assert.deepEqual(businessCalls(calls)[0].body, { p_expected_updated_at: stamp, p_user_id: userId, p_role: "moderator", p_status: "active", p_reason: "Assigned reviewer" });
+ await bearer(request(app).patch(`/api/admin/users/${userId}`)).send({ ...body, updated_at: undefined }).expect(400);
+ await bearer(request(app).patch(`/api/admin/users/${userId}`)).send({ ...body, reason: " " }).expect(400);
+ await bearer(request(app).get(`/api/admin/users/${userId}`)).expect(200);
+ assert.equal(businessCalls(calls).at(-1).url.searchParams.get("id"), `eq.${userId}`);
+ await bearer(request(app).get(`/api/admin/audit-logs?target_user_id=${userId}`)).expect(200);
+ assert.equal(businessCalls(calls).at(-1).url.searchParams.get("target_user_id"), `eq.${userId}`);
+});
+
+test("account details, audit records and mutations deny ordinary members and moderators", async () => {
+ for (const role of ["user", "moderator"]) {
+  const { app, calls } = fixture({ role });
+  await bearer(request(app).get(`/api/admin/users/${userId}`)).expect(403);
+  await bearer(request(app).get(`/api/admin/audit-logs?target_user_id=${userId}`)).expect(403);
+  await bearer(request(app).patch(`/api/admin/users/${userId}`)).send({ role: "admin", status: "active", reason: "Escalate", updated_at: "2026-10-01T00:00:00Z" }).expect(403);
+  assert.equal(businessCalls(calls).length, 0);
+ }
+});
+
+test("admins cannot promote members or moderators to admin", async () => {
+ for (const role of ["user", "moderator"]) {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname.endsWith("/admin_list_profiles") ? json([{ id: userId, role }]) : undefined });
+  await bearer(request(app).patch(`/api/admin/users/${userId}`)).send({ role: "admin", status: "active", reason: "Promote", updated_at: "2026-10-01T00:00:00Z" }).expect(403);
+  assert.equal(calls.some(({ url }) => url.pathname.endsWith("/admin_update_account")), false);
+ }
 });

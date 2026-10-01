@@ -308,6 +308,18 @@ Totals refresh on entry, every 30 seconds while visible, on tab focus/visibility
 
 Live verification: compare member totals with saved contributions and Tides; complete another lesson and return to Usage & activity; resolve a report and return to the moderator dashboard; verify a second member sees only their own counts. Keep a visible page open for 30 seconds after a change in another session, then verify it refreshes. Local SQL tests cover ownership, staff restrictions, counts beyond one page and hidden-content exclusions; apply the migration and verify your hosted project separately.
 
+## User and moderator management
+
+Apply `supabase/migrations/20261001000100_account_edit_guard.sql` as `postgres` once, after the existing schema migrations. This adds `admin_update_account`, which checks the loaded account timestamp under the same database lock as the existing role/status workflow. It preserves the last-active-admin guard and audit logging. It does not create/delete accounts or change anyone's access when applied. Then deploy both the API and frontend; the account update endpoint now requires `updated_at`.
+
+Admins use **Users** to browse all registered profiles, search by display name or exact account UUID, and filter by role/status. Search and filters apply on the server before pagination (25 rows per page). Choose **Manage account**, select the role and access status, enter a reason, and **Save account changes**. The app verifies the saved record before confirming success. Members and moderators cannot access these endpoints. Names, emails and community fields are not editable here; the app does not retrieve Auth emails for this list.
+
+**Moderators → Add moderator** lists existing member accounts. Choose **Assign moderator**, review the selected role/status, enter a reason and save. New people register normally first. To remove moderator privileges, manage that account and change its role to **Member**; this preserves the account and its contributions. Suspension and role are independent. All moderators have the same application permissions; there are no per-person permission toggles.
+
+**Account change history** shows saved actor, timestamp, before/after role and status, and reason. Unknown write outcomes and version conflicts lock further changes until **Reload saved account** succeeds; writes are never replayed automatically. Self role/status changes are disabled in the UI; use another admin. The database also prevents demoting or suspending the last active admin. Protected API requests use current account access, so a changed role/status takes effect on the next request rather than waiting for token expiration.
+
+Live verification (with disposable test accounts): promote a registered member, sign in as that member and confirm moderator access; return the account to Member and verify staff access is denied; suspend/reactivate it and verify protected features; reopen the account and inspect history. Open the same account in two admin sessions, save in one and verify the second stale edit is rejected. Automated SQL tests cover last-admin protection; do not demote your only real admin for a manual test.
+
 ## Remaining integration
 
 The original sequence is retained below. Notifications and basic Tides reading/authoring are now connected; single-page lesson completion is also connected; the later integrations remain planned work.
@@ -324,7 +336,7 @@ The original sequence is retained below. Notifications and basic Tides reading/a
 
 6. **Comments and report moderation - connected.** Trace comment reading/posting, member reporting, staff report queues, content hiding, dismissal and saved decision history use the API. Complete the live checks above. General comment administration outside the report workflow remains deferred.
 
-7. **Finish remaining administration.** Dashboard totals and member Usage & activity are connected through authorized database aggregates. Connect profile editing, category management and account/moderator administration to existing APIs, adding missing operations deliberately. Verify role restrictions, reload persistence and session changes after account suspension or role updates. Remove demo notices only from features that actually use saved records.
+7. **Finish remaining administration.** Dashboard totals and member Usage & activity are connected through authorized database aggregates. Profile name editing and account/moderator administration are connected. Category management and unsupported preferences remain to be connected or disabled. Verify role restrictions, reload persistence and session changes after account suspension or role updates. Remove demo notices only from features that actually use saved records.
 
 8. **Prepare the MVP for deployment.** Configure and test email confirmation/recovery for ordinary users, production frontend/API URLs, allowed origins and Auth redirects. Run the full automated suite, production build and signed-in smoke checks for each role against a development/staging project before release. Set up monitoring and a deliberate cleanup process for orphaned/detached Storage files. Video playback/uploads, quizzes and MFA can remain later work unless they become release requirements.
 
@@ -370,3 +382,5 @@ Made the entire prototype responsive across seven breakpoints, from small phones
 
 ## v1.6 — Documentation Alignment ##
 Applied all 8 PRD fixes directly into the product. Users can now report comments with a reason, which feeds the moderator's flagged queue and reports page. Rejected traces are now visibly final and cannot be resubmitted. Wording across the app matches the documented rules for moderator-only review and permissions. Docs, prototype, and database policies now all tell the same story.
+
+Apply `supabase/migrations/20261001000200_restrict_admin_assignment.sql` after the account edit guard (path relative to repository root). Account management can assign Member or Moderator, but cannot promote an account to Admin. Existing admins can retain their role during status changes; last-active-admin protection remains enforced. Both account-management RPCs enforce this restriction.

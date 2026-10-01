@@ -233,4 +233,28 @@ select tidetrace_test.reject($q$select public.get_dashboard_summary()$q$,'42501'
 set local role anon;
 select tidetrace_test.reject($q$select public.get_dashboard_summary()$q$,'42501');
 reset role;
+
+-- Guarded account edits preserve audit history and last-admin protection.
+reset role;
+select set_config('test.account_stamp',(select updated_at::text from public.profiles where id='10000000-0000-0000-0000-000000000002'),true);
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+select tidetrace_test.reject($q$select public.admin_update_account('10000000-0000-0000-0000-000000000002','moderator','active','Stale edit','2000-01-01'::timestamptz)$q$,'40001');
+select public.admin_update_account('10000000-0000-0000-0000-000000000002','moderator','active','Assign reviewer',current_setting('test.account_stamp')::timestamptz);
+select tidetrace_test.reject($q$select public.admin_set_account('10000000-0000-0000-0000-000000000002','admin','active','Forbidden promotion')$q$,'42501');
+select tidetrace_test.reject($q$select public.admin_update_account('10000000-0000-0000-0000-000000000002','admin','active','Forbidden promotion',(select updated_at from public.admin_list_profiles() where id='10000000-0000-0000-0000-000000000002'))$q$,'42501');
+select tidetrace_test.assert_ok((select role='moderator' and status='active' from public.admin_list_profiles() where id='10000000-0000-0000-0000-000000000002'),'Account promotion persists');
+select tidetrace_test.assert_ok((select count(*)=1 from public.admin_audit_logs where target_user_id='10000000-0000-0000-0000-000000000002' and reason='Assign reviewer' and new_values->>'role'='moderator'),'Guarded promotion is audited');
+select public.admin_update_account('10000000-0000-0000-0000-000000000002','user','suspended','Remove access',(select updated_at from public.admin_list_profiles() where id='10000000-0000-0000-0000-000000000002'));
+select public.admin_update_account('10000000-0000-0000-0000-000000000002','user','active','Reactivate member',(select updated_at from public.admin_list_profiles() where id='10000000-0000-0000-0000-000000000002'));
+select tidetrace_test.assert_ok((select role='user' and status='active' from public.admin_list_profiles() where id='10000000-0000-0000-0000-000000000002'),'Demotion, suspension and reactivation persist');
+select tidetrace_test.reject($q$select public.admin_update_account(auth.uid(),'user','active','Remove last admin',(select updated_at from public.get_my_profile()))$q$);
+select tidetrace_test.reject($q$select public.admin_update_account(auth.uid(),'admin','suspended','Suspend last admin',(select updated_at from public.get_my_profile()))$q$);
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select tidetrace_test.reject($q$select public.admin_update_account(auth.uid(),'admin','active','Escalate',(select updated_at from public.get_my_profile()))$q$,'42501');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);
+select tidetrace_test.reject($q$select public.admin_update_account(auth.uid(),'admin','active','Escalate',(select updated_at from public.get_my_profile()))$q$,'42501');
+set local role anon;
+select tidetrace_test.reject($q$select public.admin_update_account(null,'admin','active','Escalate',now())$q$,'42501');
+reset role;
 rollback;
