@@ -40,7 +40,7 @@ it("navigates between the admin content, settings, and analytics screens", async
   await screen.findByRole("heading", { name: "Platform configuration" });
   fireEvent.click(screen.getByRole("link", { name: "Analytics" }));
   await screen.findByRole("heading", { name: "Platform analytics" });
-  expect(screen.getByText(/Demo analytics/)).toBeTruthy();
+  expect(screen.queryByText(/Demo analytics/)).toBeNull();
 });
 
 it("loads the real moderator list without offering demo permission edits", async () => {
@@ -65,16 +65,11 @@ it("filters saved history by decision and keeps trace links", async () => {
   expect(screen.queryByText("Approved reef")).toBeNull();
 });
 
-it("labels settings as a preview and does not write platform settings", async () => {
-  const fetcher = setup("/admin/settings?tab=app");
-  await screen.findByRole("heading", { name: "Platform configuration" });
-  const toggle = screen.getByRole("switch", { name: "Maintenance mode" });
-  expect(toggle.getAttribute("aria-checked")).toBe("false");
-  fireEvent.click(toggle);
-  expect(toggle.getAttribute("aria-checked")).toBe("true");
-  fireEvent.click(screen.getByRole("button", { name: "Apply preview" }));
-  await screen.findByText(/Preview updated/);
-  expect(fetcher.mock.calls.every(([, options]) => !options?.method || options.method === "GET")).toBe(true);
+it("replaces nonfunctional moderation controls with enforced rules", async () => {
+  setup("/admin/settings");
+  await screen.findByRole("heading", { name: "Moderation rules" });
+  expect(screen.queryByRole("button", { name: "Apply preview" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Review submissions" }).getAttribute("href")).toBe("/admin/review");
 });
 
 it.each(["/admin/settings", "/admin/analytics"])("keeps %s restricted to admins", async (path) => {

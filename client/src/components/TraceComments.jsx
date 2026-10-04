@@ -43,7 +43,7 @@ export default function TraceComments({ traceId }) {
   const comments = result.data || [];
   return <section className="trace-detail__comments" aria-label="Trace comments">
     <h3 className="lbl">Comments{result.data && offset === 0 && comments.length < 25 ? ` (${comments.length})` : ""}</h3>
-    <RemoteState {...result} />
+    <RemoteState compact {...result} />
     <div className="trace-detail__comment-list">
       {comments.map((comment, index) => <div className="comment" key={comment.id}>
         <span className={`avatar trace-detail__avatar trace-detail__avatar--${index % 3}`} aria-hidden="true" />

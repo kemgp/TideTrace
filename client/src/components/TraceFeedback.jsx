@@ -10,7 +10,7 @@ export default function TraceFeedback({ id, staff = false }) {
   const reviews = result.data || [];
   return <section aria-label="Review feedback" style={{ marginTop: 20, marginBottom: 20 }}>
     <h3>{staff ? "Previous review feedback" : "Moderator feedback"}</h3>
-    <RemoteState {...result} />
+    <RemoteState compact {...result} />
     {!result.loading && !result.error && (reviews.length ? <>
       {reviews.map((review, index) => <div className="flag" key={review.id} style={{ marginBottom: 12 }}>
         <b>{offset === 0 && index === 0 ? "Latest decision: " : "Previous decision: "}{decisions[review.to_state] || review.to_state}</b>

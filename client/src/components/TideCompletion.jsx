@@ -37,7 +37,7 @@ function Completion({ tideId }) {
     }
   }
   return <section aria-label="Lesson completion" style={{ marginTop: 24 }}>
-    <RemoteState {...result} />
+    <RemoteState compact {...result} />
     {error && !completed && <p role="alert">{error}</p>}
     {completed ? <p role="status">Completed</p> : <button className="btn blue" disabled={busy || result.loading || Boolean(result.error)} onClick={complete}>{busy ? "Saving…" : "Mark as complete"}</button>}
   </section>;

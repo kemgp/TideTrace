@@ -199,7 +199,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     {revision && <TraceFeedback id={trace.id} />}
     <TraceDraftLayout activeStep={activeStep} onSelect={jumpToStep} editing={Boolean(trace)}>
       <form onSubmit={save} noValidate>
-        <RemoteState {...categories} />
+        <RemoteState compact {...categories} />
         {!categories.loading && !categories.error && available.length === 0 && <p role="status">No categories are available. A category must be added before you can save a draft.</p>}
         <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}>
           <TraceDraftSection step="category" onActivate={setActiveStep}>

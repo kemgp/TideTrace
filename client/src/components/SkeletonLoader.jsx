@@ -322,7 +322,7 @@ function getType(path=""){
 }
 export default function SkeletonLoader({path=""}){
   const type=getType(path);
-  return <section className="page-transition-skeleton" aria-label="Loading page" aria-busy="true">
+  return <section className="page-transition-skeleton" role="status" aria-label="Loading content" aria-busy="true" data-skeleton-type={type}>
     <style>{`
       @keyframes pskShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
       .page-transition-skeleton{width:min(1120px,calc(100% - 32px));margin:32px auto;min-height:420px}

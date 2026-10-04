@@ -39,7 +39,7 @@ export default function Dashboard() {
       </div>
 
       <h3 className="sec-t">Recent account administration</h3>
-      <RemoteState {...activity} />
+      <RemoteState compact {...activity} />
       {activity.data && !logs.length && <p>No account administration activity yet.</p>}
       <div className="card">
         {logs.map((l) => (

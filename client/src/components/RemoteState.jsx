@@ -1,6 +1,10 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
+import SkeletonLoader from "./SkeletonLoader.jsx";
 
-export default function RemoteState({ loading, error, retry }) {
+export default function RemoteState({ loading, error, retry, compact = false, skeletonPath }) {
+  const { pathname } = useLocation();
+  if (loading && !compact) return <SkeletonLoader path={skeletonPath || pathname} />;
   if (loading) return <div className="remote-skeleton" role="status" aria-label="Loading content" aria-busy="true">
     <span className="remote-skeleton-line" /><span className="remote-skeleton-line" /><span className="remote-skeleton-line" />
   </div>;

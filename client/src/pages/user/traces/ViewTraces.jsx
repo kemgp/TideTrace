@@ -57,7 +57,7 @@ export default function ViewTraces() {
         ))}
       </div>
 
-      <RemoteState {...categoriesResult} />
+      <RemoteState compact {...categoriesResult} loading={categoriesResult.loading && !result.loading} />
       <RemoteState {...result} />
       {!result.loading && !result.error && (filtered.length > 0 ? (
         <div className="g3">

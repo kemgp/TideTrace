@@ -103,7 +103,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
   return <section aria-label="Submit Trace for review" style={{ marginTop: 24 }}>
     <h3>{revision ? "Resubmit for review" : "Submit for review"}</h3>
     <p className="hint">Submission uploads your selected photo and sends this saved Trace to the review queue. It stays out of the community archive until approved, and you cannot edit it while it is pending.</p>
-    <RemoteState {...categories} />
+    <RemoteState compact {...categories} />
     {photosBlocked && <p className="hint">Resolve any photo upload errors before submitting.</p>}
     {error && <p role="alert">{error}</p>}
     <button className="btn clay" disabled={busy || blocked || photosBlocked || !ready} onClick={() => run()}>{busy ? "Checking submission…" : revision ? "Resubmit for review" : "Submit for review"}</button>

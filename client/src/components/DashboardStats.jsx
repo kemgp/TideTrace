@@ -7,7 +7,7 @@ export default function DashboardStats({ result, items, usage = false }) {
       <p className="hint">Updates every 30 seconds while this page is visible.{result.data && ` Updated ${new Date(result.data.as_of).toLocaleTimeString()}.`}</p>
       <button className="btn outline sm" onClick={result.refresh}>Refresh totals</button>
     </div>
-    {result.error && <RemoteState {...result} />}
+    {result.error && <RemoteState compact {...result} />}
     <div className={usage ? "" : items.length === 3 ? "g3" : "g4"} aria-busy={result.loading}>
       {items.map(([key, label]) => <div className={usage ? "setrow" : "stat"} key={key}>
         {usage && <div className="l">{label}</div>}

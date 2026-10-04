@@ -303,7 +303,7 @@ export default function Dashboard() {
 
       <h3 className="sec-t">Oldest in the queue</h3>
 
-      <RemoteState {...result} />
+      <RemoteState compact {...result} />
 
       {!result.loading && !result.error && (
         oldest.length ? (

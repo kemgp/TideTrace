@@ -33,12 +33,12 @@ it("filters the saved queue by category while preserving review links", async ()
   expect(within(screen.getByRole("heading", { name: "Seagrass survey" }).closest("article")).getByRole("link", { name: "Review" })).toBeTruthy();
 });
 
-it("navigates to moderator analytics and identifies sample data", async () => {
+it("navigates to moderator analytics and requests saved data", async () => {
   setup("/moderator/dashboard");
   await screen.findByText(/Magandang umaga, Test Reviewer/);
   fireEvent.click(screen.getByRole("link", { name: "Analytics" }));
   await screen.findByRole("heading", { name: "Moderation analytics" });
-  expect(screen.getByText(/Demo analytics from sample data/)).toBeTruthy();
+  expect(screen.queryByText(/Demo analytics/)).toBeNull();
   expect(screen.getByRole("link", { name: "Analytics" }).getAttribute("aria-current")).toBe("page");
 });
 

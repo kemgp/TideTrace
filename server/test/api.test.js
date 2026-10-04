@@ -932,3 +932,30 @@ test("category updates require a timestamp and reject stale writes", async () =>
   await bearer(request(denied.app).put(`/api/admin/categories/${categoryId}`)).send(body).expect(403);
  }
 });
+
+test("analytics is staff-only and aggregates using the caller identity", async () => {
+ for (const role of ["admin", "moderator"]) {
+  const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname.endsWith("/get_staff_analytics") ? json({ id: userId, role, traces: 0 }) : undefined });
+  const response = await bearer(request(app).get("/api/moderation/analytics")).expect(200);
+  assert.equal(response.body.data.traces, 0);
+  assert.deepEqual(businessCalls(calls)[0].body, {});
+  await bearer(request(app).get("/api/moderation/analytics?user_id=other")).expect(400);
+ }
+ const { app } = fixture();
+ await bearer(request(app).get("/api/moderation/analytics")).expect(403);
+ await request(app).get("/api/moderation/analytics").expect(401);
+});
+
+test("workflow settings validate values and require admin access", async () => {
+ const saved = { id: "workflow", value: { submissions_paused: true, max_media_per_trace: 3 }, updated_at: "2026-10-05T00:00:00Z" };
+ const { app, calls } = fixture({ role: "admin", handler: ({ url }) => /workflow_settings$/.test(url.pathname) ? json(saved) : undefined });
+ await bearer(request(app).get("/api/admin/workflow-settings")).expect(200);
+ await bearer(request(app).put("/api/admin/workflow-settings")).send({ value: saved.value, updated_at: null }).expect(200);
+ assert.deepEqual(businessCalls(calls).at(-1).body, { p_value: saved.value, p_expected_updated_at: null });
+ await bearer(request(app).put("/api/admin/workflow-settings")).send({ value: { ...saved.value, max_media_per_trace: 0 }, updated_at: null }).expect(400);
+ for (const role of ["user", "moderator"]) {
+  const denied=fixture({role});
+  await bearer(request(denied.app).get("/api/admin/workflow-settings")).expect(403);
+  await bearer(request(denied.app).put("/api/admin/workflow-settings")).send({value:saved.value,updated_at:null}).expect(403);
+ }
+});

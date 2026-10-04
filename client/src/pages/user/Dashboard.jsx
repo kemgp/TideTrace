@@ -92,7 +92,7 @@ export default function Dashboard() {
 
       <h3 className="sec-t">Recent from the community</h3>
 
-      <RemoteState {...recentResult} />
+      <RemoteState compact {...recentResult} />
 
       {recentResult.data && !recent.length && (
         <p>No published Traces yet.</p>

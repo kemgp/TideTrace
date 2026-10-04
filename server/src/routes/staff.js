@@ -10,6 +10,10 @@ const reportSelect = "*,reporter:profiles!reports_reporter_id_fkey(id,display_na
 export function staffRoutes(gateway) {
   const router = Router();
   router.use(authenticate(gateway, { roles: ["moderator", "admin"] }));
+  router.get("/analytics", async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("get_staff_analytics")) });
+  });
   router.get("/traces", async (req, res) => {
     const input = page.extend({ status: z.enum(["pending", "approved", "rejected", "revision_requested", "draft"]).default("pending") }).parse(req.query);
     res.json({ data: await result(paginate(req.db.from("traces").select(traceSelect).eq("status", input.status).eq("is_hidden", false).is("deleted_at", null).order("submitted_at").order("id"), input)) });
@@ -97,6 +101,13 @@ export function adminRoutes(gateway) {
       res.json({ data: first(await result(req.db.from(resource).update(schema.parse(req.body)).eq("id", uuid.parse(req.params.id)).select())) });
     });
   }
+  router.get("/workflow-settings", async (req, res) => {
+    res.json({ data: await result(req.db.rpc("get_workflow_settings")) });
+  });
+  router.put("/workflow-settings", async (req, res) => {
+    const input = z.object({ value: z.object({ submissions_paused: z.boolean(), max_media_per_trace: z.number().int().min(1).max(10) }).strict(), updated_at: z.iso.datetime({ offset: true }).nullable() }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("save_workflow_settings", { p_value: input.value, p_expected_updated_at: input.updated_at })) });
+  });
   router.get("/settings", async (req, res) => {
     res.json({ data: await result(paginate(req.db.from("settings").select("*").order("key"), page.parse(req.query))) });
   });
