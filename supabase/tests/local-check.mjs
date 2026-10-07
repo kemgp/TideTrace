@@ -29,6 +29,12 @@ try {
     await db.exec(await readFile(new URL(name, migrationDir), 'utf8'));
     console.log(`PASS: migration ${name} executed on PostgreSQL (PGlite with Auth/Storage stubs).`);
   }
+  // A SQL Editor install may precede the deployment migration runner.
+  // Replay the whole settings migration, then run the same workflow checks.
+  await db.exec(await readFile(new URL('20261005000200_workflow_settings.sql', migrationDir), 'utf8'));
+  const { rows: triggers } = await db.query(`select tgname from pg_trigger where not tgisinternal and tgname in ('validate_workflow_settings','enforce_submission_setting','enforce_media_limit')`);
+  if (triggers.length !== 3) throw new Error('Settings migration retry must retain exactly three workflow triggers');
+  console.log('PASS: workflow settings migration can be reapplied without duplicate triggers.');
   const checks = await readFile(new URL('./access-control.sql', import.meta.url), 'utf8');
   await db.exec(checks);
   console.log(`PASS: ${checks.match(/select tidetrace_test\.(assert_ok|reject)\(/g).length} access-control and workflow assertions; fixtures rolled back.`);

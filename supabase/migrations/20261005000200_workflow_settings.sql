@@ -1,3 +1,4 @@
+-- Safe to rerun after SQL Editor installation or a migration retry.
 begin;
 create or replace function public.get_workflow_settings() returns jsonb
 language plpgsql stable security definer set search_path='' as $$
@@ -21,7 +22,7 @@ begin
  values(auth.uid(),auth.uid(),'update_workflow_settings',case when tg_op='INSERT' then '{}'::jsonb else old.value end,new.value,'Platform workflow settings updated');
  return new;
 end $$;
-create trigger validate_workflow_settings before insert or update on public.settings for each row execute function private.validate_workflow_settings();
+create or replace trigger validate_workflow_settings before insert or update on public.settings for each row execute function private.validate_workflow_settings();
 create or replace function public.save_workflow_settings(p_value jsonb,p_expected_updated_at timestamptz) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare saved public.settings;
@@ -41,7 +42,7 @@ begin
  raise exception 'Trace submissions are temporarily paused. Save your draft and try again later'; end if;
  return new;
 end $$;
-create trigger enforce_submission_setting before insert or update on public.traces for each row execute function private.enforce_submission_setting();
+create or replace trigger enforce_submission_setting before insert or update on public.traces for each row execute function private.enforce_submission_setting();
 create or replace function private.enforce_media_limit() returns trigger
 language plpgsql security definer set search_path='' as $$
 declare maximum integer;
@@ -51,7 +52,7 @@ begin
  if (select count(*) from public.trace_media where trace_id=new.trace_id)>=maximum then raise exception 'This Trace has reached the media limit'; end if;
  return new;
 end $$;
-create trigger enforce_media_limit before insert on public.trace_media for each row execute function private.enforce_media_limit();
+create or replace trigger enforce_media_limit before insert on public.trace_media for each row execute function private.enforce_media_limit();
 revoke all on function private.validate_workflow_settings(),private.enforce_submission_setting(),private.enforce_media_limit() from public,anon,authenticated;
 revoke all on function public.get_workflow_settings(),public.save_workflow_settings(jsonb,timestamptz) from public,anon,authenticated;
 grant execute on function public.get_workflow_settings(),public.save_workflow_settings(jsonb,timestamptz) to authenticated;
