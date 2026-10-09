@@ -298,26 +298,24 @@ function AdminProfileSkeleton(){
   </div>;
 }
 function getType(path=""){
-  if(path==="/user"||path==="/user/dashboard"||path==="/moderator/dashboard"||path==="/admin/dashboard")return "dashboard";
-  if(path==="/moderator/review"||path==="/admin/review")return "review";
+  if(["/user","/user/dashboard","/moderator/dashboard","/admin/dashboard"].includes(path))return "dashboard";
+  if(["/moderator/review","/admin/review"].includes(path))return "review";
   if(path==="/admin/review/history")return "adminhistory";
   if(path.includes("/review/history"))return "list";
   if(/^\/(moderator|admin)\/review\/[^/]+$/.test(path))return "detail";
   if(path==="/moderator/comments")return "comments";
-  if(path==="/moderator/reports"||path==="/admin/reports")return "reports";
+  if(["/moderator/reports","/admin/reports"].includes(path))return "reports";
   if(path.endsWith("/analytics"))return "analytics";
   if(path==="/user/profile")return "userprofile";
   if(path==="/admin/profile")return "adminprofile";
   if(path.endsWith("/profile")||path==="/admin/settings")return "settings";
   if(path==="/user/contributions")return "contributions";
   if(path==="/admin/tides")return "admincontent";
-  if(path==="/admin/review/history")return "adminhistory";
-  if(path==="/admin/profile")return "adminprofile";
   if(path==="/user/traces"||path==="/user/tides")return "cards";
   if(path==="/user/notifications")return "notifications";
-  if(path==="/admin/users"||path==="/admin/moderators"||path==="/admin/categories")return "list";
-  if(path==="/user/traces/upload"||path==="/admin/tides/new"||/\/admin\/tides\/[^/]+\/edit$/.test(path)||/\/user\/contributions\/[^/]+\/edit$/.test(path))return "form";
-  if(/^\/user\/traces\/[^/]+$/.test(path)||/^\/user\/tides\/[^/]+$/.test(path)||/^\/user\/contributions\/[^/]+$/.test(path))return "detail";
+  if(["/admin/users","/admin/moderators","/admin/categories"].includes(path))return "list";
+  if(["/user/traces/upload","/admin/tides/new"].includes(path)||/^\/admin\/tides\/[^/]+\/edit$/.test(path)||/^\/user\/contributions\/[^/]+\/edit$/.test(path))return "form";
+  if(/^\/user\/(traces|tides|contributions)\/[^/]+$/.test(path))return "detail";
   return "list";
 }
 export default function SkeletonLoader({path=""}){
@@ -325,7 +323,15 @@ export default function SkeletonLoader({path=""}){
   return <section className="page-transition-skeleton" role="status" aria-label="Loading content" aria-busy="true" data-skeleton-type={type}>
     <style>{`
       @keyframes pskShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-      .page-transition-skeleton{width:min(1120px,calc(100% - 32px));margin:32px auto;min-height:420px}
+      .page-transition-skeleton{position:fixed;inset:0;z-index:9999;width:100%;height:100dvh;min-height:100vh;max-width:none;margin:0;padding:0 0 36px;overflow-y:auto;box-sizing:border-box;background:#fff}
+      .ps-shell-nav{height:84px;display:flex;align-items:center;gap:20px;padding:0 max(24px,calc((100% - 1320px)/2));border-bottom:1px solid #e5edf6;background:#fff}
+      .ps-shell-brand{width:165px;height:24px;flex:none}
+      .ps-shell-links{display:flex;gap:12px;justify-content:center;flex:1}
+      .ps-shell-links .psk{height:38px;width:110px}
+      .ps-shell-avatar{width:42px;height:42px;border-radius:50%;flex:none}
+      .page-transition-skeleton>.ps-page{width:min(1320px,calc(100% - 48px));margin:52px auto 0}
+      html.dark-mode .page-transition-skeleton,html.dark-mode .ps-shell-nav{background:#101827}
+      html.dark-mode .ps-shell-nav{border-color:#26354b}
       .ps-page{display:block}.ps-page.narrow{max-width:760px;margin:0 auto}
       .psk{display:block;background:linear-gradient(90deg,#e5eaf1 25%,#f7f9fc 50%,#e5eaf1 75%);background-size:200% 100%;animation:pskShimmer 1.4s ease-in-out infinite;border-radius:8px}
       .ps-banner{height:112px;border-radius:14px;margin-bottom:24px}
@@ -419,9 +425,14 @@ export default function SkeletonLoader({path=""}){
       html.dark-mode .ps-card,html.dark-mode .ps-list,html.dark-mode .ps-detail-card,html.dark-mode .ps-form,html.dark-mode .ps-settings-body,html.dark-mode .ps-side{background:#172235;border-color:#34445d}
       html.dark-mode .ps-list-row,html.dark-mode .ps-setting-row{border-color:#26354b}
       @media(max-width:900px){.ps-admin-profile-grid{grid-template-columns:1fr}.ps-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ps-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ps-settings{grid-template-columns:1fr}.ps-chart-grid{grid-template-columns:1fr}}
-      @media(max-width:640px){.ps-history-headrow{display:block}.ps-history-actions{margin-top:18px}.ps-history-row{align-items:flex-start;padding:18px}.ps-history-row-actions{min-width:0;flex-direction:column;align-items:flex-end}.ps-headrow{display:block}.ps-notification-actions{margin-bottom:16px}.ps-card-grid,.ps-stats,.ps-actions{grid-template-columns:1fr}.ps-photo{height:220px}.ps-search{width:100%}.page-transition-skeleton{width:min(100% - 24px,1120px)}}
+      @media(max-width:640px){.ps-history-headrow{display:block}.ps-history-actions{margin-top:18px}.ps-history-row{align-items:flex-start;padding:18px}.ps-history-row-actions{min-width:0;flex-direction:column;align-items:flex-end}.ps-headrow{display:block}.ps-notification-actions{margin-bottom:16px}.ps-card-grid,.ps-stats,.ps-actions{grid-template-columns:1fr}.ps-photo{height:220px}.ps-search{width:100%}.page-transition-skeleton>.ps-page{width:calc(100% - 32px);margin-top:28px}.ps-shell-nav{height:68px;padding:0 16px}.ps-shell-brand{width:120px}.ps-shell-links .psk{width:42px}}
       @media(prefers-reduced-motion:reduce){.psk{animation:none}}
     `}</style>
+    <div className="ps-shell-nav" aria-hidden="true">
+      <S className="ps-shell-brand"/>
+      <div className="ps-shell-links"><S/><S/><S/><S/></div>
+      <S className="ps-shell-avatar"/>
+    </div>
     {type==="dashboard"&&<DashboardSkeleton/>}
     {type==="review"&&<ReviewQueueSkeleton/>}
     {type==="cards"&&<CardsSkeleton/>}

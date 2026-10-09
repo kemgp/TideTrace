@@ -1,10 +1,11 @@
-import React from "react";
+import React,{useEffect,useState} from "react";
 import {Navigate,Route,Routes,useLocation,useNavigate} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
 import {impactStats} from "./data/mockData.js";
 import Navbar from "./components/Navbar.jsx";
+import SkeletonLoader from "./components/SkeletonLoader.jsx";
 import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.jsx";
@@ -286,10 +287,6 @@ function Footer(){
           </a>
           <p className="foot-tagline">Community-powered ecosystem conservation.</p>
         </div>
-        <div className="foot-meta">
-          <span className="foot-roles">User <i/> Moderator <i/> Admin</span>
-          <span className="foot-version">v1.2</span>
-        </div>
         <div className="foot-copy">
           © 2026 TideTrace <span>Every ripple counts.</span>
         </div>
@@ -449,6 +446,19 @@ function AppShell(){
     retrySession
   }=useApp();
   const location=useLocation();
+  // Keep the skeleton visible immediately on navigation, including the first
+  // render of the destination route. Pages stay mounted to fetch their data.
+  const [loadedPath,setLoadedPath]=useState(null);
+  const pagePath=location.pathname;
+  const loadingPage=Boolean(role)&&loadedPath!==pagePath;
+  useEffect(()=>{
+    if(!role){
+      setLoadedPath(null);
+      return;
+    }
+    const timer=window.setTimeout(()=>setLoadedPath(pagePath),650);
+    return ()=>window.clearTimeout(timer);
+  },[pagePath,role]);
   if(
     location.pathname!=="/auth/callback"&&
     /(?:^#|&)(access_token|error_code|error)=/.test(location.hash)
@@ -476,6 +486,7 @@ function AppShell(){
       }`}
     >
       <Navbar/>
+        {loadingPage&&<SkeletonLoader path={pagePath}/>}
       {sessionNotice&&(
         <div className="demo-notice" role="status">
           {sessionNotice}
@@ -490,15 +501,6 @@ function AppShell(){
           >
             Retry connection
           </button>
-        </div>
-      )}
-      {role&&(
-        <div className="demo-notice">
-          Signed in as {profile.display_name}. Trace reading, draft saving,
-          photo uploads, submission, Trace moderation, member notifications,
-          Tides lessons, comments and report moderation use saved records.
-          Dashboard totals and member usage activity use saved records. Some
-          administration and preference controls remain demos.
         </div>
       )}
       <main>
