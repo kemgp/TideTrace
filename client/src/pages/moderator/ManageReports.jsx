@@ -70,6 +70,7 @@ function ReportDecision({ initialReport, commentsOnly }) {
   return <article className="card mod-report-card" style={{ marginTop: 16, overflowWrap: "anywhere" }} aria-label={`Report: ${title}`}>
     {role === "mod" && <div className="mod-card-top"><span className={`badge ${report.status === "resolved" ? "removed" : report.status}`}>{report.status === "resolved" ? "Removed" : report.status}</span></div>}
     <h3>{report.trace_id ? "Trace" : "Comment"}: {title}</h3>
+    <p className="hint">{report.comment_id ? "Comment" : "Trace"} by {(report.comment_id ? report.comment?.author : report.trace?.author)?.display_name || "Unavailable member"}</p>
     <p className="hint">Reported by {report.reporter?.display_name || "Community member"}{report.created_at ? ` · ${new Date(report.created_at).toLocaleString()}` : ""}</p>
     <div className="mod-report-reason"><p><b>Report reason:</b> {report.reason}</p></div>
     <details><summary>View reported content</summary>

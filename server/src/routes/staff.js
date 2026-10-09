@@ -5,7 +5,7 @@ import { first, result, HttpError } from "../errors.js";
 import { category, decision, page, paginate, text, tide, uuid } from "../validation.js";
 import { reviewSelect, traceSelect } from "./content.js";
 
-const reportSelect = "*,reporter:profiles!reports_reporter_id_fkey(id,display_name),resolver:profiles!reports_resolved_by_fkey(id,display_name),trace:traces(id,title,description,is_hidden,deleted_at,trace_media(*)),comment:comments(id,body,trace_id,status,trace:traces(id,title))";
+const reportSelect = "*,reporter:profiles!reports_reporter_id_fkey(id,display_name),resolver:profiles!reports_resolved_by_fkey(id,display_name),trace:traces(id,title,description,is_hidden,deleted_at,author:profiles!traces_author_id_fkey(id,display_name),trace_media(*)),comment:comments(id,body,trace_id,status,author:profiles!comments_author_id_fkey(id,display_name),trace:traces(id,title))";
 
 export function staffRoutes(gateway) {
   const router = Router();
@@ -25,7 +25,7 @@ export function staffRoutes(gateway) {
     const id = uuid.parse(req.params.id);
     const pagination = page.parse(req.query);
     first(await result(req.db.from("traces").select("id").eq("id", id).eq("is_hidden", false).is("deleted_at", null).limit(1)));
-    res.json({ data: await result(paginate(req.db.from("moderation_actions").select(reviewSelect).eq("trace_id", id).eq("action", "review_trace").order("created_at", { ascending: false }).order("id", { ascending: false }), pagination)) });
+    res.json({ data: await result(paginate(req.db.from("moderation_actions").select(`${reviewSelect},actor_id,actor:profiles!moderation_actions_actor_id_fkey(id,display_name)`).eq("trace_id", id).eq("action", "review_trace").order("created_at", { ascending: false }).order("id", { ascending: false }), pagination)) });
   });
   router.post("/traces/:id/decision", async (req, res) => {
     const input = decision.parse(req.body);
@@ -46,7 +46,7 @@ export function staffRoutes(gateway) {
     res.sendStatus(204);
   });
   router.get("/history", async (req, res) => {
-    res.json({ data: await result(paginate(req.db.from("moderation_actions").select("*,trace:traces(id,title),comment:comments(id,body),report:reports(id,status,trace:traces(id,title),comment:comments(id,body)),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
+    res.json({ data: await result(paginate(req.db.from("moderation_actions").select("*,trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name)),report:reports(id,status,reporter:profiles!reports_reporter_id_fkey(id,display_name),trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name))),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
   });
   return router;
 }

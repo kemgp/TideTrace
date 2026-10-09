@@ -187,3 +187,12 @@ it("blocks duplicate member reports and ignores the save after logout", async ()
   fireEvent.click(screen.getByRole("button", { name: "Dismissed", exact: true }));
   await waitFor(() => expect(calls.mock.calls.some(([url]) => url.includes("status=dismissed") && url.includes("type=comment"))).toBe(true));
  });
+
+it.each(["trace", "comment"])("distinguishes the %s author from its reporter", async type => {
+ const item = { ...initial, reporter: { display_name: "Reporting Member" }, trace: { ...trace, author: { display_name: "Trace Author" } } };
+ if (type === "comment") Object.assign(item, { trace_id: null, comment_id: commentId, comment: { id: commentId, body: "Comment text", trace, author: { display_name: "Comment Author" } } });
+ setup(url => url.startsWith("/api/moderation/reports?") ? ok([item]) : undefined, "admin");
+ open("/admin/reports");
+ await screen.findByText(type === "comment" ? "Comment by Comment Author" : "Trace by Trace Author");
+ expect(screen.getByText(/Reported by Reporting Member/)).toBeTruthy();
+});

@@ -510,8 +510,10 @@ test("moderation history includes saved Trace titles and reviewer names", async 
   const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/moderation_actions" ? json([]) : undefined });
   await bearer(request(app).get("/api/moderation/history?limit=25&offset=25")).expect(200);
   const query = businessCalls(calls)[0].url.searchParams;
-  assert.match(query.get("select"), /trace:traces\(id,title\)/);
+  assert.match(query.get("select"), /trace:traces\(id,title,author:profiles!traces_author_id_fkey/);
   assert.match(query.get("select"), /actor:profiles!moderation_actions_actor_id_fkey/);
+  assert.match(query.get("select"), /author:profiles!comments_author_id_fkey/);
+  assert.match(query.get("select"), /reporter:profiles!reports_reporter_id_fkey/);
   assert.equal(query.get("offset"), "25");
   assert.equal(query.get("order"), "created_at.desc,id.asc");
 });
@@ -536,6 +538,7 @@ test("member review feedback verifies ownership before querying per-Trace histor
   assert.equal(queries[0].get("id"), `eq.${traceId}`);
   assert.equal(queries[0].get("author_id"), `eq.${userId}`);
   assert.equal(queries[1].get("trace_id"), `eq.${traceId}`);
+  assert.doesNotMatch(queries[1].get("select"), /actor/);
   assert.equal(queries[1].get("action"), "eq.review_trace");
   assert.equal(queries[1].get("select"), "id,from_state,to_state,reason,created_at");
   assert.equal(queries[1].get("offset"), "5");
@@ -560,6 +563,7 @@ test("staff can read prior review decisions while members cannot use staff feedb
   assert.equal(queries[0].get("is_hidden"), "eq.false");
   assert.equal(queries[0].get("deleted_at"), "is.null");
   assert.equal(queries[1].get("trace_id"), `eq.${traceId}`);
+  assert.match(queries[1].get("select"), /actor:profiles!moderation_actions_actor_id_fkey\(id,display_name\)/);
 });
 
 const tideId = "50000000-0000-4000-8000-000000000001";

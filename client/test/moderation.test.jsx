@@ -163,3 +163,13 @@ it("redirects members away from staff review routes", async () => {
   expect(calls.mock.calls.some(([url]) => url.startsWith("/api/moderation/"))).toBe(false);
   expect(screen.queryByRole("button", { name: "Approve & publish" })).toBeNull();
 });
+
+it("shows who made each previous Trace decision to staff", async () => {
+ setup(url => {
+  if (url === detail) return response(trace());
+  if (url.startsWith(`${detail}/reviews?`)) return response([{ id: "review-1", actor: { id: "reviewer", display_name: "Ana Reviewer" }, to_state: "revision_requested", reason: "Add evidence", created_at: "2026-10-09T00:00:00Z" }]);
+ });
+ open(`/moderator/review/${trace().id}`);
+ await screen.findByText(/Reviewed by Ana Reviewer/);
+ expect(screen.getByText("Add evidence")).toBeTruthy();
+});

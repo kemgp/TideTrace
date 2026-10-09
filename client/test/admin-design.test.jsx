@@ -53,10 +53,12 @@ it("loads the real moderator list without offering demo permission edits", async
 
 it("filters saved history by decision and keeps trace links", async () => {
   setup("/admin/review/history", [
-    { id: "decision-1", action: "review_trace", trace_id: "trace-1", trace: { title: "Approved reef" }, to_state: "approved", actor: { display_name: "Reviewer" }, created_at: "2026-09-27T00:00:00Z" },
+    { id: "decision-1", action: "review_trace", trace_id: "trace-1", trace: { title: "Approved reef", author: { display_name: "Trace Author" } }, to_state: "approved", actor: { display_name: "Reviewer" }, created_at: "2026-09-27T00:00:00Z" },
     { id: "decision-2", action: "review_report", report: { trace: { title: "Dismissed report" } }, to_state: "dismissed", created_at: "2026-09-27T00:00:00Z" },
   ]);
   await screen.findByText("Approved reef");
+  expect(screen.getByText(/Reviewed by Reviewer/)).toBeTruthy();
+  expect(screen.getByText("Trace by Trace Author")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Approved" }));
   expect(screen.queryByText("Dismissed report")).toBeNull();
   expect(screen.getByRole("link", { name: "View trace" }).getAttribute("href")).toBe("/admin/review/trace-1");
@@ -77,4 +79,10 @@ it.each(["/admin/settings", "/admin/analytics"])("keeps %s restricted to admins"
   await screen.findByText(/Kumusta/);
   expect(screen.queryByRole("heading", { name: "Platform configuration" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "Platform analytics" })).toBeNull();
+});
+
+it("links system logs to moderator decision history", async () => {
+ setup("/admin/settings?tab=logs");
+ const link = await screen.findByRole("link", { name: "View moderation decisions" });
+ expect(link.getAttribute("href")).toBe("/admin/review/history");
 });

@@ -14,7 +14,7 @@ export default function TraceFeedback({ id, staff = false }) {
     {!result.loading && !result.error && (reviews.length ? <>
       {reviews.map((review, index) => <div className="flag" key={review.id} style={{ marginBottom: 12 }}>
         <b>{offset === 0 && index === 0 ? "Latest decision: " : "Previous decision: "}{decisions[review.to_state] || review.to_state}</b>
-        <p className="hint">{new Date(review.created_at).toLocaleString()}</p>
+        <p className="hint">{staff && <>Reviewed by {review.actor?.display_name || "Staff member"} · </>}{new Date(review.created_at).toLocaleString()}</p>
         <p style={{ whiteSpace: "pre-wrap" }}>{review.reason || "No feedback supplied."}</p>
       </div>)}
     </> : <p className="hint">No review feedback on this page.</p>)}
