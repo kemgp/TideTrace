@@ -150,7 +150,7 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
       {file && !uncertain && !attachment && <button className="btn outline sm" disabled={locked || Boolean(busy)} onClick={() => { setFile(null); if (input.current) input.current.value = ""; }}>Clear selected photo</button>}
 
     </div>}
-    {busy && <div role="status"><progress aria-label="Photo operation in progress" /> {busy === "upload" ? "Uploading and attaching photo…" : busy === "remove" ? "Removing attachment…" : busy === "attach" ? "Attaching uploaded photo…" : "Reloading saved attachments…"}</div>}
+    {(busy === "remove" || busy === "reload") && <div role="status">{busy === "remove" ? "Removing attachment…" : "Reloading saved attachments…"}</div>}
     {!onValidation && validation.photo && <p role="alert">{validation.photo}</p>}
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}

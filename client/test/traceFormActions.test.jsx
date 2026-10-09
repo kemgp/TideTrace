@@ -161,7 +161,10 @@ it("locks both actions during upload to prevent duplicate create/save requests",
   const submit = screen.getByRole("button", { name: "Submit Trace" });
   fireEvent.click(submit);
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
-  await screen.findByRole("button", { name: "Uploading photo…" });
+  const uploadingButton = await screen.findByRole("button", { name: "Uploading photo…" });
+  expect(uploadingButton.querySelector(".button-spinner")).toBeTruthy();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(screen.queryByText("Draft saved. Uploading and attaching photo…")).toBeNull();
   expect(screen.getByRole("button", { name: "Save draft" }).disabled).toBe(true);
   await act(async () => finish(response(photo)));
   await screen.findByText(/Your Trace is awaiting a reviewer/);

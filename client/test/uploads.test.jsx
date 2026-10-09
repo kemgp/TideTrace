@@ -89,7 +89,8 @@ it("retains the selection after validation errors and prevents duplicate in-flig
   const button = await submitButton();
   fireEvent.click(button);
   fireEvent.click(button);
-  expect(await screen.findByLabelText("Photo operation in progress")).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "Uploading photo…" })).toBeTruthy();
+  expect(screen.queryByRole("progressbar")).toBeNull();
   expect(button.disabled).toBe(true);
   await act(async () => finish({ ok: false, status: 400, json: async () => ({ error: { code: "INVALID_MEDIA", message: "The file does not match its declared content type." } }) }));
   expect((await screen.findByRole("alert")).textContent).toMatch(/does not match/);

@@ -13,6 +13,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
   const categories = useRemoteData("categories", { collection: true });
   const [attempted, setAttempted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState("Checking Trace…");
   const [blocked, setBlocked] = useState(false);
   const [error, setError] = useState("");
   const request = useRef(null);
@@ -35,6 +36,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
     request.current = controller;
     operationLock.current = controller;
     setBusy(true);
+    setStage(reload ? "Reloading Trace…" : "Checking Trace…");
     setError("");
     let writing = false;
     try {
@@ -64,6 +66,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
         return;
       }
       if (hasSelectedPhoto) {
+        setStage("Uploading photo…");
         await preparePhoto(controller.signal, latest);
         if (controller.signal.aborted) return;
         const refreshed = await readData(`contributions/${encodeURIComponent(trace.id)}`, { signal: controller.signal });
@@ -79,6 +82,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
         onValidation(afterUpload);
         if (Object.keys(afterUpload).length) return;
       }
+      setStage("Submitting for review…");
       writing = true;
       const saved = await writeData(`traces/${encodeURIComponent(trace.id)}/submit`, { method: "POST", body: { version: latest.version }, signal: controller.signal });
       if (controller.signal.aborted) return;
@@ -106,7 +110,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
     <RemoteState compact {...categories} />
     {photosBlocked && <p className="hint">Resolve any photo upload errors before submitting.</p>}
     {error && <p role="alert">{error}</p>}
-    <button className="btn clay" disabled={busy || blocked || photosBlocked || !ready} onClick={() => run()}>{busy ? "Checking submission…" : revision ? "Resubmit for review" : "Submit for review"}</button>
+    <button className="btn clay" disabled={busy || blocked || photosBlocked || !ready} onClick={() => run()}>{busy && <span className="button-spinner" aria-hidden="true" />}{busy ? stage : revision ? "Resubmit for review" : "Submit for review"}</button>
     {blocked && <button className="btn outline" style={{ marginLeft: 8 }} disabled={busy} onClick={() => run(true)}>Reload saved Trace</button>}
   </section>;
 }

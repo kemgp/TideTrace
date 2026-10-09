@@ -45,6 +45,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   const [photo, setPhoto] = useState(null);
   const [photoValidation, setPhotoValidation] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [stage, setStage] = useState("Saving Trace…");
   const [savedDraft, setSavedDraft] = useState(null);
   const [initialUpload, setInitialUpload] = useState(null);
   const photoInput = useRef(null);
@@ -103,6 +104,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
+    setStage("Saving Trace…");
     setError("");
     let savedRecord = null;
     let submitting = false;
@@ -118,6 +120,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
       savedRecord = saved;
       if (action === "submit" && !trace && photo) {
         setUploading(true);
+        setStage("Uploading photo…");
         try {
           const media = await writeData(`traces/${encodeURIComponent(saved.id)}/media`, { method: "POST", file: photo, signal: controller.signal });
           if (controller.signal.aborted) return;
@@ -137,6 +140,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
         }
       }
       if (action === "submit") {
+        setStage("Submitting for review…");
         const [latest, activeCategories] = await Promise.all([
           readData(`contributions/${encodeURIComponent(saved.id)}`, { signal: controller.signal }),
           readData("categories", { signal: controller.signal }),
@@ -255,12 +259,11 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           </TraceDraftSection>
           <TraceDraftSection step="review" onActivate={setActiveStep}>
           {!trace && <TraceDraftSummary fields={fields} categories={available} photo={photo} />}
-          {uploading && <div role="status"><progress aria-label="Photo operation in progress" />Draft saved. Uploading and attaching photo…</div>}
           <p className="hint">{dirty ? "You have unsaved changes. Save before leaving this page." : `Changes are saved only when you choose ${saveLabel}.`}</p>
           {error && <p role="alert">{error}</p>}
           <div className="trace-draft-actions">
-            <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" ? (uploading ? "Uploading photo…" : "Submitting…") : revision ? "Resubmit for review" : "Submit Trace"}</button>
-            <button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" ? (uploading ? "Uploading photo…" : "Saving…") : saveLabel}</button>
+            <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "submit" ? stage : revision ? "Resubmit for review" : "Submit Trace"}</button>
+            <button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "save" ? "Saving draft…" : saveLabel}</button>
             {blocked && trace && <button className="btn outline" type="button" onClick={onReload}>{revision ? "Discard local changes and reload Trace" : "Discard local changes and reload saved draft"}</button>}
           </div>
           </TraceDraftSection>
