@@ -1,3 +1,4 @@
+import PageMetadata from "./components/PageMetadata.jsx";
 import React,{useEffect,useState} from "react";
 import {Navigate,Route,Routes,useLocation,useNavigate} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
@@ -890,6 +891,7 @@ function AppShell(){
 export default function App(){
   return(
     <AppProvider>
+      <PageMetadata/>
       <AppShell/>
     </AppProvider>
   );
