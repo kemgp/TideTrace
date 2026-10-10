@@ -24,7 +24,8 @@ function setup({ failRead = false, failWrite = false, many = false } = {}) {
     if (url.startsWith("/api/notifications?")) {
       if (failing) throw new Error("offline");
       const offset = Number(new URL(url, "http://localhost").searchParams.get("offset"));
-      return response(rows.slice(offset, offset + 25));
+      const limit = Number(new URL(url, "http://localhost").searchParams.get("limit"));
+      return response(rows.slice(offset, offset + limit));
     }
     return response([]);
   });
@@ -54,8 +55,10 @@ it("counts unread notifications beyond the page and marks all pages read", async
   const { fetchMock } = setup({ many: true });
   await screen.findByText("Update 0");
   expect(screen.getByRole("link", { name: "Notifications (26 unread)" })).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "Mark as read" })).toHaveLength(6);
+  expect(screen.queryByText("Update 6")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Next page" }));
-  const item = (await screen.findByText("Update 25")).closest(".nitem");
+  const item = (await screen.findByText("Update 6")).closest(".nitem");
   const requestsBefore = fetchMock.mock.calls.length;
   fireEvent.click(screen.getByRole("button", { name: "Mark all read" }));
   await waitFor(() => expect(item.classList.contains("is-unread")).toBe(false));

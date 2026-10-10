@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../../api/pagination.js";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
@@ -14,7 +15,7 @@ function ReportQueue({ commentsOnly }) {
   const { role } = useApp();
   const [status, setStatus] = useState("open");
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`moderation/reports?status=${status}&limit=25&offset=${offset}${commentsOnly ? "&type=comment" : ""}`, { collection: true });
+  const result = useRemoteData(`moderation/reports?status=${status}&limit=${PAGE_SIZE}&offset=${offset}${commentsOnly ? "&type=comment" : ""}`, { collection: true });
   const reports = result.data || [];
   return <div className="wrap mod-reports-page" style={{ maxWidth: 800 }}>
     <div className="vhead"><span className="eyebrow teale">{commentsOnly ? "Manage comments" : "Manage reports"}</span><h2>{commentsOnly ? "Flagged comments" : "Reported content"}</h2><p>Review the content and report reason. Dismissing keeps the content; removing hides it from public views. Every decision requires a reason and is saved in moderation history.</p></div>
@@ -28,7 +29,7 @@ function ReportQueue({ commentsOnly }) {
     </div>
     <RemoteState {...result} />
     {!result.loading && !result.error && (reports.length ? reports.map((report) => <ReportDecision key={`${report.id}:${report.status}`} initialReport={report} commentsOnly={commentsOnly} />) : <p>No {status} {commentsOnly ? "comment reports" : "reports"} on this page.</p>)}
-    <Pagination offset={offset} count={reports.length} size={25} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
+    <Pagination offset={offset} count={reports.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </div>;
 }
 

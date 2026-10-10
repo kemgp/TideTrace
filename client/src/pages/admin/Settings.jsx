@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../../api/pagination.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import AdminIcon from "../../components/AdminIcon.jsx";
@@ -25,13 +26,13 @@ function RulesPanel({ title, description, rules, to, action, note }) {
 }
 function AuditLogs() {
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`admin/audit-logs?limit=25&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`admin/audit-logs?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const rows = result.data || [];
   return <section className="card admin-settings-panel admin-settings-logs">
     <header className="admin-settings-panel__header"><h3>System logs</h3><p>Account and platform changes are listed here. Trace and report decisions, including who reviewed them, are in moderation history.</p><Link className="btn outline sm" to="/admin/review/history">View moderation decisions</Link></header>
     <RemoteState compact {...result} />
     {!result.loading && !result.error && (!rows.length ? <p className="admin-settings-empty">No system logs on this page.</p> : <div className="admin-settings-log-list">{rows.map((row) => <article className="admin-settings-log" key={row.id}><div><h4>{(row.action || "Account updated").replaceAll("_", " ")}</h4><p className="hint">Changed by {row.actor?.display_name || "Admin"}</p></div><time className="hint" dateTime={row.created_at}>{new Date(row.created_at).toLocaleString()}</time>{row.reason && <p className="admin-settings-log__reason">{row.reason}</p>}</article>)}</div>)}
-    <Pagination offset={offset} count={rows.length} size={25} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
+    <Pagination offset={offset} count={rows.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </section>;
 }
 function WorkflowSettings() {

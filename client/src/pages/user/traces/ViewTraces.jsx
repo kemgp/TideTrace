@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../../../api/pagination.js";
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useRemoteData from "../../../hooks/useRemoteData.js";
@@ -13,7 +14,7 @@ export default function ViewTraces() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("All");
-  const result = useRemoteData(`traces?limit=25&offset=${offset}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true });
+  const result = useRemoteData(`traces?limit=${PAGE_SIZE}&offset=${offset}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true });
   const traces = useMemo(() => (result.data || []).map(displayTrace), [result.data]);
 
   const filtered = useMemo(() => {
@@ -66,7 +67,7 @@ export default function ViewTraces() {
       ) : (
         <div className="ph" style={{ marginTop: 10 }}>{query ? "No traces on this page match your search." : "No approved traces found."}</div>
       ))}
-      <Pagination offset={offset} count={traces.length} size={25} onChange={setOffset} loading={result.loading} />
+      <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
     </div>
   );
 }

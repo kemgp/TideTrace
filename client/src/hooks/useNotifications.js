@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../api/pagination.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function useNotifications(owner, readData, writeData) {
@@ -16,7 +17,7 @@ export default function useNotifications(owner, readData, writeData) {
     const controller = new AbortController();
     let active = true;
     Promise.all([
-      readData(`notifications?limit=25&offset=${offset}`, { signal: controller.signal }),
+      readData(`notifications?limit=${PAGE_SIZE}&offset=${offset}`, { signal: controller.signal }),
       readData("notifications/unread-count", { signal: controller.signal }),
     ]).then(([rows, summary]) => {
       if (!Array.isArray(rows) || !Number.isInteger(summary?.count) || summary.count < 0) throw new Error("Unable to load notifications. Please try again.");

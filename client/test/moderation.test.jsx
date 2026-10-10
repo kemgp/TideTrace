@@ -115,7 +115,7 @@ it("prevents double decisions while a request is pending", async () => {
 
 it("loads and paginates the queue without falling back to demo records after errors", async () => {
   let works = false;
-  const calls = setup((url) => url.startsWith("/api/moderation/traces?") ? works ? response(Array.from({ length: 25 }, (_, i) => trace({ id: `row-${i}`, title: `Pending ${i}` }))) : failure() : undefined);
+  const calls = setup((url) => url.startsWith("/api/moderation/traces?") ? works ? response(Array.from({ length: 6 }, (_, i) => trace({ id: `row-${i}`, title: `Pending ${i}` }))) : failure() : undefined);
   open();
   await screen.findByRole("alert");
   expect(screen.queryByText("Saved seagrass survey")).toBeNull();
@@ -123,7 +123,7 @@ it("loads and paginates the queue without falling back to demo records after err
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await screen.findByText("Pending 0");
   fireEvent.click(screen.getByRole("button", { name: "Next page" }));
-  await waitFor(() => expect(calls.mock.calls.some(([url]) => url === "/api/moderation/traces?status=pending&limit=25&offset=25")).toBe(true));
+  await waitFor(() => expect(calls.mock.calls.some(([url]) => url === "/api/moderation/traces?status=pending&limit=6&offset=6")).toBe(true));
 });
 
 it("does not expose a decision UI for an unavailable direct-link record", async () => {

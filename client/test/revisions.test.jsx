@@ -32,7 +32,7 @@ function open(path = "/user/traces") {
 const photo = { id: "photo-id", trace_id: trace().id, mime_type: "image/png", sort_order: 0 };
 const revision = (fields = {}) => trace({ status: "revision_requested", version: 4, trace_media: [photo], ...fields });
 const detail = `/api/contributions/${trace().id}`;
-const reviews = `${detail}/reviews?limit=25&offset=0`;
+const reviews = `${detail}/reviews?limit=6&offset=0`;
 const update = `/api/traces/${trace().id}`;
 const feedback = { id: "review-id", to_state: "revision_requested", from_state: "pending", reason: "Please identify the shoreline and add clearer evidence.", created_at: "2026-09-24T12:00:00Z" };
 function revisionSetup(handler) {

@@ -972,3 +972,19 @@ test("community summary is public and accepts no member filters", async () => {
  assert.deepEqual(businessCalls(calls)[0].body,{});
  await request(app).get("/api/community-summary?user_id=other").expect(400);
 });
+
+test("history filters outcomes in the database before pagination", async () => {
+  const states = { approved: "approved", revision: "revision_requested", rejected: "rejected", kept: "visible,kept", removed: "hidden,removed,resolved", dismissed: "dismissed" };
+  for (const [outcome, values] of Object.entries(states)) {
+    const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/moderation_actions" ? json([]) : undefined });
+    await bearer(request(app).get(`/api/moderation/history?outcome=${outcome}&limit=7&offset=6`)).expect(200);
+    const query = businessCalls(calls)[0].url.searchParams;
+    assert.equal(query.get("to_state"), `in.(${values})`);
+    assert.equal(query.get("offset"), "6");
+    assert.equal(query.get("limit"), "7");
+    assert.equal(query.get("action"), ["approved", "revision", "rejected"].includes(outcome) ? "eq.review_trace" : null);
+  }
+  const { app, calls } = fixture({ role: "admin" });
+  await bearer(request(app).get("/api/moderation/history?outcome=invalid")).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});

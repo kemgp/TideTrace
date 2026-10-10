@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../../api/pagination.js";
 import React,{useEffect,useRef,useState} from "react";
 import {Link,useParams} from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
@@ -77,7 +78,7 @@ function ReviewQueue({base}){
   const [offset, setOffset] = useState(0);
   const [category, setCategory] = useState("All");
   const { role } = useApp();
-  const result = useRemoteData(`moderation/traces?status=pending&limit=25&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`moderation/traces?status=pending&limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const traces = (result.data || []).map((item) => ({ ...item, ...displayTrace(item) }));
   const categories = [...new Set(["Coral", "Oral history", "Pollution", "Fisheries", "Seagrass", "Other", ...traces.map((trace) => categoryLabel(trace.category))])];
   const filtered = role === "mod" && category !== "All" ? traces.filter((trace) => categoryLabel(trace.category) === category) : traces;
@@ -156,7 +157,7 @@ function ReviewQueue({base}){
         </div>
       )
     ) : <p className="hint">No pending submissions on this page.</p>)}
-    <Pagination offset={offset} count={traces.length} size={25} onChange={setOffset} loading={result.loading} />
+    <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
   </>;
 }
 function ReviewDetail({id}){
@@ -242,7 +243,7 @@ export function ModerationHistory(){
   const { role } = useApp();
   const base = reviewBase(role);
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`moderation/history?limit=25&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`moderation/history?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const rows = result.data || [];
   return <div className="wrap">
     <Link className="btn ghost sm" to={base}>← Back to queue</Link>
@@ -257,6 +258,6 @@ export function ModerationHistory(){
         {row.reason && <p style={{ whiteSpace: "pre-wrap" }}>{row.reason}</p>}
       </div>
     </div>)}</div> : <p className="hint">No moderation history on this page.</p>)}
-    <Pagination offset={offset} count={rows.length} size={25} onChange={setOffset} loading={result.loading} />
+    <Pagination offset={offset} count={rows.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
   </div>;
 }

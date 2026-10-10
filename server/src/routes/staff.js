@@ -46,7 +46,14 @@ export function staffRoutes(gateway) {
     res.sendStatus(204);
   });
   router.get("/history", async (req, res) => {
-    res.json({ data: await result(paginate(req.db.from("moderation_actions").select("*,trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name)),report:reports(id,status,reporter:profiles!reports_reporter_id_fkey(id,display_name),trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name))),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)").order("created_at", { ascending: false }).order("id"), page.parse(req.query))) });
+    const input = page.extend({ outcome: z.enum(["approved", "revision", "rejected", "kept", "removed", "dismissed"]).optional() }).parse(req.query);
+    let query = req.db.from("moderation_actions").select("*,trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name)),report:reports(id,status,reporter:profiles!reports_reporter_id_fkey(id,display_name),trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name))),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)");
+    if (input.outcome) {
+      const states = { approved: ["approved"], revision: ["revision_requested"], rejected: ["rejected"], kept: ["visible", "kept"], removed: ["hidden", "removed", "resolved"], dismissed: ["dismissed"] };
+      query = query.in("to_state", states[input.outcome]);
+      if (["approved", "revision", "rejected"].includes(input.outcome)) query = query.eq("action", "review_trace");
+    }
+    res.json({ data: await result(paginate(query.order("created_at", { ascending: false }).order("id"), input)) });
   });
   return router;
 }

@@ -51,3 +51,21 @@ it("links contribution rows to their saved details with their actual status", as
   expect(row.getAttribute("href")).toBe("/user/contributions/draft");
   expect(within(row).getByText("Draft")).toBeTruthy();
 });
+
+it("keeps user settings navigation and available controls functional", async () => {
+  setup("/user/profile");
+  await screen.findByRole("form", { name: "Basic information" });
+  expect(screen.getByLabelText("Full name").value).toBe("Test Member");
+  fireEvent.click(screen.getByRole("button", { name: "Privacy" }));
+  expect(screen.getByRole("heading", { name: "Privacy preferences" })).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "Preference unavailable" }).every(button => button.disabled)).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "App settings" }));
+  fireEvent.click(screen.getByRole("button", { name: "Turn on dark mode" }));
+  expect(screen.getByRole("button", { name: "Turn off dark mode" }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Turn off dark mode" }));
+  fireEvent.click(screen.getByRole("button", { name: "Security" }));
+  expect(screen.getByRole("heading", { name: "Account security" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Reset password" }).getAttribute("href")).toBe("/forgot-password");
+  fireEvent.click(screen.getByRole("button", { name: "Usage & activity" }));
+  expect(screen.getByRole("heading", { name: "Usage & activity" })).toBeTruthy();
+});

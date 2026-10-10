@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../../api/pagination.js";
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import useRemoteData from "../../hooks/useRemoteData.js";
@@ -14,7 +15,7 @@ function CategoryList() {
   const [offset, setOffset] = useState(0);
   const [revision, setRevision] = useState(0);
   const [editing, setEditing] = useState(null);
-  const result = useRemoteData(`admin/categories?limit=25&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`admin/categories?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const refresh = () => { setRevision(n => n + 1); result.retry(); };
   return <section className="category-editor">
     <header className="category-editor__heading"><h3>Trace categories</h3><p>Organize the topics available for new Traces. Deactivating a category keeps it on existing Traces; reactivate it to make it available again.</p></header>
@@ -29,7 +30,7 @@ function CategoryList() {
       </div>)}</div>}
       {!result.data?.length && <p>No categories on this page.</p>}
     </>}
-    <Pagination offset={offset} count={result.data?.length || 0} size={25} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
+    <Pagination offset={offset} count={result.data?.length || 0} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </section>;
 }
 function CategoryForm({ category, onSaved }) {

@@ -159,7 +159,7 @@ it.each(["draft", "archived"])("does not render inaccessible %s lesson content",
 it("handles empty lists, retries errors and paginates published lessons", async () => {
   let works = false;
   const calls = setup((url) => {
-    if (url.startsWith("/api/tides?")) return works ? ok(url.endsWith("offset=25") ? [] : Array.from({ length: 25 }, (_, i) => lesson({ id: `lesson-${i}`, title: `Lesson ${i}`, status: "published" }))) : fail();
+    if (url.startsWith("/api/tides?")) return works ? ok(url.endsWith("offset=6") ? [] : Array.from({ length: 6 }, (_, i) => lesson({ id: `lesson-${i}`, title: `Lesson ${i}`, status: "published" }))) : fail();
   }, "user");
   open("/user/tides");
   await screen.findByRole("alert");
@@ -167,7 +167,7 @@ it("handles empty lists, retries errors and paginates published lessons", async 
   await screen.findByRole("link", { name: /Lesson 0/ });
   fireEvent.click(screen.getByRole("button", { name: "Next page" }));
   await screen.findByText("No published lessons found.");
-  expect(calls.mock.calls.some(([url]) => url === "/api/tides?limit=25&offset=25")).toBe(true);
+  expect(calls.mock.calls.some(([url]) => url === "/api/tides?limit=6&offset=6")).toBe(true);
 });
 
 it("does not request admin lessons for a member visiting the editor", async () => {

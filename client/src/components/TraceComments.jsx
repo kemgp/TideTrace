@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../api/pagination.js";
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
@@ -7,7 +8,7 @@ import RemoteState, { Pagination } from "./RemoteState.jsx";
 export default function TraceComments({ traceId }) {
   const { writeData, profile } = useApp();
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`traces/${encodeURIComponent(traceId)}/comments?limit=25&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`traces/${encodeURIComponent(traceId)}/comments?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -55,7 +56,7 @@ export default function TraceComments({ traceId }) {
       </div>)}
       {result.data && !comments.length && <p className="hint">{offset ? "No more comments." : "No comments yet — be the first to say something."}</p>}
     </div>
-    {(offset > 0 || comments.length === 25) && <Pagination offset={offset} count={comments.length} size={25} loading={result.loading} onChange={setOffset} />}
+    {(offset > 0 || comments.length === PAGE_SIZE) && <Pagination offset={offset} count={comments.length} size={PAGE_SIZE} loading={result.loading} onChange={setOffset} />}
     {error && <p role="alert">{error}</p>}
     {notice && <p className="hint" role="status">{notice}</p>}
     <form className="trace-detail__comment-form" onSubmit={send}>

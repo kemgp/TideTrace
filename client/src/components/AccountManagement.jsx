@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../api/pagination.js";
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
@@ -20,7 +21,7 @@ function Accounts({ moderators }) {
   const [selected, setSelected] = useState(null);
   const [notice, setNotice] = useState("");
   const filterRole = moderators ? assigning ? "user" : "moderator" : role;
-  const request = new URLSearchParams({ limit: "25", offset: String(offset) });
+  const request = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
   if (filterRole) request.set("role", filterRole);
   if (status) request.set("status", status);
   if (query) request.set("q", query);
@@ -47,7 +48,7 @@ function Accounts({ moderators }) {
       <div className="grow"><div className="t">{account.display_name}</div><div className="m">{account.role === "user" ? "Member" : account.role} · {account.status}</div><small style={{ overflowWrap: "anywhere" }}>Account ID: {account.id}</small></div>
       <button className="mini blue" onClick={() => setSelected(account.id)}>{assigning ? "Assign moderator" : "Manage account"}</button>
     </div>)}</div> : <p>No accounts match these filters.</p>)}
-    <Pagination offset={offset} count={rows.length} size={25} onChange={(value) => { setSelected(null); setOffset(value); }} loading={result.loading || Boolean(result.error)} />
+    <Pagination offset={offset} count={rows.length} size={PAGE_SIZE} onChange={(value) => { setSelected(null); setOffset(value); }} loading={result.loading || Boolean(result.error)} />
     {selected && <AccountDetail key={selected} id={selected} promote={assigning} onClose={() => setSelected(null)} onSaved={() => { setSelected(null); setNotice("Account changes saved."); result.retry(); }} />}
   </div>;
 }
@@ -107,11 +108,11 @@ function AccountEditor({ account, promote, reload, onSaved }) {
 }
 function AccountAudit({ id }) {
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`admin/audit-logs?target_user_id=${encodeURIComponent(id)}&limit=10&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`admin/audit-logs?target_user_id=${encodeURIComponent(id)}&limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const rows = result.data || [];
   return <section aria-label="Account change history" style={{ marginTop: 24 }}><h3>Account change history</h3><RemoteState {...result} />
     {rows.map((row) => <div className="lrow" key={row.id}><div><b>{row.actor?.display_name || "Admin"}</b> · {new Date(row.created_at).toLocaleString()}<p>{row.old_values?.role} / {row.old_values?.status} → {row.new_values?.role} / {row.new_values?.status}</p><p>{row.reason}</p></div></div>)}
     {result.data && !rows.length && <p>No saved account changes on this page.</p>}
-    <Pagination offset={offset} count={rows.length} size={10} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
+    <Pagination offset={offset} count={rows.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </section>;
 }

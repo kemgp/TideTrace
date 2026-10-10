@@ -106,13 +106,13 @@ it("retries failed list requests instead of substituting demo data", async () =>
 });
 
 it("paginates the server feed and resets the page when selecting a category", async () => {
-  const calls = setup((url) => url.startsWith("/api/traces?") ? response(Array.from({ length: 25 }, (_, i) => trace({ id: String(i), title: `Saved record ${i}` }))) : undefined);
+  const calls = setup((url) => url.startsWith("/api/traces?") ? response(Array.from({ length: 6 }, (_, i) => trace({ id: String(i), title: `Saved record ${i}` }))) : undefined);
   open();
   await screen.findByText("Saved record 0");
   fireEvent.click(screen.getByRole("button", { name: "Next page" }));
-  await waitFor(() => expect(calls.mock.calls.some(([url]) => url === "/api/traces?limit=25&offset=25")).toBe(true));
+  await waitFor(() => expect(calls.mock.calls.some(([url]) => url === "/api/traces?limit=6&offset=6")).toBe(true));
   fireEvent.click(screen.getByRole("button", { name: "Seagrass" }));
-  await waitFor(() => expect(calls.mock.calls.some(([url]) => url === `/api/traces?limit=25&offset=0&category_id=${category.id}`)).toBe(true));
+  await waitFor(() => expect(calls.mock.calls.some(([url]) => url === `/api/traces?limit=6&offset=0&category_id=${category.id}`)).toBe(true));
 });
 
 it("loads the current account's contributions including drafts and revision requests", async () => {
@@ -123,7 +123,7 @@ it("loads the current account's contributions including drafts and revision requ
   fireEvent.click(screen.getByRole("button", { name: "Needs revision" }));
   expect(screen.queryByText("My saved draft")).toBeNull();
   expect(screen.getByText("My revision")).toBeTruthy();
-  expect(calls.mock.calls.some(([url]) => url === "/api/contributions?limit=25&offset=0")).toBe(true);
+  expect(calls.mock.calls.some(([url]) => url === "/api/contributions?limit=6&offset=0")).toBe(true);
 });
 
 it("restores a contribution detail directly using the owner-scoped endpoint", async () => {

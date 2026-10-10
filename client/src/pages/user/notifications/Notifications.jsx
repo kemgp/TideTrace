@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../../../api/pagination.js";
 import React from "react";
 import { useApp } from "../../../context/AppContext.jsx";
 import AdminIcon from "../../../components/AdminIcon.jsx";
@@ -33,7 +34,7 @@ export default function Notifications() {
           </div>
         ))}
       </>}
-      <Pagination offset={notificationsOffset} count={notifications.length} size={25} onChange={setNotificationsOffset} loading={Boolean(busy)} />
+      <Pagination offset={notificationsOffset} count={notifications.length} size={PAGE_SIZE} onChange={setNotificationsOffset} loading={Boolean(busy)} />
     </div>
   );
 }

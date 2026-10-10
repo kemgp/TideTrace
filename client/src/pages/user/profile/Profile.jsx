@@ -5,6 +5,7 @@ import ProfileNameForm from "../../../components/ProfileNameForm.jsx";
 import ProfileSecurity from "../../../components/ProfileSecurity.jsx";
 import AdminIcon from "../../../components/AdminIcon.jsx";
 import Sidebar from "../../../components/Sidebar.jsx";
+import "./Profile.css";
 
 const PANES = [
   {
@@ -64,6 +65,7 @@ export default function Profile() {
         <h2>
           Account &amp; preferences
         </h2>
+        <p>Manage your profile, appearance, security, and account activity.</p>
       </div>
 
       <div className="sgrid">
@@ -74,7 +76,7 @@ export default function Profile() {
           onSelect={setPane}
         />
 
-        <div>
+        <div className="user-settings__body">
 
           {/* ACCOUNT */}
           {pane === "account" && (
@@ -92,9 +94,9 @@ export default function Profile() {
                     .toUpperCase()}
                 </span>
 
-                <strong>
+                <div><strong>
                   {profile?.display_name}
-                </strong>
+                </strong><p className="hint">Your community account</p></div>
 
               </div>
 
@@ -103,17 +105,11 @@ export default function Profile() {
             </div>
           )}
 
-          {/* PRIVACY MESSAGE */}
-          {pane === "privacy" && (
-            <p role="status">
-              These preferences are not available yet.
-              No changes are saved here.
-            </p>
-          )}
-
           {/* PRIVACY */}
           {pane === "privacy" && (
             <div className="card">
+              <header className="user-settings__panel-heading"><h3>Privacy preferences</h3><p>Profile and location visibility preferences.</p></header>
+              <p className="user-settings__notice" role="status">These preferences are not available yet. No changes are saved here.</p>
 
               <div className="setrow">
                 <div>
@@ -163,6 +159,8 @@ export default function Profile() {
           {/* APP SETTINGS */}
           {pane === "app" && (
             <div className="card">
+              <header className="user-settings__panel-heading"><h3>App settings</h3><p>Customize how TideTrace looks on this device.</p></header>
+              <p className="user-settings__notice">Notification and data saver preferences are not available yet. You can change your appearance below.</p>
 
               <div className="setrow">
                 <div>
@@ -230,7 +228,7 @@ export default function Profile() {
 
           {/* USAGE */}
           {pane === "usage" && (
-            <UsageActivity />
+            <section className="card user-settings__usage"><header className="user-settings__panel-heading"><h3>Usage &amp; activity</h3><p>A summary of your contributions and learning progress.</p></header><UsageActivity /></section>
           )}
 
         </div>

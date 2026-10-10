@@ -78,7 +78,7 @@ it.each([409, 503])("blocks stale/uncertain saves (%s) and reloads instead of re
  expect(writes(calls)).toHaveLength(1);
 });
 it("searches and filters the entire account list through the API and paginates", async () => {
- const calls = setup((url) => url.startsWith("/api/admin/users?") ? ok(url.includes("offset=25") ? [] : Array.from({length:25},(_,i)=>account({ id: `${id}-${i}` }))) : undefined);
+ const calls = setup((url) => url.startsWith("/api/admin/users?") ? ok(url.includes("offset=6") ? [] : Array.from({length:6},(_,i)=>account({ id: `${id}-${i}` }))) : undefined);
  open(); await screen.findAllByText("Actual Member");
  fireEvent.change(screen.getByLabelText("Search by name or account ID"), { target: { value: "Reef" } });
  fireEvent.click(screen.getByRole("button", { name: "Search accounts" }));
@@ -87,7 +87,30 @@ it("searches and filters the entire account list through the API and paginates",
  await screen.findAllByText("Actual Member");
  fireEvent.click(screen.getByRole("button", { name: "Next page" }));
  await screen.findByText("No accounts match these filters.");
- expect(calls.mock.calls.some(([url]) => url.includes("offset=25") && url.includes("role=moderator") && url.includes("q=Reef"))).toBe(true);
+ expect(calls.mock.calls.some(([url]) => url.includes("offset=6") && url.includes("role=moderator") && url.includes("q=Reef"))).toBe(true);
+});
+it("shows six accounts per page and reaches the remaining accounts without overlap", async () => {
+ const all = Array.from({ length: 9 }, (_, i) => account({ id: `${id}-${i}`, display_name: `Member ${i + 1}` }));
+ const calls = setup((url) => {
+  if (!url.startsWith("/api/admin/users?")) return;
+  const params = new URL(url, "http://localhost").searchParams;
+  const offset = Number(params.get("offset"));
+  return ok(all.slice(offset, offset + Number(params.get("limit"))));
+ });
+ open();
+ await screen.findByText("Member 1");
+ expect(screen.getAllByRole("button", { name: "Manage account" })).toHaveLength(6);
+ expect(screen.queryByText("Member 7")).toBeNull();
+ fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+ await screen.findByText("Member 7");
+ expect(screen.getAllByRole("button", { name: "Manage account" })).toHaveLength(3);
+ expect(screen.queryByText("Member 1")).toBeNull();
+ expect(screen.getByRole("button", { name: "Next page" }).disabled).toBe(true);
+ expect(screen.getByText("Page 2")).toBeTruthy();
+ expect(calls.mock.calls.some(([url]) => url.includes("limit=6&offset=6"))).toBe(true);
+ fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+ await screen.findByText("Member 1");
+ expect(screen.getAllByRole("button", { name: "Manage account" })).toHaveLength(6);
 });
 it("shows persisted audit reasons and disables changing the current admin", async () => {
  setup((url) => {

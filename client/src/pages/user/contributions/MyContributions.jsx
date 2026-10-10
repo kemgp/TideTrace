@@ -1,3 +1,4 @@
+import { PAGE_SIZE } from "../../../api/pagination.js";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useRemoteData from "../../../hooks/useRemoteData.js";
@@ -12,7 +13,7 @@ const FILTER_LABELS = { All: "All", draft: "Draft", pending: "Pending", approved
 
 export default function MyContributions() {
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`contributions?limit=25&offset=${offset}`, { collection: true });
+  const result = useRemoteData(`contributions?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const navigate = useNavigate();
   const [filter, setFilter] = useState("All");
 
@@ -59,7 +60,7 @@ export default function MyContributions() {
       ) : (
         <div className="ph" style={{ marginTop: 10 }}>{filter === "All" ? "No saved contributions on this page." : "No contributions on this page match this status."}</div>
       ))}
-      <Pagination offset={offset} count={mine.length} size={25} onChange={setOffset} loading={result.loading} />
+      <Pagination offset={offset} count={mine.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
     </div>
   );
 }

@@ -12,10 +12,10 @@ export default function RemoteState({ loading, error, retry, compact = false, sk
   return null;
 }
 
-export function Pagination({ offset, count, size, onChange, loading }) {
+export function Pagination({ offset, count, size, onChange, loading, hasNext = count >= size }) {
   return <div className="row pagination" aria-label="Pagination" style={{ marginTop: 20 }}>
     <button className="btn outline sm" disabled={loading || offset === 0} onClick={() => onChange(Math.max(0, offset - size))}>Previous page</button>
     <span>Page {Math.floor(offset / size) + 1}</span>
-    <button className="btn outline sm" disabled={loading || count < size} onClick={() => onChange(offset + size)}>Next page</button>
+    <button className="btn outline sm" disabled={loading || !hasNext} onClick={() => onChange(offset + size)}>Next page</button>
   </div>;
 }

@@ -10,7 +10,13 @@ function setup(path, history = [], role = "admin") {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "test-access", refresh_token: "test-refresh", expires_at: Date.now() / 1000 + 3600 }));
   const fetcher = vi.fn(async (url) => {
     if (url === "/api/auth/me") return ok({ id: "admin-test", display_name: "Test Admin", role, email: "admin@example.test", status: "active" });
-    if (url.startsWith("/api/moderation/history")) return ok(history);
+    if (url.startsWith("/api/moderation/history")) {
+      const params = new URL(url, "http://localhost").searchParams;
+      const states = { approved: ["approved"], revision: ["revision_requested"], rejected: ["rejected"], kept: ["visible", "kept"], removed: ["hidden", "removed", "resolved"], dismissed: ["dismissed"] };
+      const filtered = params.has("outcome") ? history.filter(row => states[params.get("outcome")].includes(row.to_state)) : history;
+      const offset = Number(params.get("offset"));
+      return ok(filtered.slice(offset, offset + Number(params.get("limit"))));
+    }
     return ok([]);
   });
   vi.stubGlobal("fetch", fetcher);
@@ -61,9 +67,9 @@ it("filters saved history by decision and keeps trace links", async () => {
   expect(screen.getByText("Trace by Trace Author")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Approved" }));
   expect(screen.queryByText("Dismissed report")).toBeNull();
-  expect(screen.getByRole("link", { name: "View trace" }).getAttribute("href")).toBe("/admin/review/trace-1");
+  expect((await screen.findByRole("link", { name: "View trace" })).getAttribute("href")).toBe("/admin/review/trace-1");
   fireEvent.click(screen.getByRole("button", { name: "Dismissed" }));
-  expect(screen.getByText("Dismissed report")).toBeTruthy();
+  expect(await screen.findByText("Dismissed report")).toBeTruthy();
   expect(screen.queryByText("Approved reef")).toBeNull();
 });
 
@@ -85,4 +91,32 @@ it("links system logs to moderator decision history", async () => {
  setup("/admin/settings?tab=logs");
  const link = await screen.findByRole("link", { name: "View moderation decisions" });
  expect(link.getAttribute("href")).toBe("/admin/review/history");
+});
+
+it("paginates matching history and disables Next on full final and empty pages", async () => {
+  const approved = Array.from({ length: 12 }, (_, i) => ({ id: `approved-${i}`, action: "review_trace", trace_id: `trace-${i}`, trace: { title: `Approved ${i}` }, to_state: "approved", created_at: "2026-09-27T00:00:00Z" }));
+  const fetcher = setup("/admin/review/history", [{ id: "reject", action: "review_trace", trace: { title: "Rejected reef" }, to_state: "rejected", created_at: "2026-09-27T00:00:00Z" }, ...approved]);
+  await screen.findByText("Rejected reef");
+  fireEvent.click(screen.getByRole("button", { name: "Approved" }));
+  await screen.findByText("Approved 0");
+  expect(screen.getAllByRole("link", { name: "View trace" })).toHaveLength(6);
+  expect(screen.queryByText("Approved 6")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+  await screen.findByText("Approved 6");
+  expect(screen.getByText("Approved 11")).toBeTruthy();
+  expect(screen.getAllByRole("link", { name: "View trace" })).toHaveLength(6);
+  expect(screen.queryByText("Approved 0")).toBeNull();
+  expect(screen.getByRole("button", { name: "Next page" }).disabled).toBe(true);
+  expect(fetcher.mock.calls.some(([url]) => url.includes("limit=7&offset=6&outcome=approved"))).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+  await screen.findByText("Approved 0");
+  fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+  await screen.findByText("Approved 6");
+  fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+  await screen.findByText("Rejected reef");
+  expect(screen.getByText("Page 1")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Next page" }).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Kept" }));
+  await screen.findByText("No kept decisions on this page.");
+  expect(screen.getByRole("button", { name: "Next page" }).disabled).toBe(true);
 });

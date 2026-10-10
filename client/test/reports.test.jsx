@@ -111,7 +111,7 @@ it("shows resolved comment reports, safe content, and supports admin access", as
   await screen.findByText("Comment: Comment context");
   expect(screen.getByText("<script>unsafe()</script>").querySelector("script")).toBeNull();
   expect(screen.queryByLabelText("Decision reason")).toBeNull();
-  expect(calls.mock.calls.some(([url]) => url.includes("status=resolved&limit=25&offset=0"))).toBe(true);
+  expect(calls.mock.calls.some(([url]) => url.includes("status=resolved&limit=6&offset=0"))).toBe(true);
 });
 
 it("does not request moderator reports for an ordinary member", async () => {
@@ -139,7 +139,7 @@ it("prevents duplicate decisions and ignores a late response after logout", asyn
 it("retries report queue failures and paginates without inventing an empty state", async () => {
   let works = false;
   const calls = setup((url) => {
-    if (url.startsWith("/api/moderation/reports?")) return works ? ok(url.endsWith("offset=25") ? [] : Array.from({ length: 25 }, (_, index) => ({ ...initial, id: `${id}-${index}` }))) : fail();
+    if (url.startsWith("/api/moderation/reports?")) return works ? ok(url.endsWith("offset=6") ? [] : Array.from({ length: 6 }, (_, index) => ({ ...initial, id: `${id}-${index}` }))) : fail();
   }, "moderator");
   open("/moderator/reports");
   await screen.findByRole("alert");
@@ -149,7 +149,7 @@ it("retries report queue failures and paginates without inventing an empty state
   await screen.findAllByLabelText("Decision reason");
   await click("Next page");
   await screen.findByText("No open reports on this page.");
-  expect(calls.mock.calls.some(([url]) => url.endsWith("status=open&limit=25&offset=25"))).toBe(true);
+  expect(calls.mock.calls.some(([url]) => url.endsWith("status=open&limit=6&offset=6"))).toBe(true);
 });
 
 it("blocks duplicate member reports and ignores the save after logout", async () => {
