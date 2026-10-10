@@ -12,6 +12,10 @@ export function contentRoutes(gateway) {
   const router = Router();
   const member = authenticate(gateway);
   const send = (res, data, status = 200) => res.status(status).json({ data });
+  router.get("/community-summary", async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    send(res, await result(req.db.rpc("get_community_summary")));
+  });
   router.get("/dashboard", member, async (req, res) => {
     z.object({}).strict().parse(req.query);
     send(res, await result(req.db.rpc("get_dashboard_summary")));

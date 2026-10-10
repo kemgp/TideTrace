@@ -318,4 +318,18 @@ select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002'
 select tidetrace_test.reject('select public.get_workflow_settings()','42501');
 select tidetrace_test.reject($q$select public.save_workflow_settings('{"submissions_paused":true,"max_media_per_trace":1}',null)$q$,'42501');
 reset role;
+-- Public homepage counts reconcile without exposing protected rows.
+select set_config('test.public_traces',(select count(*)::text from public.traces where status='approved' and not is_hidden and deleted_at is null),true);
+select set_config('test.public_contributors',(select count(distinct author_id)::text from public.traces where status='approved' and not is_hidden and deleted_at is null),true);
+select set_config('test.public_tides',(select count(*)::text from public.tides where status='published'),true);
+select set_config('test.public_completions',(select count(*)::text from public.tide_completions),true);
+select set_config('request.jwt.claim.sub','',true);
+set local role anon;
+select tidetrace_test.assert_ok((public.get_community_summary()->>'published_traces')::bigint=current_setting('test.public_traces')::bigint,'Public published Trace count');
+select tidetrace_test.assert_ok((public.get_community_summary()->>'contributors')::bigint=current_setting('test.public_contributors')::bigint,'Public unique contributor count');
+select tidetrace_test.assert_ok((public.get_community_summary()->>'published_tides')::bigint=current_setting('test.public_tides')::bigint,'Public published Tide count');
+select tidetrace_test.assert_ok((public.get_community_summary()->>'tides_completed')::bigint=current_setting('test.public_completions')::bigint,'Public completion count');
+select tidetrace_test.assert_ok((select count(*)=6 from jsonb_object_keys(public.get_community_summary())),'Only summary fields exposed');
+select tidetrace_test.reject('select * from public.tide_completions','42501');
+reset role;
 rollback;

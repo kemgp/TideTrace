@@ -963,3 +963,12 @@ test("workflow settings validate values and require admin access", async () => {
   await bearer(request(denied.app).put("/api/admin/workflow-settings")).send({value:saved.value,updated_at:null}).expect(403);
  }
 });
+
+test("community summary is public and accepts no member filters", async () => {
+ const summary={id:"community",published_traces:0,contributors:0,published_tides:0,tides_completed:0};
+ const {app,calls}=fixture({handler:({url})=>url.pathname.endsWith("/get_community_summary")?json(summary):undefined});
+ const response=await request(app).get("/api/community-summary").expect(200);
+ assert.deepEqual(response.body.data,summary);
+ assert.deepEqual(businessCalls(calls)[0].body,{});
+ await request(app).get("/api/community-summary?user_id=other").expect(400);
+});

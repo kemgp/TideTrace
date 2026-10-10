@@ -4,7 +4,7 @@ import {Navigate,Route,Routes,useLocation,useNavigate} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
-import {impactStats} from "./data/mockData.js";
+import useCommunitySummary, { communityMetrics } from "./hooks/useCommunitySummary.js";
 import Navbar from "./components/Navbar.jsx";
 import SkeletonLoader from "./components/SkeletonLoader.jsx";
 import Login from "./pages/auth/Login.jsx";
@@ -48,6 +48,8 @@ const WAVE=(
 );
 function Home(){
   const navigate=useNavigate();
+  const community=useCommunitySummary();
+  const metricValue=(key)=>community.loading ? <span className="sk" aria-label="Loading total"/> : community.data ? community.data[key].toLocaleString() : "—";
   return(
     <div className="view-home">
       <header className="hero" id="home-top">
@@ -74,7 +76,7 @@ function Home(){
                 <i style={{background:"var(--clay)"}}/>
                 <i style={{background:"var(--blue)"}}/>
               </div>
-              <span>Joined by coastal communities across the Visayas</span>
+              <span>Built for coastal communities across the Visayas</span>
             </div>
           </div>
           <div className="hero-visual">
@@ -86,27 +88,24 @@ function Home(){
               </div>
               <div className="content">
                 <div className="fake-banner">
-                  <div className="t">This month's impact</div>
-                  <div className="s">Barangay Lawis and neighbors</div>
+                  <div className="t">Our community in numbers</div>
+                  <div className="s">All-time participation and learning</div>
                 </div>
-                <div className="fake-stats">
-                  <div><b>128</b><span>species</span></div>
-                  <div><b>3.2t</b><span>waste rm.</span></div>
-                  <div><b>14</b><span>brgy.</span></div>
-                  <div><b>640</b><span>mangroves</span></div>
+                <div className="fake-stats" aria-busy={community.loading}>
+                  {communityMetrics.map(([key,label])=><div key={key}><b>{metricValue(key)}</b><span>{label}</span></div>)}
                 </div>
                 <div className="fake-card">
                   <div className="thumb" style={{background:"var(--tan)"}}/>
                   <div>
-                    <div className="t">Bleaching patch near Sitio Lawis</div>
-                    <div className="s">Aling Nena · 2h ago</div>
+                    <div className="t">Share a coastal observation</div>
+                    <div className="s">Document what you see with a Trace</div>
                   </div>
                 </div>
                 <div className="fake-card">
                   <div className="thumb" style={{background:"var(--teal)"}}/>
                   <div>
-                    <div className="t">40 new mangrove seedlings</div>
-                    <div className="s">Brgy. Youth Group · 5h ago</div>
+                    <div className="t">Learn with Tides</div>
+                    <div className="s">Explore lessons about our coasts</div>
                   </div>
                 </div>
               </div>
@@ -119,7 +118,7 @@ function Home(){
               </div>
               <div>
                 <div className="t">New Trace</div>
-                <div className="s">just now</div>
+                <div className="s">share what you see</div>
               </div>
             </div>
             <div className="float-chip c2">
@@ -129,8 +128,8 @@ function Home(){
                 </svg>
               </div>
               <div>
-                <div className="t">Trace verified</div>
-                <div className="s">community-checked</div>
+                <div className="t">Reviewed Traces</div>
+                <div className="s">approved by moderators</div>
               </div>
             </div>
           </div>
@@ -209,18 +208,14 @@ function Home(){
       <section className="hsec impact" id="home-impact">
         <div className="wrap">
           <div className="sh">
-            <span className="tagline">Real-time impact</span>
-            <h2>What the community has already logged</h2>
-            <p>Numbers that grow because ordinary people showed up — visualized, visible, and shared.</p>
+            <span className="tagline">Community participation</span>
+            <h2>Our community in numbers</h2>
+            <p>Published observations, community contributions, and learning milestones.</p>
           </div>
-          <div className="igrid">
-            {impactStats.map((s)=>(
-              <div className="istat" key={s.label}>
-                <b>{s.value}</b>
-                <span>{s.label}</span>
-              </div>
-            ))}
+          <div className="igrid" aria-busy={community.loading}>
+            {communityMetrics.map(([key,label])=><div className="istat" key={key}><b>{metricValue(key)}</b><span>{label}</span></div>)}
           </div>
+          {community.error && <div role="alert"><p>{community.error}</p><button className="btn outline sm" onClick={community.retry}>Retry community totals</button></div>}
         </div>
       </section>
       <section className="hsec" id="home-how">

@@ -61,10 +61,3 @@ export const initialLogs = [
   { id: "g2", text: "Admin Doy added moderator Jon Reyes.", when: "Sep 5, 2026" },
   { id: "g3", text: "Rica Lopez approved 6 traces.", when: "Sep 4, 2026" },
 ];
-
-export const impactStats = [
-  { label: "Species documented", value: "128" },
-  { label: "Waste removed", value: "3.2t" },
-  { label: "Mangroves funded", value: "640" },
-  { label: "Communities supported", value: "14" },
-];
