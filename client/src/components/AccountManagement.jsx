@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "./RemoteState.jsx";
+import "./AccountManagement.css";
 
 export default function AccountManagement({ moderators = false }) {
   const { profile } = useApp();
@@ -31,16 +32,18 @@ function Accounts({ moderators }) {
       <p>{assigning ? "Choose an existing member to promote. New people must register first." : "Manage saved account roles and access. Every change requires a reason and is recorded."}</p>
     </div>
     {moderators && <><button className="btn blue sm" onClick={() => { reset(); setParams(assigning ? {} : { add: "1" }); }}>{assigning ? "Back to moderators" : "Add moderator"}</button><p className="hint">Moderators share the same review and report permissions. Removing the moderator role keeps the account and its contributions.</p></>}
-    <form className="row" style={{ flexWrap: "wrap", marginBlock: 16 }} onSubmit={(event) => { event.preventDefault(); reset(); setQuery(search.trim()); }}>
-      <label>Search by name or account ID<input className="input" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} /></label>
-      <button className="btn outline sm">Search accounts</button>
+    <form className="account-filters" onSubmit={(event) => { event.preventDefault(); reset(); setQuery(search.trim()); }}>
+      <div className="account-filters__search">
+        <label>Search by name or account ID<input className="input" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} /></label>
+        <button type="submit" className="btn outline sm">Search accounts</button>
+      </div>
       {!moderators && <label>Role<select className="input" value={role} onChange={(event) => { reset(); setRole(event.target.value); }}><option value="">All roles</option><option value="user">Member</option><option value="moderator">Moderator</option><option value="admin">Admin</option></select></label>}
       <label>Account status<select className="input" value={status} onChange={(event) => { reset(); setStatus(event.target.value); }}><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
       <button type="button" className="btn outline sm" disabled={result.loading} onClick={() => { setSelected(null); result.retry(); }}>Refresh accounts</button>
     </form>
     {notice && <p role="status">{notice}</p>}
     <RemoteState {...result} />
-    {!result.loading && !result.error && (rows.length ? <div className="card">{rows.map((account) => <div className="lrow" key={account.id}>
+    {!result.loading && !result.error && (rows.length ? <div className="card account-list">{rows.map((account) => <div className="lrow" key={account.id}>
       <div className="grow"><div className="t">{account.display_name}</div><div className="m">{account.role === "user" ? "Member" : account.role} · {account.status}</div><small style={{ overflowWrap: "anywhere" }}>Account ID: {account.id}</small></div>
       <button className="mini blue" onClick={() => setSelected(account.id)}>{assigning ? "Assign moderator" : "Manage account"}</button>
     </div>)}</div> : <p>No accounts match these filters.</p>)}

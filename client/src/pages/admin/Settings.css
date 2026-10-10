@@ -1,0 +1,41 @@
+.app-shell .admin-settings-body .admin-settings-panel {
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.admin-settings-panel__header {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-settings-panel__header h3 { font-size: 20px; line-height: 1.4; }
+.admin-settings-panel__header p { color: var(--soft); font-size: 14px; line-height: 1.7; max-width: 70ch; }
+.admin-settings-panel__header .btn { margin-top: 4px; }
+.admin-settings-rules { margin: 0; }
+.admin-settings-rules > div { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 12px 24px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.admin-settings-rules dt { font-size: 14px; font-weight: 600; }
+.admin-settings-rules dd { margin: 0; font-size: 14px; line-height: 1.7; color: var(--soft); }
+.admin-settings-note { margin-top: 20px; padding: 14px 16px; border-radius: 8px; background: var(--bg); font-size: 13px; line-height: 1.7; }
+.admin-settings-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 20px; }
+.admin-settings-actions fieldset { margin: 0; padding: 0; border: 0; }
+.app-shell .admin-settings-actions .btn { margin: 0; }
+.app-shell .admin-settings-panel .admin-setting-row { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.admin-settings-panel .admin-setting-copy .s { line-height: 1.7; font-weight: 400; }
+.admin-settings-panel > :is([role=status], [role=alert]) { margin-top: 16px; font-size: 14px; }
+.admin-settings-log { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.admin-settings-log h4 { font-family: inherit; font-size: 14px; font-weight: 600; }
+.admin-settings-log time { font-variant-numeric: tabular-nums; }
+.admin-settings-log__reason { grid-column: 1 / -1; font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-settings-empty { padding: 24px 0; color: var(--soft); font-size: 14px; }
+html.dark-mode .admin-settings-panel :is(.admin-settings-panel__header, .admin-settings-rules > div, .admin-setting-row, .admin-settings-log) { border-color: #34445d; }
+html.dark-mode .admin-settings-note { background: #101827; }
+
+@media (max-width: 700px) {
+  .admin-settings-rules > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .admin-settings-log { grid-template-columns: minmax(0, 1fr); }
+  .admin-settings-actions > .btn,
+  .admin-settings-actions fieldset,
+  .admin-settings-actions fieldset .btn { width: 100%; }
+}

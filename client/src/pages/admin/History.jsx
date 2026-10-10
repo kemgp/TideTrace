@@ -20,7 +20,7 @@ export default function History() {
     <div className="chiprow" aria-label="Filter moderation history">{filters.map((label) => <button className={`chip ${filter === label ? "on" : ""}`} aria-pressed={filter === label} key={label} onClick={() => setFilter(label)}>{label}</button>)}</div>
     <div className="admin-history-tools"><span className="hint">Filters apply to the current page of saved decisions.</span><button className="btn ghost sm" disabled={result.loading} onClick={result.retry}>Refresh history</button></div>
     <RemoteState {...result} />
-    {!result.loading && !result.error && <div className="card">{filtered.length ? filtered.map((row) => {
+    {!result.loading && !result.error && <div className="card admin-history-list">{filtered.length ? filtered.map((row) => {
       const decision = outcome(row);
       const title = row.trace?.title || row.report?.trace?.title || (row.comment || row.report?.comment ? "Reported comment" : "Reported content");
       const comment = row.comment || row.report?.comment;

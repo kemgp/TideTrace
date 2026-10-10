@@ -1,0 +1,26 @@
+.app-shell .admin-lessons__heading { align-items: flex-end; gap: 20px; }
+.admin-lessons__heading > div { flex: 1 1 440px; }
+.admin-lessons__heading p { max-width: 70ch; }
+.admin-lessons__heading > .btn { flex: none; }
+.admin-lessons__toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.admin-lessons__toolbar .admin-content-tabs { margin: 0; }
+.app-shell .admin-lesson-list .lrow { display: grid; grid-template-columns: 45px minmax(0, 1fr) max-content 64px; gap: 16px; padding: 20px 2px; }
+.app-shell .admin-lesson-list .lrow:not(:last-child) { border-bottom: 1px solid var(--line); }
+.admin-lesson-list .t { display: inline-block; margin-bottom: 4px; }
+.admin-lesson-list .t:hover { text-decoration: underline; text-underline-offset: 3px; }
+.admin-lesson-list .badge { justify-self: end; }
+.admin-lesson-list .mini { display: inline-flex; align-items: center; justify-content: center; }
+.admin-lessons > .pagination { justify-content: flex-start; gap: 12px; }
+.admin-lessons__empty { color: var(--soft); }
+html.dark-mode .admin-lesson-list .lrow:not(:last-child) { border-bottom-color: #34445d; }
+@media (max-width: 600px) {
+  .admin-lessons__heading > .btn { width: 100%; }
+  .admin-lessons__toolbar { align-items: stretch; }
+  .admin-lessons__toolbar > .btn { width: 100%; }
+  .admin-lessons__toolbar .admin-content-tabs { width: 100%; }
+  .admin-lessons__toolbar .chip { flex: 1 1 120px; }
+  .app-shell .admin-lesson-list .lrow { grid-template-columns: 45px minmax(0, 1fr) auto; gap: 12px; }
+  .admin-lesson-list .grow { grid-column: 2 / -1; }
+  .admin-lesson-list .badge { grid-column: 2; justify-self: start; }
+  .admin-lesson-list .mini { grid-column: 3; min-width: 64px; }
+}

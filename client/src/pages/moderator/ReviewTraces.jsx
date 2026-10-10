@@ -143,7 +143,7 @@ function ReviewQueue({base}){
           </div>
         </>
       ) : (
-        <div className="card" style={{ marginTop: 16 }}>
+        <div className="card admin-review-list">
           {filtered.map((trace) => (
             <Link className="lrow click" key={trace.id} to={`${base}/${encodeURIComponent(trace.id)}`} style={{ color: "inherit", textDecoration: "none" }}>
               <div className="grow">

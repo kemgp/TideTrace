@@ -1,6 +1,6 @@
 import React from "react";
 import { it, expect, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
@@ -24,6 +24,8 @@ function setup(failure) {
 }
 it("renames, deactivates and reactivates saved categories", async () => {
  const calls = setup();
+ expect(screen.queryByRole("form", { name: "Edit category Coral" })).toBeNull();
+ fireEvent.click(await screen.findByRole("button", { name: "Edit category Coral" }));
  let form = await screen.findByRole("form", { name: "Edit category Coral" });
  fireEvent.change(within(form).getByLabelText("Category name"), { target: { value: "Reef" } });
  fireEvent.click(within(form).getByLabelText("Active category"));
@@ -34,7 +36,11 @@ it("renames, deactivates and reactivates saved categories", async () => {
  expect(JSON.parse(write[1].body)).toMatchObject({ name: "Reef", is_active: false, updated_at: initial.updated_at });
  fireEvent.click(within(form).getByLabelText("Active category"));
  fireEvent.click(within(form).getByRole("button", { name: "Save category" }));
- await screen.findByText("Active", { exact: true });
+ await waitFor(() => expect(within(screen.getByRole("form", { name: "Edit category Reef" })).getByText("Active", { exact: true })).toBeTruthy());
+ fireEvent.click(screen.getByRole("button", { name: "Close category Reef" }));
+ expect(screen.queryByRole("form", { name: "Edit category Reef" })).toBeNull();
+ fireEvent.click(screen.getByRole("button", { name: "Edit category Reef" }));
+ expect(within(screen.getByRole("form", { name: "Edit category Reef" })).getByLabelText("Category name").value).toBe("Reef");
  expect(calls.mock.calls.some(([, o]) => o.method === "DELETE")).toBe(false);
 });
 it("validates and creates a saved category", async () => {
@@ -44,11 +50,13 @@ it("validates and creates a saved category", async () => {
  await screen.findByText("Enter a category name.");
  fireEvent.change(within(form).getByLabelText("New category name"), { target: { value: " Mangroves " } });
  fireEvent.click(within(form).getByRole("button", { name: "Add category" }));
+ fireEvent.click(await screen.findByRole("button", { name: "Edit category Mangroves" }));
  await screen.findByRole("form", { name: "Edit category Mangroves" });
  expect(JSON.parse(calls.mock.calls.find(([, o]) => o.method === "POST")[1].body).name).toBe("Mangroves");
 });
 it.each(["STALE_VERSION", "ALREADY_EXISTS"])("shows %s errors without claiming success", async code => {
  setup(code);
+ fireEvent.click(await screen.findByRole("button", { name: "Edit category Coral" }));
  const form = await screen.findByRole("form", { name: "Edit category Coral" });
  fireEvent.click(within(form).getByRole("button", { name: "Save category" }));
  await screen.findByRole("alert");
