@@ -35,6 +35,33 @@ try {
   const { rows: triggers } = await db.query(`select tgname from pg_trigger where not tgisinternal and tgname in ('validate_workflow_settings','enforce_submission_setting','enforce_media_limit')`);
   if (triggers.length !== 3) throw new Error('Settings migration retry must retain exactly three workflow triggers');
   console.log('PASS: workflow settings migration can be reapplied without duplicate triggers.');
+  // SQL Editor/manual bucket setup can precede the migration runner. Keep
+  // existing uploads while restoring the intended bucket settings on retry.
+  await db.exec(`
+    insert into storage.objects(bucket_id,name,owner_id,metadata)
+    values('profile-photos','existing-owner/keep.png','existing-owner','{"mimetype":"image/png","size":4096}');
+    update storage.buckets set public=true,file_size_limit=10485760,allowed_mime_types=array['image/png']
+    where id='profile-photos';
+  `);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const name of ['20261014000100_profile_photos.sql', '20261014000200_trace_author_photos.sql']) {
+      await db.exec(await readFile(new URL(name, migrationDir), 'utf8'));
+    }
+  }
+  const { rows: buckets } = await db.query(`select * from storage.buckets where id='profile-photos'`);
+  if (buckets.length !== 1 || buckets[0].public !== false || Number(buckets[0].file_size_limit) !== 5242880 ||
+      JSON.stringify(buckets[0].allowed_mime_types) !== JSON.stringify(['image/jpeg','image/png','image/webp'])) {
+    throw new Error('Photo migration retry must retain one private bucket with the intended upload limits');
+  }
+  const { rows: uploads } = await db.query(`select * from storage.objects where bucket_id='profile-photos' and name='existing-owner/keep.png'`);
+  if (uploads.length !== 1 || uploads[0].owner_id !== 'existing-owner' || uploads[0].metadata.size !== 4096) {
+    throw new Error('Photo migration retry must preserve existing uploads and metadata');
+  }
+  const { rows: photoPolicies } = await db.query(`select policyname from pg_policies where schemaname='storage' and tablename='objects' and policyname in ('tidetrace_avatar_upload','tidetrace_avatar_read','tidetrace_published_author_photo_read')`);
+  if (photoPolicies.length !== 3) throw new Error('Photo migration retry must retain exactly three photo policies');
+  // Remove only this local fixture before running the access-control checks.
+  await db.exec(`delete from storage.objects where bucket_id='profile-photos' and name='existing-owner/keep.png'`);
+  console.log('PASS: both photo migrations can be reapplied while preserving existing uploads and bucket protections.');
   const checks = await readFile(new URL('./access-control.sql', import.meta.url), 'utf8');
   await db.exec(checks);
   console.log(`PASS: ${checks.match(/select tidetrace_test\.(assert_ok|reject)\(/g).length} access-control and workflow assertions; fixtures rolled back.`);
