@@ -1,3 +1,4 @@
+import { ProfileAvatar } from "./ProfilePhoto.jsx";
 import React,{useEffect,useRef,useState} from "react";
 import {Link,useLocation,useNavigate} from "react-router-dom";
 import {useApp} from "../context/AppContext.jsx";
@@ -38,7 +39,7 @@ const adminLinks=[
 ];
 
 export default function Navbar(){
-  const {role,profile,logout,unreadNotificationCount}=useApp();
+  const {role,logout,unreadNotificationCount}=useApp();
 
   const location=useLocation();
   const navigate=useNavigate();
@@ -114,12 +115,6 @@ export default function Navbar(){
       :role==="admin"
         ?"avatar-btn admin"
         :"avatar-btn";
-
-  const avatarLetter=
-    profile?.display_name
-      ?.trim()
-      .charAt(0)
-      .toUpperCase()||"?";
 
   const homeLink=
     role==="mod"
@@ -205,7 +200,7 @@ export default function Navbar(){
                 navigate(profilePath);
               }}
             >
-              {avatarLetter}
+              <ProfileAvatar />
             </button>
           )}
 

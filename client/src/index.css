@@ -55,6 +55,9 @@ textarea.input{height:110px;padding:10px 12px;resize:vertical;}
 .tgl.off{background:#c7dcee;}
 .tgl.off::after{left:2.5px;}
 .avatar{width:28px;height:28px;border-radius:50%;flex:none;}
+.author-avatar{display:inline-grid;place-items:center;overflow:hidden;background:var(--tan);color:var(--navy);font-size:12px;font-weight:700;}
+.author-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+.trace-card-author{display:flex;align-items:center;gap:7px;min-width:0;}
 .hide{display:none!important;}
 .ribbon{background:var(--navy);color:#cfe0f5;font-size:11px;letter-spacing:.05em;text-align:center;padding:8px 40px;position:relative;}
 .ribbon b{color:#fff;}
@@ -292,6 +295,17 @@ main{min-height:70vh;flex:1;}
 .profile-photo-picker input,.profile-photo-link input{display:none;}
 .profile-photo-link{font-size:11px;color:var(--blue);font-weight:600;cursor:pointer;display:inline-block;margin-top:3px;}
 .profile-photo-link:hover{text-decoration:underline;}
+.profile-photo-editor{margin-bottom:16px;text-align:center;}
+.profile-photo-preview{display:grid;place-items:center;width:92px;height:92px;margin:0 auto 12px;border-radius:50%;overflow:hidden;background:var(--tan);color:var(--navy);font-size:32px;font-weight:700;}
+.profile-photo-crop-controls{width:100%;max-width:280px;margin:0 auto 16px;}
+.profile-photo-crop{position:relative;width:100%;max-width:220px;aspect-ratio:1;margin:0 auto;border-radius:50%;overflow:hidden;background:#fff;touch-action:none;cursor:grab;}
+.profile-photo-crop:active{cursor:grabbing;}
+.profile-photo-crop:focus-visible{outline:3px solid var(--blue);outline-offset:4px;}
+.profile-photo-crop img{position:absolute;max-width:none;max-height:none;pointer-events:none;user-select:none;}
+.profile-photo-crop-controls input[type="range"]{display:block;width:100%;margin:10px 0;}
+.profile-photo-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;}
+.profile-avatar-image{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.avatar-btn:has(.profile-avatar-image){padding:0;overflow:hidden;}
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--bg);}
 .setrow:last-child{border-bottom:none;}
 .setrow .l{font-size:12.5px;font-weight:600;}

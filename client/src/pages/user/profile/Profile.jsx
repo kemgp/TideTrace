@@ -1,3 +1,4 @@
+import ProfilePhoto from "../../../components/ProfilePhoto.jsx";
 import UsageActivity from "../../../components/UsageActivity.jsx";
 import React, { useState } from "react";
 import { useApp } from "../../../context/AppContext.jsx";
@@ -84,22 +85,13 @@ export default function Profile() {
 
               <div className="user-account-header">
 
-                <span
-                  className="avatar"
-                  aria-hidden="true"
-                >
-                  {profile?.display_name
-                    ?.trim()
-                    .charAt(0)
-                    .toUpperCase()}
-                </span>
-
                 <div><strong>
                   {profile?.display_name}
                 </strong><p className="hint">Your community account</p></div>
 
               </div>
 
+              <ProfilePhoto />
               <ProfileNameForm />
 
             </div>

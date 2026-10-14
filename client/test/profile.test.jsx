@@ -5,9 +5,23 @@ import { MemoryRouter } from "react-router-dom";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
 
+function preparePhoto() {
+  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:selected-photo");
+  vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ fillRect: vi.fn(), drawImage: vi.fn() });
+  vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((done) => done(new Blob(["cropped photo"], { type: "image/png" })));
+}
+async function previewAndSave() {
+  const preview = await screen.findByAltText("Selected photo preview");
+  Object.defineProperties(preview, { naturalWidth: { value: 800, configurable: true }, naturalHeight: { value: 600, configurable: true } });
+  fireEvent.load(preview);
+  fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
+}
+
 const ok = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
 const failure = (status = 400) => ({ ok: false, status, json: async () => ({ error: { code: "FAILED", message: "Profile save failed." } }) });
 function setup(role = "admin", handler = () => undefined) {
+  preparePhoto();
   const account = { id: "owner-id", display_name: "Original Name", email: "member@example.test", role, status: "active" };
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "live-access", refresh_token: "refresh", expires_at: Date.now() / 1000 + 3600 }));
   const calls = vi.fn(async (url, options) => {
@@ -35,7 +49,7 @@ it.each(["user", "moderator", "admin"])("persists the %s display name and reload
   fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "  Updated Name  " } });
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await screen.findByText("Display name saved.");
-  await waitFor(() => expect(screen.getByText(/Signed in as Updated Name/)).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Profile settings" }).textContent).toBe("U"));
   const writes = calls.mock.calls.filter(([url]) => url === "/api/profile");
   expect(writes).toHaveLength(1);
   expect(JSON.parse(writes[0][1].body)).toEqual({ display_name: "Updated Name" });
@@ -107,11 +121,187 @@ it.each(["admin", "moderator"])("prevents a member from opening the %s profile r
   expect(screen.queryByRole("button", { name: /Basic information/ })).toBeNull();
 });
 
-it("disables unsupported staff profile photos and preferences", async () => {
+it("keeps unsupported staff preferences disabled", async () => {
   setup("moderator"); open("/moderator/profile");
-  await screen.findByText("Profile photo uploads are not available yet.");
-  expect(screen.getByLabelText("Profile photo upload unavailable").disabled).toBe(true);
+  await screen.findByRole("button", { name: "Choose photo" });
   fireEvent.click(screen.getByRole("button", { name: /Preferences/ }));
   await screen.findByText(/Email notification preferences are not available yet/);
   expect(screen.queryByRole("button", { name: "Save Changes" })).toBeNull();
+});
+
+it.each(["user", "moderator", "admin"])("saves and restores the %s profile photo, including the navigation avatar", async (role) => {
+  const { calls } = setup(role, (url, options, account) => {
+    if (url === "/api/profile/photo") {
+      account.avatar_path = "owner-id/new-photo.png";
+      account.avatar_url = "https://example.test/new-photo.png";
+      return ok({ id: account.id, avatar_path: account.avatar_path });
+    }
+  });
+  const view = open(`/${role}/profile`);
+  const picker = await screen.findByLabelText("Choose profile photo");
+  const file = new File(["photo"], "photo.png", { type: "image/png" });
+  fireEvent.change(picker, { target: { files: [file] } });
+  await previewAndSave();
+  await screen.findByText("Profile photo saved.");
+  expect(screen.getAllByAltText("Profile photo")).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "Profile settings" }).querySelector("img").src).toBe("https://example.test/new-photo.png");
+  const writes = calls.mock.calls.filter(([url]) => url === "/api/profile/photo");
+  expect(writes).toHaveLength(1);
+  expect(writes[0][1].body).not.toBe(file);
+  expect(writes[0][1].body.name).toBe("profile-photo.png");
+  expect(writes[0][1].body.type).toBe("image/png");
+  expect(writes[0][1].headers.Authorization).toBe("Bearer live-access");
+  expect(picker.value).toBe("");
+  view.unmount();
+  open(`/${role}/profile`);
+  await screen.findByRole("button", { name: "Choose photo" });
+  expect(screen.getAllByAltText("Profile photo").every((img) => img.src === "https://example.test/new-photo.png")).toBe(true);
+});
+
+it("rejects invalid photos locally and preserves the saved photo after a rejected upload", async () => {
+  const { calls, account } = setup("user", (url) => url === "/api/profile/photo" ? failure() : undefined);
+  account.avatar_url = "https://example.test/old.png";
+  open("/user/profile");
+  const picker = await screen.findByLabelText("Choose profile photo");
+  for (const file of [new File(["svg"], "bad.svg", { type: "image/svg+xml" }), new File([], "empty.png", { type: "image/png" }), new File([new Uint8Array(5 * 1024 * 1024 + 1)], "large.png", { type: "image/png" })]) {
+    fireEvent.change(picker, { target: { files: [file] } });
+    await screen.findByText(/Choose a non-empty JPEG/);
+  }
+  expect(calls.mock.calls.filter(([url]) => url === "/api/profile/photo")).toHaveLength(0);
+  fireEvent.change(picker, { target: { files: [new File(["photo"], "photo.png", { type: "image/png" })] } });
+  await previewAndSave();
+  await screen.findByText("Profile save failed.");
+  expect(screen.queryByText("Profile photo saved.")).toBeNull();
+  expect(screen.getAllByAltText("Profile photo").every((img) => img.src === "https://example.test/old.png")).toBe(true);
+});
+
+it("reloads an uncertain photo upload without replaying the write", async () => {
+  const { calls } = setup("user", (url, options, account) => {
+    if (url === "/api/profile/photo") {
+      account.avatar_path = "owner-id/saved.png";
+      account.avatar_url = "https://example.test/saved.png";
+      throw new TypeError("Lost response");
+    }
+  });
+  open("/user/profile");
+  fireEvent.change(await screen.findByLabelText("Choose profile photo"), { target: { files: [new File(["photo"], "photo.png", { type: "image/png" })] } });
+  await previewAndSave();
+  await screen.findByText(/We could not confirm the photo change/);
+  expect(screen.getByRole("button", { name: "Choose photo" }).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Reload saved profile" }));
+  await screen.findByText("Saved profile reloaded.");
+  expect(screen.getAllByAltText("Profile photo")).toHaveLength(2);
+  expect(calls.mock.calls.filter(([url]) => url === "/api/profile/photo")).toHaveLength(1);
+});
+
+it("prevents duplicate photo uploads and discards late results after logout", async () => {
+  let finish;
+  const pending = new Promise((resolve) => { finish = resolve; });
+  const { calls } = setup("user", (url) => url === "/api/profile/photo" ? pending : undefined);
+  open("/user/profile");
+  const picker = await screen.findByLabelText("Choose profile photo");
+  const file = new File(["photo"], "photo.png", { type: "image/png" });
+  fireEvent.change(picker, { target: { files: [file] } });
+  fireEvent.change(picker, { target: { files: [file] } });
+  await previewAndSave();
+  fireEvent.click(screen.getByRole("button", { name: "Saving photo…" }));
+  await waitFor(() => expect(calls.mock.calls.filter(([url]) => url === "/api/profile/photo")).toHaveLength(1));
+  expect(screen.getByRole("button", { name: "Saving photo…" }).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  await screen.findByRole("heading", { name: "Welcome to TideTrace" });
+  await act(async () => finish(ok({ id: "owner-id", avatar_path: "owner-id/photo.png" })));
+  expect(screen.queryByText("Profile photo saved.")).toBeNull();
+});
+
+it("offers recovery when the saved photo cannot be loaded", async () => {
+  const { calls, account } = setup("user", (url, options, saved) => {
+    if (url === "/api/profile/photo") {
+      saved.avatar_path = "owner-id/photo.png";
+      return ok({ id: saved.id, avatar_path: saved.avatar_path });
+    }
+  });
+  open("/user/profile");
+  fireEvent.change(await screen.findByLabelText("Choose profile photo"), { target: { files: [new File(["photo"], "photo.png", { type: "image/png" })] } });
+  await previewAndSave();
+  await screen.findByText(/We could not confirm the photo change/);
+  expect(screen.queryByText("Profile photo saved.")).toBeNull();
+  account.avatar_url = "https://example.test/photo.png";
+  fireEvent.click(screen.getByRole("button", { name: "Reload saved profile" }));
+  await screen.findByText("Saved profile reloaded.");
+  expect(screen.getAllByAltText("Profile photo")).toHaveLength(2);
+  expect(calls.mock.calls.filter(([url]) => url === "/api/profile/photo")).toHaveLength(1);
+});
+
+it("previews without uploading, adjusts the crop, and cancels without changing saved avatars", async () => {
+  const { calls, account } = setup("user");
+  account.avatar_url = "https://example.test/saved.png";
+  open("/user/profile");
+  const picker = await screen.findByLabelText("Choose profile photo");
+  fireEvent.change(picker, { target: { files: [new File(["photo"], "photo.png", { type: "image/png" })] } });
+  const image = await screen.findByAltText("Selected photo preview");
+  expect(screen.getByRole("button", { name: "Save photo" }).disabled).toBe(true);
+  Object.defineProperties(image, { naturalWidth: { value: 800 }, naturalHeight: { value: 600 } });
+  fireEvent.load(image);
+  fireEvent.change(screen.getByRole("slider", { name: "Zoom" }), { target: { value: "2" } });
+  fireEvent.keyDown(screen.getByRole("group", { name: "Circular photo preview" }), { key: "ArrowLeft" });
+  expect(image.style.width).toBe(`${800 / 300 * 100}%`);
+  expect(image.style.left).toBe("-87.5%");
+  expect(calls.mock.calls.some(([url]) => url === "/api/profile/photo")).toBe(false);
+  expect(screen.getByRole("button", { name: "Profile settings" }).querySelector("img").src).toBe(account.avatar_url);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByAltText("Selected photo preview")).toBeNull();
+  expect(screen.getAllByAltText("Profile photo").every((img) => img.src === account.avatar_url)).toBe(true);
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:selected-photo");
+});
+
+it("uploads the crop shown in the preview only after Save photo", async () => {
+  const { calls } = setup("user", (url, options, account) => {
+    if (url === "/api/profile/photo") {
+      account.avatar_path = "owner-id/crop.png";
+      account.avatar_url = "https://example.test/crop.png";
+      return ok({ id: account.id, avatar_path: account.avatar_path });
+    }
+  });
+  open("/user/profile");
+  fireEvent.change(await screen.findByLabelText("Choose profile photo"), { target: { files: [new File(["photo"], "photo.png", { type: "image/png" })] } });
+  const image = await screen.findByAltText("Selected photo preview");
+  Object.defineProperties(image, { naturalWidth: { value: 800 }, naturalHeight: { value: 600 } });
+  fireEvent.load(image);
+  fireEvent.change(screen.getByRole("slider", { name: "Zoom" }), { target: { value: "2" } });
+  fireEvent.keyDown(screen.getByRole("group", { name: "Circular photo preview" }), { key: "ArrowLeft" });
+  fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
+  await screen.findByText("Profile photo saved.");
+  const context = HTMLCanvasElement.prototype.getContext.mock.results[0].value;
+  expect(context.drawImage).toHaveBeenCalledWith(image, 262.5, 150, 300, 300, 0, 0, 512, 512);
+  expect(calls.mock.calls.filter(([url]) => url === "/api/profile/photo")).toHaveLength(1);
+});
+
+it("handles an unreadable image without uploading or replacing the saved photo", async () => {
+  const { calls } = setup("user");
+  open("/user/profile");
+  fireEvent.change(await screen.findByLabelText("Choose profile photo"), { target: { files: [new File(["broken"], "photo.png", { type: "image/png" })] } });
+  fireEvent.error(await screen.findByAltText("Selected photo preview"));
+  await screen.findByText(/This photo could not be opened/);
+  expect(screen.queryByRole("button", { name: "Save photo" })).toBeNull();
+  expect(calls.mock.calls.some(([url]) => url === "/api/profile/photo")).toBe(false);
+});
+
+it("keeps a dragged photo within the circular preview", async () => {
+  setup("user");
+  vi.stubGlobal("PointerEvent", MouseEvent);
+  open("/user/profile");
+  fireEvent.change(await screen.findByLabelText("Choose profile photo"), { target: { files: [new File(["photo"], "photo.png", { type: "image/png" })] } });
+  const image = await screen.findByAltText("Selected photo preview");
+  Object.defineProperties(image, { naturalWidth: { value: 800 }, naturalHeight: { value: 600 } });
+  fireEvent.load(image);
+  const preview = screen.getByRole("group", { name: "Circular photo preview" });
+  preview.setPointerCapture = vi.fn();
+  vi.spyOn(preview, "getBoundingClientRect").mockReturnValue({ width: 220 });
+  fireEvent.pointerDown(preview, { button: 0, clientX: 100, clientY: 100 });
+  fireEvent.pointerMove(preview, { clientX: 1000, clientY: 1000 });
+  expect(image.style.left).toBe("0%");
+  expect(image.style.top).toBe("0%");
+  fireEvent.pointerUp(preview);
+  fireEvent.pointerMove(preview, { clientX: -1000, clientY: -1000 });
+  expect(image.style.left).toBe("0%");
 });

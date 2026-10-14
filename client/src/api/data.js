@@ -37,6 +37,8 @@ export async function requestData(path, { token, signal, method = "GET", body, f
 export function displayTrace(row) {
   const date = new Date(row.published_at || row.created_at);
   return { ...row, title: row.title || "Untitled draft", category: row.category?.name || "Uncategorized", author: row.author?.display_name || "Community member",
+    author_avatar_url: row.author?.avatar_url || null,
+    author_id: row.author_id || row.author?.id,
     location: row.location_name || "Location not supplied", when: Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString(),
     status: row.status === "revision_requested" ? "revision" : row.status };
 }

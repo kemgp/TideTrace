@@ -123,6 +123,7 @@ export function createSessionManager() {
         if (!current()) return;
         lastCheck = Date.now();
         publish({ account, ready: true, error: "", notice: "" });
+        return account;
       } catch (error) {
         if (!current() || error.code === "CANCELLED") return;
         const permanent = [400, 401, 403, 404].includes(error.status) ||

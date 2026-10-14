@@ -5,6 +5,7 @@ import {traceColor} from "./TraceCategory.jsx";
 import AdminIcon from "./AdminIcon.jsx";
 import {useApp} from "../context/AppContext.jsx";
 import {PHOTO_TYPES} from "../api/photos.js";
+import AuthorAvatar from "./AuthorAvatar.jsx";
 
 function TraceCardPhoto({trace}){
   const {readData}=useApp();
@@ -129,9 +130,9 @@ export default function TraceCard({trace,to}){
       <div className="t">{trace.title}</div>
 
       <div className="m">
-        <span>
-          {trace.author}
-          {trace.when&&` · ${trace.when}`}
+        <span className="trace-card-author">
+          <AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} />
+          <span>{trace.author}{trace.when&&` · ${trace.when}`}</span>
         </span>
 
         <span className="user-category-label">

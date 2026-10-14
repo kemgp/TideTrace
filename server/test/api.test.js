@@ -988,3 +988,80 @@ test("history filters outcomes in the database before pagination", async () => {
   await bearer(request(app).get("/api/moderation/history?outcome=invalid")).expect(400);
   assert.equal(businessCalls(calls).length, 0);
 });
+
+test("profile photo upload uses the caller's private storage path and persists it", async () => {
+  for (const role of ["user", "moderator", "admin"]) {
+    const { app, calls } = fixture({ role, handler: ({ url, body }) => {
+      if (url.pathname.startsWith("/storage/v1/object/profile-photos/")) return json({ Key: "uploaded" });
+      if (url.pathname === "/rest/v1/rpc/set_profile_photo") return json({ id: userId, avatar_path: body.p_object_path });
+    } });
+    const png = Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
+    const response = await bearer(request(app).post("/api/profile/photo")).set("Content-Type", "image/png").send(png).expect(201);
+    assert.equal(response.body.data.id, userId);
+    assert.match(response.body.data.avatar_path, new RegExp(`^${userId}/[0-9a-f-]+\\.png$`));
+    assert.equal(businessCalls(calls).length, 2);
+    assert.ok(businessCalls(calls).every(({ headers }) => headers.get("authorization") === "Bearer member-token"));
+  }
+});
+
+test("invalid or unauthorized profile uploads never write to storage", async () => {
+  const { app, calls } = fixture();
+  await request(app).post("/api/profile/photo").set("Content-Type", "image/png").send(Buffer.alloc(12)).expect(401);
+  await bearer(request(app).post("/api/profile/photo")).set("Content-Type", "image/svg+xml").send("<svg/>").expect(415);
+  await bearer(request(app).post("/api/profile/photo")).set("Content-Type", "image/png").send(Buffer.alloc(12)).expect(400);
+  await bearer(request(app).post("/api/profile/photo")).set("Content-Type", "image/png").send(Buffer.alloc(5 * 1024 * 1024 + 1)).expect(413);
+  assert.equal(businessCalls(calls).length, 0);
+  const suspended = fixture({ status: "suspended" });
+  await bearer(request(suspended.app).post("/api/profile/photo")).set("Content-Type", "image/png").send(Buffer.alloc(12)).expect(403);
+  assert.equal(businessCalls(suspended.calls).length, 0);
+});
+
+test("session profiles return the saved photo URL without blocking sign-in on storage failure", async () => {
+  for (const unavailable of [false, true]) {
+    const path = `${userId}/photo.png`;
+    const { app } = fixture({ handler: ({ url }) => {
+      if (url.pathname === "/rest/v1/rpc/get_my_profile") return json([{ id: userId, display_name: "Member", role: "user", status: "active", avatar_path: path }]);
+      if (url.pathname.startsWith("/storage/v1/object/sign/profile-photos/")) return unavailable ? json({ message: "Unavailable" }, 503) : json({ signedURL: `/object/sign/profile-photos/${path}?token=signed` });
+    } });
+    const { body } = await bearer(request(app).get("/api/auth/me")).expect(200);
+    assert.equal(body.data.avatar_path, path);
+    if (unavailable) assert.equal(body.data.avatar_url, null);
+    else assert.match(body.data.avatar_url, /photo\.png\?token=signed$/);
+  }
+});
+
+test("posted Trace lists and details sign the author's current photo for viewers", async () => {
+  const path = `${userId}/current.png`;
+  const author = { id: userId, display_name: "Author", avatar_path: path };
+  const { app, calls } = fixture({ handler: ({ url, body }) => {
+    if (url.pathname === "/rest/v1/traces") return json([{ id: traceId, author }, { id: "another-trace", author }]);
+    if (url.pathname === "/storage/v1/object/sign/profile-photos") {
+      assert.deepEqual(body, { paths: [path], expiresIn: 3600 });
+      return json([{ path, signedURL: `/object/sign/profile-photos/${path}?token=signed`, error: null }]);
+    }
+  } });
+  const feed = await request(app).get("/api/traces").expect(200);
+  assert.equal(feed.body.data.length, 2);
+  for (const row of feed.body.data) {
+    assert.match(row.author.avatar_url, /current.png\?token=signed$/);
+    assert.equal(row.author.avatar_path, undefined);
+  }
+  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/")).length, 1);
+  const detail = await request(app).get(`/api/traces/${traceId}`).expect(200);
+  assert.match(detail.body.data.author.avatar_url, /current.png\?token=signed$/);
+  assert.match(calls[0].url.searchParams.get("select"), /display_name,avatar_path/);
+});
+
+test("missing author photos and signing failures do not hide posted Traces", async () => {
+  for (const mode of ["missing", "denied", "outage"]) {
+    const { app, calls } = fixture({ handler: ({ url }) => {
+      if (url.pathname === "/rest/v1/traces") return json([{ id: traceId, title: "Readable trace", author: { id: userId, display_name: "Author", avatar_path: mode === "missing" ? null : `${userId}/photo.png` } }]);
+      if (url.pathname === "/storage/v1/object/sign/profile-photos") return mode === "outage" ? json({ message: "Unavailable" }, 503) : json([{ path: `${userId}/photo.png`, signedURL: null, error: "Not found" }]);
+    } });
+    const response = await request(app).get(`/api/traces/${traceId}`).expect(200);
+    assert.equal(response.body.data.title, "Readable trace");
+    assert.equal(response.body.data.author.avatar_url, null);
+    if (mode === "missing") assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+  }
+
+});

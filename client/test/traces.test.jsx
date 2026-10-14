@@ -224,3 +224,54 @@ it("starts navigation requests without a timer and keeps skeletons until data ar
     expect(screen.getByText("Saved description")).toBeTruthy();
   } finally { vi.useRealTimers(); }
 });
+
+it("shows the Trace author's saved photo in the feed and detail, not the viewer's photo", async () => {
+  const saved = trace({ author_id: "other-member", author: { id: "other-member", display_name: "Coastal Observer", avatar_url: "https://example.test/observer.png" } });
+  setup((url) => {
+    if (url.startsWith("/api/traces?")) return response([saved]);
+    if (url === `/api/traces/${saved.id}`) return response(saved);
+  });
+  open();
+  expect((await screen.findByAltText("Coastal Observer's profile photo")).src).toBe("https://example.test/observer.png");
+  fireEvent.click(screen.getByText(saved.title));
+  await screen.findByText(saved.description);
+  expect(screen.getByAltText("Coastal Observer's profile photo").src).toBe("https://example.test/observer.png");
+});
+
+it("uses an initial when an author's photo fails and keeps the posted Trace readable", async () => {
+  setup((url) => url === `/api/traces/${trace().id}` ? response(trace({ author_id: "other-member", author: { display_name: "Coastal Observer", avatar_url: "https://example.test/missing.png" } })) : undefined);
+  open(`/user/traces/${trace().id}`);
+  const photo = await screen.findByAltText("Coastal Observer's profile photo");
+  fireEvent.error(photo);
+  expect(screen.queryByAltText("Coastal Observer's profile photo")).toBeNull();
+  expect(screen.getByText("C").closest(".author-avatar")).toBeTruthy();
+  expect(screen.getByText("Saved description")).toBeTruthy();
+});
+
+it("shows the latest author photo when a posted Trace is reopened", async () => {
+  let photo = "https://example.test/old.png";
+  setup((url) => url === `/api/traces/${trace().id}` ? response(trace({ author_id: "other-member", author: { display_name: "Coastal Observer", avatar_url: photo } })) : undefined);
+  const view = open(`/user/traces/${trace().id}`);
+  expect((await screen.findByAltText("Coastal Observer's profile photo")).src).toBe(photo);
+  view.unmount();
+  photo = "https://example.test/new.png";
+  open(`/user/traces/${trace().id}`);
+  expect((await screen.findByAltText("Coastal Observer's profile photo")).src).toBe(photo);
+});
+
+it("uses the same saved photo for the navbar and own Traces even if a feed snapshot is stale", async () => {
+  const savedPhoto = "https://example.test/current-crop.png";
+  const stalePhoto = "https://example.test/old-uncropped-photo.png";
+  setup((url) => {
+    if (url.startsWith("/api/traces?")) return response([trace({ author: { id: profile.id, display_name: profile.display_name, avatar_url: stalePhoto } })]);
+    if (url === `/api/traces/${trace().id}`) return response(trace({ author: { id: profile.id, display_name: profile.display_name, avatar_url: stalePhoto } }));
+  });
+  const fetchRecords = window.fetch;
+  vi.stubGlobal("fetch", vi.fn((url, options) => url === "/api/auth/me" ? Promise.resolve(response({ ...profile, avatar_url: savedPhoto })) : fetchRecords(url, options)));
+  open();
+  expect((await screen.findByAltText("Actual Member's profile photo")).src).toBe(savedPhoto);
+  expect(screen.getByRole("button", { name: "Profile settings" }).querySelector("img").src).toBe(savedPhoto);
+  fireEvent.click(screen.getByText("Saved seagrass survey"));
+  await screen.findByText("Saved description");
+  expect(screen.getByAltText("Actual Member's profile photo").src).toBe(savedPhoto);
+});

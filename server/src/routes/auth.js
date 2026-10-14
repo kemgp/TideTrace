@@ -48,7 +48,17 @@ export function authRoutes(gateway, config) {
   });
   // Suspended users can inspect their account, change their password and sign out.
   router.use(authenticate(gateway, { active: false }));
-  router.get("/me", (req, res) => res.json({ data: { ...req.profile, email: req.user.email } }));
+  router.get("/me", async (req, res) => {
+    let avatar_url = null;
+    if (req.profile.avatar_path) {
+      // A storage outage must not prevent sign-in or account recovery.
+      try {
+        const { data, error } = await req.db.storage.from("profile-photos").createSignedUrl(req.profile.avatar_path, 3600);
+        if (!error) avatar_url = data?.signedUrl || null;
+      } catch { /* Keep the initials fallback until the next session refresh. */ }
+    }
+    res.json({ data: { ...req.profile, email: req.user.email, avatar_url } });
+  });
   router.put("/password", async (req, res) => {
     const body = z.object({ password: z.string().min(8).max(128), nonce: z.string().max(100).optional() }).strict().parse(req.body);
     await gateway.auth("user", { method: "PUT", token: req.token, body });

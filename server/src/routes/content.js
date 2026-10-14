@@ -3,9 +3,10 @@ import { z } from "zod";
 import { authenticate } from "../middleware.js";
 import { first, result, upstreamError } from "../errors.js";
 import { coordinatePair, draft, page, paginate, report, text, uuid, version } from "../validation.js";
+import { withAuthorPhotos } from "../profilePhotos.js";
 
 export const reviewSelect = "id,from_state,to_state,reason,created_at";
-export const traceSelect = "*,category:categories(id,name),author:profiles!traces_author_id_fkey(id,display_name),trace_media(*)";
+export const traceSelect = "*,category:categories(id,name),author:profiles!traces_author_id_fkey(id,display_name,avatar_path),trace_media(*)";
 const publicTraces = (db) => db.from("traces").select(traceSelect).eq("status", "approved").eq("is_hidden", false).is("deleted_at", null);
 
 export function contentRoutes(gateway) {
@@ -27,11 +28,12 @@ export function contentRoutes(gateway) {
     const query = page.extend({ category_id: uuid.optional() }).parse(req.query);
     let feed = publicTraces(req.db).order("published_at", { ascending: false }).order("id");
     if (query.category_id) feed = feed.eq("category_id", query.category_id);
-    send(res, await result(paginate(feed, query)));
+    send(res, await withAuthorPhotos(req.db, await result(paginate(feed, query))));
   });
   router.get("/traces/:id", async (req, res) => {
     // Always a public detail; private submissions have a separate member route.
-    send(res, first(await result(publicTraces(req.db).eq("id", uuid.parse(req.params.id)).limit(1))));
+    const row = first(await result(publicTraces(req.db).eq("id", uuid.parse(req.params.id)).limit(1)));
+    send(res, (await withAuthorPhotos(req.db, [row]))[0]);
   });
   router.get("/traces/:id/comments", async (req, res) => {
     const id = uuid.parse(req.params.id);
@@ -71,10 +73,12 @@ export function contentRoutes(gateway) {
     send(res, first(await result(req.db.from("profiles").update(body).eq("id", req.user.id).select("id,display_name"))));
   });
   router.get("/contributions", member, async (req, res) => {
-    send(res, await result(paginate(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).order("created_at", { ascending: false }).order("id"), page.parse(req.query))));
+    const rows = await result(paginate(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).order("created_at", { ascending: false }).order("id"), page.parse(req.query)));
+    send(res, await withAuthorPhotos(req.db, rows));
   });
   router.get("/contributions/:id", member, async (req, res) => {
-    send(res, first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).eq("id", uuid.parse(req.params.id)).limit(1))));
+    const row = first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).eq("id", uuid.parse(req.params.id)).limit(1)));
+    send(res, (await withAuthorPhotos(req.db, [row]))[0]);
   });
   router.get("/contributions/:id/reviews", member, async (req, res) => {
     const id = uuid.parse(req.params.id);

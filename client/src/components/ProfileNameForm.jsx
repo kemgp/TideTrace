@@ -51,7 +51,7 @@ function NameForm() {
         <div className="settings-field full"><label className="lbl" htmlFor="profile-display-name">Full name</label><input className="input" id="profile-display-name" value={name} maxLength={100} autoComplete="name" onChange={(event) => { setName(event.target.value); setError(""); setNotice(""); }} /></div>
         <div className="settings-field"><label className="lbl" htmlFor="profile-email">Email address</label><input className="input" id="profile-email" type="email" value={profile.email || ""} readOnly /></div>
       </div>
-      <p className="hint">Email changes, profile photos and community details are not available yet.</p>
+      <p className="hint">Email changes and community details are not available yet.</p>
       <button className="btn blue settings-save" type="submit">{busy ? "Saving…" : "Save changes"}</button>
     </fieldset>
     {error && <p role="alert">{error}</p>}

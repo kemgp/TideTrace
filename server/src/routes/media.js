@@ -23,6 +23,17 @@ export function mediaRoutes(gateway) {
     windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false,
     handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Upload limit reached. Try again later.", request_id: req.requestId } }),
   });
+  router.post("/profile/photo", member, uploadLimit, (req, res, next) => {
+    req.mediaType = req.get("Content-Type")?.split(";")[0].toLowerCase();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(req.mediaType)) throw new HttpError(415, "UNSUPPORTED_MEDIA", "Choose a JPEG, PNG or WebP photo.");
+    next();
+  }, raw({ type: () => true, limit: "5mb" }), async (req, res) => {
+    if (!matchesFileType(req.body, req.mediaType)) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
+    const path = `${req.user.id}/${randomUUID()}.${formats[req.mediaType]}`;
+    await result(req.db.storage.from("profile-photos").upload(path, req.body, { contentType: req.mediaType, upsert: false }));
+    const saved = await result(req.db.rpc("set_profile_photo", { p_object_path: path }));
+    res.status(201).json({ data: { id: saved.id, avatar_path: saved.avatar_path } });
+  });
   router.post("/traces/:id/media", member, uploadLimit, (req, res, next) => {
     req.mediaType = req.get("Content-Type")?.split(";")[0].toLowerCase();
     if (!Object.hasOwn(formats, req.mediaType || "")) throw new HttpError(415, "UNSUPPORTED_MEDIA", "Upload a JPEG, PNG, WebP or MP4 as the raw request body.");

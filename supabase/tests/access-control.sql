@@ -38,6 +38,23 @@ select tidetrace_test.reject($q$select * from public.admin_list_profiles()$q$,'4
 select tidetrace_test.reject($q$insert into public.notifications(recipient_id,type,message) values(auth.uid(),'forged','Forged')$q$,'42501');
 select tidetrace_test.reject($q$select * from public.profiles$q$,'42501');
 update public.profiles set display_name='Updated Member' where id=auth.uid();
+-- Profile photos are private, account-owned, and can only reference uploaded images.
+select tidetrace_test.reject($q$update public.profiles set avatar_path='forged.png' where id=auth.uid()$q$,'42501');
+select tidetrace_test.reject($q$select public.set_profile_photo(auth.uid()::text||'/missing.png')$q$,'42501');
+insert into storage.objects(bucket_id,name,owner_id,metadata)
+values('profile-photos',auth.uid()::text||'/avatar.png',auth.uid()::text,'{"mimetype":"image/png","size":4096}');
+select public.set_profile_photo(auth.uid()::text||'/avatar.png');
+select tidetrace_test.assert_ok((select avatar_path=auth.uid()::text||'/avatar.png' from public.get_my_profile()),'Photo path persists on own profile');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
+select tidetrace_test.assert_ok((select count(*)=0 from storage.objects where bucket_id='profile-photos'),'Other members cannot read profile uploads');
+select tidetrace_test.reject($q$select public.set_profile_photo('10000000-0000-0000-0000-000000000002/avatar.png')$q$,'42501');
+select tidetrace_test.reject($q$insert into storage.objects(bucket_id,name,owner_id,metadata) values('profile-photos','10000000-0000-0000-0000-000000000002/forged.png',auth.uid()::text,'{}')$q$,'42501');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select tidetrace_test.assert_ok((select count(*)=1 from storage.objects where bucket_id='profile-photos'),'Owner can read profile photo');
+insert into storage.objects(bucket_id,name,owner_id,metadata)
+values('profile-photos',auth.uid()::text||'/old-avatar.png',auth.uid()::text,'{"mimetype":"image/png","size":4096}');
+select public.set_profile_photo(auth.uid()::text||'/old-avatar.png');
+select public.set_profile_photo(auth.uid()::text||'/avatar.png');
 -- The ERD requires an image; a video-only draft must remain unsubmitted.
 select set_config('test.video_trace_id',id::text,true) from public.save_trace_draft(null,null,'Video only','Video evidence',current_setting('test.category_id')::uuid,'Coast',null,null);
 insert into storage.objects(bucket_id,name,owner_id,metadata)
@@ -89,6 +106,9 @@ select tidetrace_test.reject($q$delete from public.moderation_actions$q$,'42501'
 set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 select tidetrace_test.assert_ok((select count(*)=1 from public.traces where id=current_setting('test.trace_id')::uuid),'Approved Trace is public');
+select tidetrace_test.assert_ok((select count(*)=1 from storage.objects where bucket_id='profile-photos'),'Only current published author photo is public');
+select tidetrace_test.assert_ok((select count(*)=0 from storage.objects where bucket_id='profile-photos' and name like '%/old-avatar.png'),'Replaced profile photo remains private');
+select tidetrace_test.assert_ok((select avatar_path='10000000-0000-0000-0000-000000000002/avatar.png' from public.profiles where id='10000000-0000-0000-0000-000000000002'),'Public author photo projection is readable');
 select tidetrace_test.assert_ok((select count(*)=1 from storage.objects where bucket_id='trace-media'),'Approved evidence is public through private-bucket policy');
 select tidetrace_test.assert_ok((select display_name='Updated Member' from public.profiles where id='10000000-0000-0000-0000-000000000002'),'Public author name is readable');
 
@@ -139,6 +159,7 @@ set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 select tidetrace_test.assert_ok((select count(*)=0 from public.traces where id=current_setting('test.trace_id')::uuid),'Hidden approved Trace is private');
 select tidetrace_test.assert_ok((select count(*)=0 from storage.objects where bucket_id='trace-media'),'Hidden evidence is private');
+select tidetrace_test.assert_ok((select count(*)=0 from storage.objects where bucket_id='profile-photos'),'Author without a visible published Trace has no public photo');
 select tidetrace_test.assert_ok((select count(*)=0 from public.comments where trace_id=current_setting('test.trace_id')::uuid),'Hidden Trace comments are private');
 
 set local role authenticated;

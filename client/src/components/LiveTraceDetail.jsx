@@ -11,6 +11,7 @@ import TraceFeedback from "./TraceFeedback.jsx";
 import Card from "./Card.jsx";
 import ReportContent from "./ReportContent.jsx";
 import TraceComments from "./TraceComments.jsx";
+import AuthorAvatar from "./AuthorAvatar.jsx";
 import "./trace-detail.css";
 
 export default function LiveTraceDetail({ contribution = false }) {
@@ -45,7 +46,7 @@ function TraceContent({ initialTrace, contribution }) {
       {fieldError("category_id")}
       {fieldError("location_name")}
       <TraceMap latitude={current.latitude} longitude={current.longitude} />
-      <div className="trace-detail__author">{!contribution && <span className="avatar trace-detail__avatar" aria-hidden="true" />}<p className="hint"><span>{trace.author}</span>{!contribution && trace.when && <> · {trace.when}</>}</p></div>
+      <div className="trace-detail__author"><AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} /><p className="hint"><span>{trace.author}</span>{!contribution && trace.when && <> · {trace.when}</>}</p></div>
       <div className="divider" />
       <span className="lbl">Description</span>
       <p className="trace-detail__description">{trace.description || "No description supplied."}</p>

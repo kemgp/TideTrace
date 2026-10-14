@@ -187,3 +187,5 @@ Implementation references: [Supabase Auth REST endpoints](https://github.com/sup
 ### Tides integration verification
 
 `npm run verify:tides` checks the configured project's published lesson reads and anonymous admin-route restrictions without writing records. Set an existing short-lived `TIDETRACE_VERIFY_ACCESS_TOKEN` only in the environment to additionally verify admin/non-admin reads. No new migration is required for the lesson editor: existing RLS, publication and `updated_at` triggers are used. Tides creation/update still uses the caller JWT, never a service-role key. Duplicate slugs return 409 `ALREADY_EXISTS`; publication requires non-empty content. Learning progress, lesson images and rich formatting are not implemented.
+
+Profile photo changes use `POST /api/profile/photo` with a raw JPEG, PNG or WebP body (maximum 5 MiB). Apply `supabase/migrations/20261014000100_profile_photos.sql` first. Photos are stored privately under the authenticated account and returned as signed URLs in `GET /api/auth/me`.
