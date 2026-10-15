@@ -116,13 +116,13 @@ it("paginates the server feed and resets the page when selecting a category", as
 });
 
 it("loads the current account's contributions including drafts and revision requests", async () => {
-  const calls = setup((url) => url.startsWith("/api/contributions?") ? response([trace({ status: "draft", title: "My saved draft" }), trace({ id: "revision-id", status: "revision_requested", title: "My revision" })]) : undefined);
+  const calls = setup((url) => url.startsWith("/api/contributions?") ? response(url.includes("status=revision_requested") ? [trace({ id: "revision-id", status: "revision_requested", title: "My revision" })] : [trace({ status: "draft", title: "My saved draft" }), trace({ id: "revision-id", status: "revision_requested", title: "My revision" })]) : undefined);
   open("/user/contributions");
   expect(await screen.findByText("My saved draft")).toBeTruthy();
   expect(screen.getByText("My revision")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Needs revision" }));
   expect(screen.queryByText("My saved draft")).toBeNull();
-  expect(screen.getByText("My revision")).toBeTruthy();
+  expect(await screen.findByText("My revision")).toBeTruthy();
   expect(calls.mock.calls.some(([url]) => url === "/api/contributions?limit=6&offset=0")).toBe(true);
 });
 
@@ -179,16 +179,25 @@ it("keeps the archive usable when categories fail and can retry categories separ
   expect(await screen.findByRole("button", { name: "Seagrass" })).toBeTruthy();
 });
 
-it("searches displayed records by author and location without showing unrelated matches", async () => {
-  setup((url) => url.startsWith("/api/traces?") ? response([trace(), trace({ id: "other", title: "Another survey", location_name: "Other coast", author: { display_name: "Other Member" } })]) : undefined);
+it("searches the full archive through the API and preserves category filtering", async () => {
+  const calls = setup((url) => {
+    if (!url.startsWith("/api/traces?")) return;
+    const params = new URL(url, "https://example.test").searchParams;
+    if (params.get("q") === "distant coast") return response([trace({ title: "Previously unloaded trace" })]);
+    if (params.get("q")) return response([]);
+    return response([trace()]);
+  });
   open();
   await screen.findByText("Saved seagrass survey");
-  fireEvent.change(screen.getByPlaceholderText(/Search this page/), { target: { value: "Actual Member" } });
-  expect(screen.getByText("Saved seagrass survey")).toBeTruthy();
-  expect(screen.queryByText("Another survey")).toBeNull();
-  fireEvent.change(screen.getByPlaceholderText(/Search this page/), { target: { value: "other coast" } });
-  expect(screen.getByText("Another survey")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Seagrass" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Search traces" }), { target: { value: "distant coast" } });
+  expect(await screen.findByText("Previously unloaded trace")).toBeTruthy();
   expect(screen.queryByText("Saved seagrass survey")).toBeNull();
+  expect(calls.mock.calls.some(([url]) => url.includes("q=distant%20coast") && url.includes(`category_id=${category.id}`) && url.includes("offset=0"))).toBe(true);
+  fireEvent.change(screen.getByRole("textbox", { name: "Search traces" }), { target: { value: "no match" } });
+  expect(await screen.findByText("No traces match your search.")).toBeTruthy();
+  fireEvent.change(screen.getByRole("textbox", { name: "Search traces" }), { target: { value: "" } });
+  expect(await screen.findByText("Saved seagrass survey")).toBeTruthy();
 });
 
 it("discards a private read that finishes after logout", async () => {
@@ -295,4 +304,30 @@ it("shows commenter photos, uses the current viewer photo for own comments and f
   expect(screen.getByText("No uploaded avatar").closest(".comment").querySelector(".author-avatar").textContent).toBe("N");
   fireEvent.error(other);
   expect(screen.getByText("Another observation").closest(".comment").querySelector(".author-avatar").textContent).toBe("C");
+});
+
+it("filters contributions before paging and resets the page when changing status", async () => {
+  const calls = setup((url) => {
+    if (!url.startsWith("/api/contributions?")) return;
+    const params = new URL(url, "https://example.test").searchParams;
+    const status = params.get("status");
+    const offset = Number(params.get("offset"));
+    if (status === "rejected") return response([]);
+    return response(Array.from({ length: 6 }, (_, i) => trace({ id: `${status || "all"}-${offset + i}`, title: `${status || "all"} contribution ${offset + i}`, status: status || "draft" })));
+  });
+  open("/user/contributions");
+  await screen.findByText("all contribution 0");
+  fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+  await screen.findByText("all contribution 6");
+  fireEvent.click(screen.getByRole("button", { name: "Approved" }));
+  await screen.findByText("approved contribution 0");
+  expect(screen.getByText("Page 1")).toBeTruthy();
+  expect(screen.queryByText("all contribution 6")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+  await screen.findByText("approved contribution 6");
+  expect(calls.mock.calls.some(([url]) => url === "/api/contributions?limit=6&offset=6&status=approved")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+  await screen.findByText("No contributions match this status.");
+  fireEvent.click(screen.getByRole("button", { name: "All", exact: true }));
+  await screen.findByText("all contribution 0");
 });

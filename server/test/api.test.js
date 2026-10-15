@@ -1123,3 +1123,34 @@ test("visible comments include their authors' signed photos without leaking obje
   assert.equal(query.get("status"), "eq.visible");
   assert.match(query.get("select"), /display_name,avatar_path/);
 });
+
+
+test("archive search passes literal text to the RPC and paginates filtered matches", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/search_public_traces" ? json([]) : undefined });
+  const q = '  reef%,()_  ';
+  await request(app).get("/api/traces").query({ q, category_id: categoryId, limit: 10, offset: 20 }).expect(200);
+  const call = calls.find(c => c.url.pathname === "/rest/v1/rpc/search_public_traces");
+  assert.deepEqual(call.body, { p_query: q.trim() });
+  assert.equal(call.url.searchParams.get("category_id"), `eq.${categoryId}`);
+  assert.equal(call.url.searchParams.get("offset"), "20");
+  assert.equal(call.url.searchParams.get("limit"), "10");
+  assert.equal(call.url.searchParams.get("order"), "published_at.desc,id.asc");
+  await request(app).get("/api/traces").query({ q: "a".repeat(201) }).expect(400);
+});
+
+test("contribution status filters are validated and applied with owner scope before pagination", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([]) : undefined });
+  for (const status of ["draft", "pending", "approved", "revision_requested", "rejected"]) {
+    await bearer(request(app).get("/api/contributions").query({ status, limit: 6, offset: 12 })).expect(200);
+    const query = businessCalls(calls).at(-1).url.searchParams;
+    assert.equal(query.get("author_id"), `eq.${userId}`);
+    assert.equal(query.get("status"), `eq.${status}`);
+    assert.equal(query.get("limit"), "6");
+    assert.equal(query.get("offset"), "12");
+    assert.equal(query.get("order"), "created_at.desc,id.asc");
+  }
+  const before = businessCalls(calls).length;
+  await bearer(request(app).get("/api/contributions?status=unknown")).expect(400);
+  await bearer(request(app).get(`/api/contributions?author_id=${traceId}`)).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});

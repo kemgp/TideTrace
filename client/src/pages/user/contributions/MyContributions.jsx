@@ -13,12 +13,12 @@ const FILTER_LABELS = { All: "All", draft: "Draft", pending: "Pending", approved
 
 export default function MyContributions() {
   const [offset, setOffset] = useState(0);
-  const result = useRemoteData(`contributions?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const navigate = useNavigate();
   const [filter, setFilter] = useState("All");
+  const status = filter === "revision" ? "revision_requested" : filter;
+  const result = useRemoteData(`contributions?limit=${PAGE_SIZE}&offset=${offset}${filter === "All" ? "" : `&status=${status}`}`, { collection: true });
 
   const mine = (result.data || []).map(displayTrace);
-  const filtered = filter === "All" ? mine : mine.filter((t) => t.status === filter);
 
   return (
     <div className="wrap">
@@ -27,7 +27,7 @@ export default function MyContributions() {
           <div>
             <span className="eyebrow">My contributions</span>
             <h2>Your traces &amp; their status</h2>
-            <p>Your saved submissions, including drafts. Status filters apply to the current page.</p>
+            <p>Your saved submissions, including drafts. Filter by status across all your contributions.</p>
           </div>
           <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>New Trace</Button>
         </div>
@@ -35,14 +35,14 @@ export default function MyContributions() {
 
       <div className="chiprow" style={{ marginBottom: 20 }}>
         {FILTERS.map((f) => (
-          <button key={f} className={`chip ${filter === f ? "on" : ""}`} onClick={() => setFilter(f)}>{FILTER_LABELS[f]}</button>
+          <button key={f} className={`chip ${filter === f ? "on" : ""}`} aria-pressed={filter === f} onClick={() => { setFilter(f); setOffset(0); }}>{FILTER_LABELS[f]}</button>
         ))}
       </div>
 
       <RemoteState {...result} />
-      {!result.loading && !result.error && (filtered.length > 0 ? (
+      {!result.loading && !result.error && (mine.length > 0 ? (
         <div className="user-contributions">
-          {filtered.map((t) => (
+          {mine.map((t) => (
             <Link className="lrow user-contribution" key={t.id} to={`/user/contributions/${encodeURIComponent(t.id)}`}><TraceCategory category={t.category} />
               <div className="grow">
                 <div className="t">{t.title}</div>
@@ -58,7 +58,7 @@ export default function MyContributions() {
           ))}
         </div>
       ) : (
-        <div className="ph" style={{ marginTop: 10 }}>{filter === "All" ? "No saved contributions on this page." : "No contributions on this page match this status."}</div>
+        <div className="ph" style={{ marginTop: 10 }}>{filter === "All" ? "No saved contributions on this page." : "No contributions match this status."}</div>
       ))}
       <Pagination offset={offset} count={mine.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
     </div>

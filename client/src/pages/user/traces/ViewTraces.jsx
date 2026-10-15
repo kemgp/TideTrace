@@ -14,20 +14,8 @@ export default function ViewTraces() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("All");
-  const result = useRemoteData(`traces?limit=${PAGE_SIZE}&offset=${offset}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true });
+  const result = useRemoteData(`traces?limit=${PAGE_SIZE}&offset=${offset}${query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true });
   const traces = useMemo(() => (result.data || []).map(displayTrace), [result.data]);
-
-  const filtered = useMemo(() => {
-    return traces.filter((t) => {
-      const matchesCat = cat === "All" || t.category_id === cat;
-      const matchesQuery =
-        !query ||
-        t.title.toLowerCase().includes(query.toLowerCase()) ||
-        t.author.toLowerCase().includes(query.toLowerCase()) ||
-        t.location.toLowerCase().includes(query.toLowerCase());
-      return matchesCat && matchesQuery;
-    });
-  }, [traces, query, cat]);
 
   return (
     <div className="wrap">
@@ -47,7 +35,7 @@ export default function ViewTraces() {
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#6b7f9e" strokeWidth={2}>
             <circle cx={11} cy={11} r={7} /><path d="m21 21-4-4" />
           </svg>
-          <input placeholder="Search this page: traces, people, places…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input aria-label="Search traces" maxLength={200} placeholder="Search all traces, people, places…" value={query} onChange={(e) => { setQuery(e.target.value); setOffset(0); }} />
         </div>
       </div>
 
@@ -60,12 +48,12 @@ export default function ViewTraces() {
 
       <RemoteState compact {...categoriesResult} loading={categoriesResult.loading && !result.loading} />
       <RemoteState {...result} />
-      {!result.loading && !result.error && (filtered.length > 0 ? (
+      {!result.loading && !result.error && (traces.length > 0 ? (
         <div className="g3">
-          {filtered.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} />)}
+          {traces.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} />)}
         </div>
       ) : (
-        <div className="ph" style={{ marginTop: 10 }}>{query ? "No traces on this page match your search." : "No approved traces found."}</div>
+        <div className="ph" style={{ marginTop: 10 }}>{query ? "No traces match your search." : "No approved traces found."}</div>
       ))}
       <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
     </div>

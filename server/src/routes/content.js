@@ -25,8 +25,9 @@ export function contentRoutes(gateway) {
     send(res, await result(req.db.from("categories").select("*").eq("is_active", true).order("name")));
   });
   router.get("/traces", async (req, res) => {
-    const query = page.extend({ category_id: uuid.optional() }).parse(req.query);
-    let feed = publicTraces(req.db).order("published_at", { ascending: false }).order("id");
+    const query = page.extend({ category_id: uuid.optional(), q: z.string().trim().max(200).optional() }).parse(req.query);
+    let feed = (query.q ? req.db.rpc("search_public_traces", { p_query: query.q }).select(traceSelect) : publicTraces(req.db))
+      .order("published_at", { ascending: false }).order("id");
     if (query.category_id) feed = feed.eq("category_id", query.category_id);
     send(res, await withAuthorPhotos(req.db, await result(paginate(feed, query))));
   });
@@ -74,7 +75,10 @@ export function contentRoutes(gateway) {
     send(res, first(await result(req.db.from("profiles").update(body).eq("id", req.user.id).select("id,display_name"))));
   });
   router.get("/contributions", member, async (req, res) => {
-    const rows = await result(paginate(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).order("created_at", { ascending: false }).order("id"), page.parse(req.query)));
+    const query = page.extend({ status: z.enum(["draft", "pending", "approved", "revision_requested", "rejected"]).optional() }).parse(req.query);
+    let contributions = req.db.from("traces").select(traceSelect).eq("author_id", req.user.id);
+    if (query.status) contributions = contributions.eq("status", query.status);
+    const rows = await result(paginate(contributions.order("created_at", { ascending: false }).order("id"), query));
     send(res, await withAuthorPhotos(req.db, rows));
   });
   router.get("/contributions/:id", member, async (req, res) => {

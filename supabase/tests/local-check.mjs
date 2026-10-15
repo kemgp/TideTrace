@@ -67,6 +67,9 @@ try {
   console.log(`PASS: ${checks.match(/select tidetrace_test\.(assert_ok|reject)\(/g).length} access-control and workflow assertions; fixtures rolled back.`);
   await db.exec(await readFile(new URL('./photo-management.sql', import.meta.url), 'utf8'));
   console.log('PASS: photo removal, cleanup eligibility, retirement protection and comment-avatar visibility.');
+  await db.exec(await readFile(new URL('20261015000200_search_public_traces.sql', migrationDir), 'utf8'));
+  await db.exec(await readFile(new URL('./trace-search.sql', import.meta.url), 'utf8'));
+  console.log('PASS: archive search fields, literal punctuation, pagination and public visibility.');
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);
   const bootstrap = (await readFile(new URL('../bootstrap-first-admin.sql', import.meta.url), 'utf8')).replaceAll('REPLACE_WITH_YOUR_AUTH_USER_UUID','20000000-0000-0000-0000-000000000001');
