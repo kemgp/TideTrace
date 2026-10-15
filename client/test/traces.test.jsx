@@ -275,3 +275,24 @@ it("uses the same saved photo for the navbar and own Traces even if a feed snaps
   await screen.findByText("Saved description");
   expect(screen.getByAltText("Actual Member's profile photo").src).toBe(savedPhoto);
 });
+
+it("shows commenter photos, uses the current viewer photo for own comments and falls back on image errors", async () => {
+  setup((url) => {
+    if (url === `/api/traces/${trace().id}`) return response(trace());
+    if (url.includes("/comments")) return response([
+      { id: "other", author_id: "other-id", author: { display_name: "Comment Author", avatar_url: "https://example.test/comment.png" }, body: "Another observation" },
+      { id: "mine", author_id: profile.id, author: { display_name: profile.display_name, avatar_url: "https://example.test/stale.png" }, body: "My observation" },
+      { id: "empty", author_id: "empty-id", author: { display_name: "No Photo" }, body: "No uploaded avatar" },
+    ]);
+  });
+  const fetchRecords = window.fetch;
+  vi.stubGlobal("fetch", vi.fn((url, options) => url === "/api/auth/me" ? Promise.resolve(response({ ...profile, avatar_url: "https://example.test/current.png" })) : fetchRecords(url, options)));
+  open(`/user/traces/${trace().id}`);
+  const other = await screen.findByAltText("Comment Author's profile photo");
+  expect(other.src).toBe("https://example.test/comment.png");
+  const mine = screen.getByText("My observation").closest(".comment");
+  expect(mine.querySelector("img").src).toBe("https://example.test/current.png");
+  expect(screen.getByText("No uploaded avatar").closest(".comment").querySelector(".author-avatar").textContent).toBe("N");
+  fireEvent.error(other);
+  expect(screen.getByText("Another observation").closest(".comment").querySelector(".author-avatar").textContent).toBe("C");
+});

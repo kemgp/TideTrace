@@ -123,7 +123,7 @@ it.each(["admin", "moderator"])("prevents a member from opening the %s profile r
 
 it("keeps unsupported staff preferences disabled", async () => {
   setup("moderator"); open("/moderator/profile");
-  await screen.findByRole("button", { name: "Choose photo" });
+  await screen.findByRole("button", { name: "Edit profile photo" });
   fireEvent.click(screen.getByRole("button", { name: /Preferences/ }));
   await screen.findByText(/Email notification preferences are not available yet/);
   expect(screen.queryByRole("button", { name: "Save Changes" })).toBeNull();
@@ -154,7 +154,7 @@ it.each(["user", "moderator", "admin"])("saves and restores the %s profile photo
   expect(picker.value).toBe("");
   view.unmount();
   open(`/${role}/profile`);
-  await screen.findByRole("button", { name: "Choose photo" });
+  await screen.findByRole("button", { name: "Edit profile photo" });
   expect(screen.getAllByAltText("Profile photo").every((img) => img.src === "https://example.test/new-photo.png")).toBe(true);
 });
 
@@ -304,4 +304,120 @@ it("keeps a dragged photo within the circular preview", async () => {
   fireEvent.pointerUp(preview);
   fireEvent.pointerMove(preview, { clientX: -1000, clientY: -1000 });
   expect(image.style.left).toBe("0%");
+});
+
+it.each(["user", "moderator", "admin"])("removes the %s saved photo and clears the settings and navbar avatars", async (role) => {
+  const { calls, account } = setup(role, (url, options, saved) => {
+    if (url === "/api/profile/photo" && options.method === "DELETE") {
+      saved.avatar_path = null; saved.avatar_url = null;
+      return ok({ id: saved.id, avatar_path: null });
+    }
+  });
+  account.avatar_path = "owner-id/old.png"; account.avatar_url = "https://example.test/old.png";
+  open(`/${role}/profile`);
+  fireEvent.click(await screen.findByRole("button", { name: "Edit profile photo" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Remove photo" }));
+  await screen.findByText("Profile photo removed.");
+  expect(screen.queryAllByAltText("Profile photo")).toHaveLength(0);
+  expect(screen.getByRole("button", { name: "Profile settings" }).textContent).toBe("O");
+  expect(screen.queryByRole("button", { name: "Remove photo" })).toBeNull();
+  expect(calls.mock.calls.filter(([url, options]) => url === "/api/profile/photo" && options.method === "DELETE")).toHaveLength(1);
+});
+
+it("reopens the saved photo for cropping and saves only when explicitly requested", async () => {
+  const { calls, account } = setup("user", (url, options, saved) => {
+    if (url === "/api/profile/photo" && options.method === "POST") {
+      saved.avatar_path = "owner-id/recropped.png"; saved.avatar_url = "https://example.test/recropped.png";
+      return ok({ id: saved.id, avatar_path: saved.avatar_path });
+    }
+  });
+  account.avatar_path = "owner-id/old.png"; account.avatar_url = "https://example.test/old.png";
+  open("/user/profile");
+  fireEvent.click(await screen.findByRole("button", { name: "Edit profile photo" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Adjust photo" }));
+  const preview = await screen.findByAltText("Selected photo preview");
+  expect(preview.src).toBe(account.avatar_url);
+  expect(preview.crossOrigin).toBe("anonymous");
+  expect(calls.mock.calls.some(([url]) => url === "/api/profile/photo")).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getAllByAltText("Profile photo").every(img => img.src === account.avatar_url)).toBe(true);
+  expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  fireEvent.click(await screen.findByRole("button", { name: "Edit profile photo" }));
+  fireEvent.click(screen.getByRole("button", { name: "Adjust photo" }));
+  await previewAndSave();
+  await screen.findByText("Profile photo saved.");
+  expect(screen.getAllByAltText("Profile photo").every(img => img.src === "https://example.test/recropped.png")).toBe(true);
+});
+
+it("preserves a photo on rejected removal and reloads an uncertain removal without repeating it", async () => {
+  let uncertain = false;
+  const { calls, account } = setup("user", (url, options, saved) => {
+    if (url === "/api/profile/photo" && options.method === "DELETE") {
+      if (!uncertain) return failure();
+      saved.avatar_path = null; saved.avatar_url = null;
+      throw new TypeError("Lost response");
+    }
+  });
+  account.avatar_path = "owner-id/old.png"; account.avatar_url = "https://example.test/old.png";
+  open("/user/profile");
+  fireEvent.click(await screen.findByRole("button", { name: "Edit profile photo" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Remove photo" }));
+  await screen.findByText("Profile save failed.");
+  expect(screen.getAllByAltText("Profile photo")).toHaveLength(2);
+  uncertain = true;
+  fireEvent.click(await screen.findByRole("button", { name: "Edit profile photo" }));
+  fireEvent.click(screen.getByRole("button", { name: "Remove photo" }));
+  await screen.findByText(/We could not confirm the photo change/);
+  expect(screen.getByRole("button", { name: "Edit profile photo" }).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Reload saved profile" }));
+  await screen.findByText("Saved profile reloaded.");
+  expect(screen.queryAllByAltText("Profile photo")).toHaveLength(0);
+  expect(calls.mock.calls.filter(([url]) => url === "/api/profile/photo")).toHaveLength(2);
+});
+
+it("keeps photo settings usable when background cleanup fails", async () => {
+  const { calls } = setup("user", (url) => url === "/api/profile/photo/cleanup" ? failure(503) : undefined);
+  open("/user/profile");
+  await screen.findByRole("button", { name: "Edit profile photo" });
+  await waitFor(() => expect(calls.mock.calls.some(([url]) => url === "/api/profile/photo/cleanup")).toBe(true));
+  expect(screen.getByRole("button", { name: "Edit profile photo" }).disabled).toBe(false);
+  expect(screen.queryByText("Profile save failed.")).toBeNull();
+});
+
+
+it("opens photo actions from the picture and dismisses them with Escape, outside clicks, or focus leaving", async () => {
+  const { account } = setup("user");
+  account.avatar_path = "owner-id/old.png"; account.avatar_url = "https://example.test/old.png";
+  open("/user/profile");
+  const trigger = await screen.findByRole("button", { name: "Edit profile photo" });
+  expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByRole("button", { name: "Choose photo" })).toBeNull();
+  fireEvent.click(trigger);
+  expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  const choose = screen.getByRole("button", { name: "Choose photo" });
+  expect(screen.getByRole("button", { name: "Adjust photo" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Remove photo" })).toBeTruthy();
+  choose.focus();
+  fireEvent.keyDown(choose, { key: "Escape" });
+  expect(document.activeElement).toBe(trigger);
+  expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(trigger);
+  fireEvent.pointerDown(document.body);
+  expect(screen.queryByRole("group", { name: "Photo actions" })).toBeNull();
+  fireEvent.click(trigger);
+  fireEvent.blur(trigger, { relatedTarget: document.body });
+  expect(trigger.getAttribute("aria-expanded")).toBe("false");
+});
+
+it("offers only choosing a photo for an empty avatar and closes the dropdown when choosing", async () => {
+  setup("user");
+  open("/user/profile");
+  fireEvent.click(await screen.findByRole("button", { name: "Edit profile photo" }));
+  expect(screen.queryByRole("button", { name: "Adjust photo" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Remove photo" })).toBeNull();
+  const input = screen.getByLabelText("Choose profile photo");
+  const click = vi.spyOn(input, "click");
+  fireEvent.click(screen.getByRole("button", { name: "Choose photo" }));
+  expect(click).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("group", { name: "Photo actions" })).toBeNull();
 });

@@ -1065,3 +1065,61 @@ test("missing author photos and signing failures do not hide posted Traces", asy
   }
 
 });
+
+test("photo removal is authenticated, owner scoped and returns the cleared saved profile", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/remove_profile_photo" ? json({ id: userId, avatar_path: null }) : undefined });
+  await request(app).delete("/api/profile/photo").expect(401);
+  await bearer(request(app).delete("/api/profile/photo")).send({ user_id: "another-owner" }).expect(400);
+  const response = await bearer(request(app).delete("/api/profile/photo")).expect(200);
+  assert.deepEqual(response.body.data, { id: userId, avatar_path: null });
+  const writes = businessCalls(calls);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].headers.get("authorization"), "Bearer member-token");
+  assert.deepEqual(writes[0].body, {});
+  const suspended = fixture({ status: "suspended" });
+  await bearer(request(suspended.app).delete("/api/profile/photo")).expect(403);
+  assert.equal(businessCalls(suspended.calls).length, 0);
+});
+
+test("photo cleanup deletes only database-claimed paths through the caller's Storage API", async () => {
+  const paths = [`${userId}/old.png`, `${userId}/unattached.png`];
+  const { app, calls } = fixture({ handler: ({ url, method, body, headers }) => {
+    if (url.pathname === "/rest/v1/rpc/claim_profile_photo_cleanup") return json(paths.map(object_path => ({ object_path })));
+    if (url.pathname === "/storage/v1/object/profile-photos" && method === "DELETE") {
+      assert.deepEqual(body.prefixes, paths);
+      assert.equal(headers.get("authorization"), "Bearer member-token");
+      return json(paths.map(name => ({ name })));
+    }
+  } });
+  await request(app).post("/api/profile/photo/cleanup").expect(401);
+  await bearer(request(app).post("/api/profile/photo/cleanup")).send({ paths: ["other/file.png"] }).expect(400);
+  const response = await bearer(request(app).post("/api/profile/photo/cleanup")).expect(200);
+  assert.equal(response.body.data.removed, 2);
+  assert.equal(businessCalls(calls).length, 2);
+});
+
+test("cleanup skips Storage with no candidates and exposes failures for a later retry", async () => {
+  for (const failing of [false, true]) {
+    const { app, calls } = fixture({ handler: ({ url }) => {
+      if (url.pathname === "/rest/v1/rpc/claim_profile_photo_cleanup") return json(failing ? [{ object_path: `${userId}/old.png` }] : []);
+      if (url.pathname === "/storage/v1/object/profile-photos") return json({ message: "Storage unavailable" }, 503);
+    } });
+    await bearer(request(app).post("/api/profile/photo/cleanup")).expect(failing ? 502 : 200);
+    assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/")).length, failing ? 1 : 0);
+  }
+});
+
+test("visible comments include their authors' signed photos without leaking object paths", async () => {
+  const path = `${userId}/comment-avatar.png`;
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([{ id: traceId }]);
+    if (url.pathname === "/rest/v1/comments") return json([{ id: "comment", author_id: userId, author: { id: userId, display_name: "Commenter", avatar_path: path } }]);
+    if (url.pathname === "/storage/v1/object/sign/profile-photos") return json([{ path, signedURL: `/object/sign/profile-photos/${path}?token=signed`, error: null }]);
+  } });
+  const response = await request(app).get(`/api/traces/${traceId}/comments`).expect(200);
+  assert.match(response.body.data[0].author.avatar_url, /comment-avatar.png\?token=signed$/);
+  assert.equal(response.body.data[0].author.avatar_path, undefined);
+  const query = calls.find(({ url }) => url.pathname === "/rest/v1/comments").url.searchParams;
+  assert.equal(query.get("status"), "eq.visible");
+  assert.match(query.get("select"), /display_name,avatar_path/);
+});

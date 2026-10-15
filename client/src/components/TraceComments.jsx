@@ -4,6 +4,7 @@ import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import ReportContent from "./ReportContent.jsx";
 import RemoteState, { Pagination } from "./RemoteState.jsx";
+import AuthorAvatar from "./AuthorAvatar.jsx";
 
 export default function TraceComments({ traceId }) {
   const { writeData, profile } = useApp();
@@ -46,8 +47,8 @@ export default function TraceComments({ traceId }) {
     <h3 className="lbl">Comments{result.data && offset === 0 && comments.length < 25 ? ` (${comments.length})` : ""}</h3>
     <RemoteState compact {...result} />
     <div className="trace-detail__comment-list">
-      {comments.map((comment, index) => <div className="comment" key={comment.id}>
-        <span className={`avatar trace-detail__avatar trace-detail__avatar--${index % 3}`} aria-hidden="true" />
+      {comments.map((comment) => <div className="comment" key={comment.id}>
+        <AuthorAvatar authorId={comment.author_id || comment.author?.id} name={comment.author_id === profile?.id ? profile.display_name : comment.author?.display_name || "Community member"} url={comment.author?.avatar_url} />
         <div className="body"><span className="who">{comment.author_id === profile?.id ? "You" : comment.author?.display_name || "Community member"}</span>
           <time className="when" dateTime={comment.created_at}>{comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ""}</time>
           <p>{comment.body}</p>

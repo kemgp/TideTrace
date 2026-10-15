@@ -39,8 +39,9 @@ export function contentRoutes(gateway) {
     const id = uuid.parse(req.params.id);
     const pagination = page.parse(req.query);
     first(await result(publicTraces(req.db).eq("id", id).limit(1)));
-    send(res, await result(paginate(req.db.from("comments").select("*,author:profiles!comments_author_id_fkey(id,display_name)")
-      .eq("trace_id", id).eq("status", "visible").order("created_at").order("id"), pagination)));
+    const rows = await result(paginate(req.db.from("comments").select("*,author:profiles!comments_author_id_fkey(id,display_name,avatar_path)")
+      .eq("trace_id", id).eq("status", "visible").order("created_at").order("id"), pagination));
+    send(res, await withAuthorPhotos(req.db, rows));
   });
   router.get("/tides", async (req, res) => {
     send(res, await result(paginate(req.db.from("tides").select("*").eq("status", "published").order("published_at", { ascending: false }).order("id"), page.parse(req.query))));

@@ -16,7 +16,7 @@ try {
     create function auth.uid() returns uuid language sql stable as
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
-    create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text,owner_id text,metadata jsonb,unique(bucket_id,name));
+    create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text,owner_id text,metadata jsonb,created_at timestamptz not null default now(),unique(bucket_id,name));
     alter table storage.objects enable row level security;
     grant all on storage.objects to anon,authenticated;
     create function storage.foldername(name text) returns text[] language sql immutable as
@@ -44,7 +44,7 @@ try {
     where id='profile-photos';
   `);
   for (let attempt = 0; attempt < 2; attempt++) {
-    for (const name of ['20261014000100_profile_photos.sql', '20261014000200_trace_author_photos.sql']) {
+    for (const name of ['20261014000100_profile_photos.sql', '20261014000200_trace_author_photos.sql', '20261015000100_photo_management_and_comment_avatars.sql']) {
       await db.exec(await readFile(new URL(name, migrationDir), 'utf8'));
     }
   }
@@ -57,14 +57,16 @@ try {
   if (uploads.length !== 1 || uploads[0].owner_id !== 'existing-owner' || uploads[0].metadata.size !== 4096) {
     throw new Error('Photo migration retry must preserve existing uploads and metadata');
   }
-  const { rows: photoPolicies } = await db.query(`select policyname from pg_policies where schemaname='storage' and tablename='objects' and policyname in ('tidetrace_avatar_upload','tidetrace_avatar_read','tidetrace_published_author_photo_read')`);
-  if (photoPolicies.length !== 3) throw new Error('Photo migration retry must retain exactly three photo policies');
+  const { rows: photoPolicies } = await db.query(`select policyname from pg_policies where schemaname='storage' and tablename='objects' and policyname in ('tidetrace_avatar_upload','tidetrace_avatar_read','tidetrace_published_author_photo_read','tidetrace_avatar_cleanup')`);
+  if (photoPolicies.length !== 4) throw new Error('Photo migration retry must retain exactly four photo policies');
   // Remove only this local fixture before running the access-control checks.
   await db.exec(`delete from storage.objects where bucket_id='profile-photos' and name='existing-owner/keep.png'`);
-  console.log('PASS: both photo migrations can be reapplied while preserving existing uploads and bucket protections.');
+  console.log('PASS: photo migrations can be reapplied while preserving existing uploads and bucket protections.');
   const checks = await readFile(new URL('./access-control.sql', import.meta.url), 'utf8');
   await db.exec(checks);
   console.log(`PASS: ${checks.match(/select tidetrace_test\.(assert_ok|reject)\(/g).length} access-control and workflow assertions; fixtures rolled back.`);
+  await db.exec(await readFile(new URL('./photo-management.sql', import.meta.url), 'utf8'));
+  console.log('PASS: photo removal, cleanup eligibility, retirement protection and comment-avatar visibility.');
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);
   const bootstrap = (await readFile(new URL('../bootstrap-first-admin.sql', import.meta.url), 'utf8')).replaceAll('REPLACE_WITH_YOUR_AUTH_USER_UUID','20000000-0000-0000-0000-000000000001');

@@ -1,3 +1,5 @@
+import { result } from "./errors.js";
+
 // Sign each distinct author photo once per response, under the caller's RLS.
 // A missing photo or Storage outage must not hide otherwise readable Traces.
 export async function withAuthorPhotos(db, rows) {
@@ -14,4 +16,12 @@ export async function withAuthorPhotos(db, rows) {
     const { avatar_path, ...author } = row.author;
     return { ...row, author: { ...author, avatar_url: urls.get(avatar_path) || null } };
   });
+}
+
+export async function cleanupProfilePhotos(db) {
+  const candidates = await result(db.rpc("claim_profile_photo_cleanup"));
+  const paths = candidates.map((row) => row.object_path);
+  if (!paths.length) return 0;
+  const removed = await result(db.storage.from("profile-photos").remove(paths));
+  return removed?.length || 0;
 }

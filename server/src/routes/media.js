@@ -5,6 +5,7 @@ import { z } from "zod";
 import { authenticate } from "../middleware.js";
 import { HttpError, first, result } from "../errors.js";
 import { uuid } from "../validation.js";
+import { cleanupProfilePhotos } from "../profilePhotos.js";
 
 const formats = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "video/mp4": "mp4" };
 export function matchesFileType(buffer, type) {
@@ -22,6 +23,15 @@ export function mediaRoutes(gateway) {
   const uploadLimit = rateLimit({
     windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false,
     handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Upload limit reached. Try again later.", request_id: req.requestId } }),
+  });
+  router.post("/profile/photo/cleanup", member, uploadLimit, async (req, res) => {
+    z.object({}).strict().parse(req.body || {});
+    res.json({ data: { removed: await cleanupProfilePhotos(req.db) } });
+  });
+  router.delete("/profile/photo", member, uploadLimit, async (req, res) => {
+    z.object({}).strict().parse(req.body || {});
+    const saved = await result(req.db.rpc("remove_profile_photo"));
+    res.json({ data: { id: saved.id, avatar_path: saved.avatar_path } });
   });
   router.post("/profile/photo", member, uploadLimit, (req, res, next) => {
     req.mediaType = req.get("Content-Type")?.split(";")[0].toLowerCase();
