@@ -421,3 +421,50 @@ it("offers only choosing a photo for an empty avatar and closes the dropdown whe
   expect(click).toHaveBeenCalledOnce();
   expect(screen.queryByRole("group", { name: "Photo actions" })).toBeNull();
 });
+
+it.each(["user", "moderator", "admin"])("persists three independent notification preferences for %s", async (role) => {
+  const saved = { submission_updates: true, trace_comments: true, new_tides: true };
+  setup(role, (url, options) => {
+    if (url !== "/api/notification-preferences") return;
+    if (options.method === "PATCH") {
+      const { key, enabled } = JSON.parse(options.body);
+      saved[key] = enabled;
+    }
+    return ok({ ...saved });
+  });
+  const view = open(`/${role}/profile`);
+  fireEvent.click(await screen.findByRole("button", { name: /App settings/ }));
+  const submission = await screen.findByRole("switch", { name: "Submission updates" });
+  await waitFor(() => expect(submission.disabled).toBe(false));
+  fireEvent.click(submission);
+  await screen.findByText("Submission updates off. Saved to your account.");
+  expect(submission.getAttribute("aria-checked")).toBe("false");
+  expect(screen.getByRole("switch", { name: "Comments on my traces" }).getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(screen.getByRole("switch", { name: "New Tides" }));
+  await screen.findByText("New Tides off. Saved to your account.");
+  view.unmount();
+  open(`/${role}/profile`);
+  fireEvent.click(await screen.findByRole("button", { name: /App settings/ }));
+  await waitFor(() => expect(screen.getByRole("switch", { name: "New Tides" }).disabled).toBe(false));
+  expect(screen.getByRole("switch", { name: "New Tides" }).getAttribute("aria-checked")).toBe("false");
+  expect(screen.getByRole("switch", { name: "Submission updates" }).getAttribute("aria-checked")).toBe("false");
+});
+
+it("reloads notification preferences after an uncertain save without repeating the write", async () => {
+  const saved = { submission_updates: true, trace_comments: true, new_tides: true };
+  const { calls } = setup("user", (url, options) => {
+    if (url !== "/api/notification-preferences") return;
+    if (options.method === "PATCH") { saved.new_tides = false; throw new TypeError("Lost response"); }
+    return ok({ ...saved });
+  });
+  open("/user/profile");
+  fireEvent.click(await screen.findByRole("button", { name: /App settings/ }));
+  await waitFor(() => expect(screen.getByRole("switch", { name: "New Tides" }).disabled).toBe(false));
+  fireEvent.click(screen.getByRole("switch", { name: "New Tides" }));
+  await screen.findByText(/Reload preferences to check/);
+  expect(screen.getByRole("switch", { name: "New Tides" }).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Reload preferences" }));
+  await waitFor(() => expect(screen.getByRole("switch", { name: "New Tides" }).disabled).toBe(false));
+  expect(screen.getByRole("switch", { name: "New Tides" }).getAttribute("aria-checked")).toBe("false");
+  expect(calls.mock.calls.filter(([url, options]) => url === "/api/notification-preferences" && options.method === "PATCH")).toHaveLength(1);
+});

@@ -1,3 +1,4 @@
+import NotificationPreferences from "../../components/NotificationPreferences.jsx";
 import ProfilePhoto from "../../components/ProfilePhoto.jsx";
 import React,{useState} from "react";
 import {Link} from "react-router-dom";
@@ -173,25 +174,8 @@ export default function ModeratorProfile(){
                     Manage your application preferences and appearance.
                   </p>
                 </div>
-                {/* NOTIFICATIONS */}
-                <div className="preference-box">
-                  <div>
-                    <strong>
-                      In-app notifications
-                    </strong>
-                    <p>
-                      Status updates, comments, reports and review
-                      notifications.
-                    </p>
-                  </div>
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      disabled
-                    />
-                    <span></span>
-                  </label>
-                </div>
+                <NotificationPreferences />
+
                 {/* DATA SAVER */}
                 <div className="preference-box app-setting-row">
                   <div>

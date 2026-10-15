@@ -122,6 +122,14 @@ export function contentRoutes(gateway) {
   router.get("/notifications", member, async (req, res) => {
     send(res, await result(paginate(req.db.from("notifications").select("*").eq("recipient_id", req.user.id).order("created_at", { ascending: false }).order("id"), page.parse(req.query))));
   });
+  router.get("/notification-preferences", member, async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    send(res, await result(req.db.rpc("get_notification_preferences")));
+  });
+  router.patch("/notification-preferences", member, async (req, res) => {
+    const input = z.object({ key: z.enum(["submission_updates", "trace_comments", "new_tides"]), enabled: z.boolean() }).strict().parse(req.body);
+    send(res, await result(req.db.rpc("set_notification_preference", { p_key: input.key, p_enabled: input.enabled })));
+  });
   router.get("/notifications/unread-count", member, async (req, res) => {
     const { count, error } = await req.db.from("notifications").select("id", { count: "exact", head: true }).eq("recipient_id", req.user.id).is("read_at", null);
     if (error) throw upstreamError(error);

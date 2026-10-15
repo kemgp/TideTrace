@@ -70,6 +70,9 @@ try {
   await db.exec(await readFile(new URL('20261015000200_search_public_traces.sql', migrationDir), 'utf8'));
   await db.exec(await readFile(new URL('./trace-search.sql', import.meta.url), 'utf8'));
   console.log('PASS: archive search fields, literal punctuation, pagination and public visibility.');
+  await db.exec(await readFile(new URL('20261015000300_notification_preferences.sql', migrationDir), 'utf8'));
+  await db.exec(await readFile(new URL('./notification-preferences.sql', import.meta.url), 'utf8'));
+  console.log('PASS: notification preference persistence, isolation and event delivery.');
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);
   const bootstrap = (await readFile(new URL('../bootstrap-first-admin.sql', import.meta.url), 'utf8')).replaceAll('REPLACE_WITH_YOUR_AUTH_USER_UUID','20000000-0000-0000-0000-000000000001');

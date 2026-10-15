@@ -1,3 +1,4 @@
+import NotificationPreferences from "../../../components/NotificationPreferences.jsx";
 import ProfilePhoto from "../../../components/ProfilePhoto.jsx";
 import UsageActivity from "../../../components/UsageActivity.jsx";
 import React, { useState } from "react";
@@ -151,22 +152,10 @@ export default function Profile() {
           {/* APP SETTINGS */}
           {pane === "app" && (
             <div className="card">
-              <header className="user-settings__panel-heading"><h3>App settings</h3><p>Customize how TideTrace looks on this device.</p></header>
-              <p className="user-settings__notice">Notification and data saver preferences are not available yet. You can change your appearance below.</p>
+              <header className="user-settings__panel-heading"><h3>App settings</h3><p>Manage your notifications and appearance.</p></header>
+              <p className="user-settings__notice">Data saver is not available yet. Notification preferences are saved to your account.</p>
 
-              <div className="setrow">
-                <div>
-                  <div className="l">
-                    In-app notifications
-                  </div>
-
-                  <div className="s">
-                    Status updates, comments, new Tides
-                  </div>
-                </div>
-
-                <Toggle />
-              </div>
+              <NotificationPreferences />
 
               <div className="setrow">
                 <div>

@@ -1154,3 +1154,24 @@ test("contribution status filters are validated and applied with owner scope bef
   await bearer(request(app).get(`/api/contributions?author_id=${traceId}`)).expect(400);
   assert.equal(businessCalls(calls).length, before);
 });
+
+test("notification preferences require an active account and accept only one supported boolean setting", async () => {
+  const prefs = { submission_updates: true, trace_comments: true, new_tides: true };
+  const { app, calls, state } = fixture({ handler: ({ url, body }) => {
+    if (url.pathname === "/rest/v1/rpc/get_notification_preferences") return json(prefs);
+    if (url.pathname === "/rest/v1/rpc/set_notification_preference") return json({ ...prefs, [body.p_key]: body.p_enabled });
+  } });
+  await request(app).get("/api/notification-preferences").expect(401);
+  const read = await bearer(request(app).get("/api/notification-preferences")).expect(200);
+  assert.deepEqual(read.body.data, prefs);
+  for (const key of Object.keys(prefs)) {
+    const saved = await bearer(request(app).patch("/api/notification-preferences")).send({ key, enabled: false }).expect(200);
+    assert.equal(saved.body.data[key], false);
+    assert.deepEqual(businessCalls(calls).at(-1).body, { p_key: key, p_enabled: false });
+  }
+  for (const body of [{ key: "unknown", enabled: true }, { key: "new_tides", enabled: "false" }, { key: "new_tides", enabled: true, user_id: traceId }]) {
+    await bearer(request(app).patch("/api/notification-preferences")).send(body).expect(400);
+  }
+  state.status = "suspended";
+  await bearer(request(app).patch("/api/notification-preferences")).send({ key: "new_tides", enabled: false }).expect(403);
+});
