@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 export const SITE_URL = "https://tide-trace.vercel.app";
-export const SITE_TITLE = "TideTrace — Every ripple counts";
+export const SITE_TITLE = "TideTrace";
 export const SITE_DESCRIPTION = "Share coastal observations, learn about the sea, and connect with your community through TideTrace.";
 const pages = {
  "/terms-of-service": ["Terms of Service", "Read the TideTrace terms of service."],
