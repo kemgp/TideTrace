@@ -437,11 +437,12 @@ it.each(["user", "moderator", "admin"])("persists three independent notification
   const submission = await screen.findByRole("switch", { name: "Submission updates" });
   await waitFor(() => expect(submission.disabled).toBe(false));
   fireEvent.click(submission);
-  await screen.findByText("Submission updates off. Saved to your account.");
+  await waitFor(() => expect(submission.disabled).toBe(false));
+  expect(screen.getByText("Preference saved.").className).toBe("sr-only");
   expect(submission.getAttribute("aria-checked")).toBe("false");
   expect(screen.getByRole("switch", { name: "Comments on my traces" }).getAttribute("aria-checked")).toBe("true");
   fireEvent.click(screen.getByRole("switch", { name: "New Tides" }));
-  await screen.findByText("New Tides off. Saved to your account.");
+  await waitFor(() => expect(screen.getByRole("switch", { name: "New Tides" }).disabled).toBe(false));
   view.unmount();
   open(`/${role}/profile`);
   fireEvent.click(await screen.findByRole("button", { name: /App settings/ }));

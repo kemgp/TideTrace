@@ -31,7 +31,7 @@ function Preferences() {
     return () => controller.abort();
   }, [readData, attempt]);
   useEffect(() => () => request.current?.abort(), []);
-  async function toggle(key, label) {
+  async function toggle(key) {
     if (!saved || request.current) return;
     const controller = new AbortController();
     request.current = controller; setBusy(true); setNotice(""); setError("");
@@ -41,7 +41,7 @@ function Preferences() {
       }));
       if (!controller.signal.aborted) {
         if (value[key] !== !saved[key]) throw new Error("Could not confirm the saved preference.");
-        setSaved(value); setNotice(`${label} ${value[key] ? "on" : "off"}. Saved to your account.`);
+        setSaved(value); setNotice("Preference saved.");
       }
     } catch (failure) {
       if (!controller.signal.aborted) {
@@ -60,11 +60,10 @@ function Preferences() {
     {preferences.map(([key, label, description]) => <div className="setrow" key={key}>
       <div><div className="l">{label}</div><div className="s">{description}</div></div>
       <button type="button" className={`tgl ${saved?.[key] ? "" : "off"}`} role="switch" aria-label={label}
-        aria-checked={saved?.[key] ?? false} disabled={!saved || busy} onClick={() => toggle(key, label)} />
+        aria-checked={saved?.[key] ?? false} disabled={!saved || busy} onClick={() => toggle(key)} />
     </div>)}
     <p className="hint">Submission status and feedback remain in My contributions. Account, moderation, and report notices remain enabled.</p>
-    {busy && <p role="status">Saving preference…</p>}
-    {notice && <p role="status">{notice}</p>}
+    <span className="sr-only" role="status" aria-atomic="true">{busy ? "Saving preference…" : notice}</span>
     {error && <div><p role="alert">{error}</p><button type="button" className="btn outline sm" onClick={() => setAttempt(n => n + 1)}>Reload preferences</button></div>}
   </section>;
 }
