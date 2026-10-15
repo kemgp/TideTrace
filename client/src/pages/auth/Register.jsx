@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import { ROLE_HOME } from "../../api/auth.js";
 import { AuthLayout, PasswordField } from "./AuthLayout.jsx";
@@ -55,6 +55,7 @@ export default function Register() {
         <input id="register-email" className="input" type="email" autoComplete="email" required maxLength={254} disabled={busy} placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} />
       </div>
       <PasswordField id="register-password" newPassword value={password} busy={busy} onChange={(event) => setPassword(event.target.value)} />
+      <p className="registration-legal">By creating an account, you agree to our <Link to="/terms-of-service" target="_blank" rel="noopener noreferrer">Terms of Service</Link> and <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>.</p>
       <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
     </form>
   </AuthLayout>;

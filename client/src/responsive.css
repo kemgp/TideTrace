@@ -145,6 +145,9 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
 .app-shell .foot-tagline { padding: 0; border: 0; }
 .app-shell .foot-meta { justify-content: center; flex-wrap: wrap; white-space: normal; }
 .app-shell .foot-copy { text-align: center; white-space: normal; }
+.app-shell .foot-details { display: grid; grid-template-columns: auto auto; align-items: start; justify-content: center; gap: 24px; line-height: 1.5; }
+.app-shell .foot-details .foot-legal { text-align: left; }
+.app-shell .foot-details .foot-copy { text-align: right; }
 .app-shell .toast { width: max-content; max-width: calc(100vw - 32px); bottom: max(16px, env(safe-area-inset-bottom)); }
 .app-shell footer { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 
@@ -181,7 +184,7 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
   .app-shell :is(.settings-sidebar, .admin-settings-nav) { grid-template-columns: minmax(0, 1fr); }
   .app-shell .rail { display: block; position: sticky; top: 90px; }
   .app-shell .rail .ri { width: 100%; }
-  .app-shell .foot-in { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; }
+  .app-shell .foot-in { grid-template-columns: minmax(0, 1fr) auto; }
   .app-shell:is(.admin-shell, .moderator-shell) .foot-in { grid-template-columns: minmax(0, 1fr) auto; }
   .app-shell .foot-main { flex-direction: row; align-items: center; }
   .app-shell .foot-tagline { border-left: 1px solid rgba(169,186,222,.35); padding-left: 18px; }

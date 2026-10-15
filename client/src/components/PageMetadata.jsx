@@ -5,6 +5,8 @@ export const SITE_URL = "https://tide-trace.vercel.app";
 export const SITE_TITLE = "TideTrace — Every ripple counts";
 export const SITE_DESCRIPTION = "Share coastal observations, learn about the sea, and connect with your community through TideTrace.";
 const pages = {
+ "/terms-of-service": ["Terms of Service", "Read the TideTrace terms of service."],
+ "/privacy-policy": ["Privacy Policy", "Read how TideTrace handles personal information."],
  "/": [SITE_TITLE, SITE_DESCRIPTION],
  "/login": ["Sign in", "Sign in to your TideTrace account."],
  "/register": ["Create account", "Join TideTrace to share coastal observations and learn with your community."],

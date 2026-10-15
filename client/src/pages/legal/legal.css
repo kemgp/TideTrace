@@ -1,0 +1,13 @@
+.legal-page{max-width:900px;padding-top:32px;padding-bottom:64px;}
+.legal-nav{display:flex;flex-wrap:wrap;gap:12px 24px;margin-bottom:32px;font-size:14px;}
+.legal-page a,.registration-legal a{text-decoration:underline;text-underline-offset:3px;}
+.legal-nav [aria-current="page"]{font-weight:700;}
+.legal-document{font-size:16px;line-height:1.8;overflow-wrap:anywhere;}
+.legal-document h1{font-size:clamp(26px,5vw,38px);line-height:1.25;margin-bottom:24px;}
+.legal-document h2{font-size:21px;line-height:1.4;margin:32px 0 12px;}
+.legal-document p,.legal-document ul{margin-bottom:18px;}
+.legal-document ul{padding-left:24px;}
+.legal-document li{margin-bottom:8px;}
+.registration-legal{font-size:12px;line-height:1.6;margin:16px 0;color:var(--soft);}
+.foot-legal{display:flex;flex-direction:column;gap:3px;font:inherit;color:#d5e0f5;}
+.foot-legal a{text-decoration:underline;text-underline-offset:3px;}

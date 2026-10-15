@@ -1,6 +1,7 @@
+import LegalPage from "./pages/legal/LegalPage.jsx";
 import PageMetadata from "./components/PageMetadata.jsx";
 import React,{useEffect,useState} from "react";
-import {Navigate,Route,Routes,useLocation,useNavigate} from "react-router-dom";
+import {Link,Navigate,Route,Routes,useLocation,useNavigate} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
@@ -283,8 +284,11 @@ function Footer(){
           </a>
           <p className="foot-tagline">Community-powered ecosystem conservation.</p>
         </div>
-        <div className="foot-copy">
-          © 2026 TideTrace <span>Every ripple counts.</span>
+        <div className="foot-details">
+          <nav className="foot-legal" aria-label="Legal"><Link to="/terms-of-service">Terms of Service</Link><Link to="/privacy-policy">Privacy Policy</Link></nav>
+          <div className="foot-copy">
+            © 2026 TideTrace <span>Every ripple counts.</span>
+          </div>
         </div>
       </div>
     </footer>
@@ -501,6 +505,8 @@ function AppShell(){
       )}
       <main>
           <Routes>
+            <Route path="/terms-of-service" element={<LegalPage document="terms" />} />
+            <Route path="/privacy-policy" element={<LegalPage document="privacy" />} />
             <Route
               path="/"
               element={
