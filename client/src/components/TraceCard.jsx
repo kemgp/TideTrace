@@ -7,12 +7,15 @@ import {useApp} from "../context/AppContext.jsx";
 import {PHOTO_TYPES} from "../api/photos.js";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 
-function TraceCardPhoto({trace}){
-  const {readData}=useApp();
+function TraceCardPhoto({trace,to}){
+  const {readData,profile}=useApp();
+  const [requested,setRequested]=useState(false);
+  const deferred=profile?.data_saver&&!requested;
   const [url,setUrl]=useState("");
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
+    if(deferred)return;
     const controller=new AbortController();
     setUrl("");
     setLoading(true);
@@ -60,18 +63,21 @@ function TraceCardPhoto({trace}){
 
     loadPhoto();
     return()=>controller.abort();
-  },[trace?.id,trace?.trace_media,readData]);
+  },[trace?.id,trace?.trace_media,readData,deferred]);
+
+  if(deferred)return <div className="trace-card-photo"><button type="button" className="btn outline sm" onClick={()=>setRequested(true)}>Load photo</button></div>;
 
   if(url){
+    const PhotoTag=to?Link:"div";
     return(
-      <div className="trace-card-photo">
+      <PhotoTag className="trace-card-photo" {...(to?{to}:{})}>
         <img
           src={url}
           alt={trace?.title?`${trace.title} photo`:"Trace photo"}
           referrerPolicy="no-referrer"
           onError={()=>setUrl("")}
         />
-      </div>
+      </PhotoTag>
     );
   }
 
@@ -87,13 +93,11 @@ function TraceCardPhoto({trace}){
 }
 
 export default function TraceCard({trace,to}){
+  const {profile}=useApp();
   const Tag=to?Link:"article";
 
   return(
-    <Tag
-      className="tcard user-trace-card"
-      {...(to?{to}:{})}
-    >
+    <article className="tcard user-trace-card">
       <style>{`
         .trace-card-photo{
           width:100%;
@@ -125,7 +129,8 @@ export default function TraceCard({trace,to}){
         }
       `}</style>
 
-      <TraceCardPhoto trace={trace}/>
+      <TraceCardPhoto key={`${trace.id}:${Boolean(profile?.data_saver)}`} trace={trace} to={to}/>
+      <Tag {...(to?{to}:{})}>
 
       <div className="t">{trace.title}</div>
 
@@ -150,6 +155,7 @@ export default function TraceCard({trace,to}){
           <TraceStatusBadge status={trace.status}/>
         )}
       </div>
-    </Tag>
+      </Tag>
+    </article>
   );
 }

@@ -1,3 +1,5 @@
+import SelectedPhoto from "./SelectedPhoto.jsx";
+import { compressPhoto } from "../api/compressPhoto.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
@@ -13,16 +15,6 @@ import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { PHOTO_TYPES, photoError } from "../api/photos.js";
 import "./TracePhotoUpload.css";
 
-function SelectedPhoto({ file }) {
-  const [url, setUrl] = useState("");
-  useEffect(() => {
-    const preview = URL.createObjectURL(file);
-    setUrl(preview);
-    return () => URL.revokeObjectURL(preview);
-  }, [file]);
-  return url ? <img src={url} alt="Selected photo preview" className="trace-photo-upload__thumbnail" /> : null;
-}
-
 export default function TraceDraftForm({ trace = null, onReload }) {
   const { readData, writeData, showToast, profile } = useApp();
   const navigate = useNavigate();
@@ -37,6 +29,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     section?.scrollIntoView?.({ block: "start" });
     section?.focus({ preventScroll: true });
   };
+  const [processingPhoto, setProcessingPhoto] = useState(false);
   const [busy, setBusy] = useState(false);
   const [intent, setIntent] = useState("save");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -76,8 +69,8 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     if (validating) setFieldErrors(validate(next));
     setDirty(true);
   };
-  const selectPhoto = (files) => {
-    if (busy || !files?.length) return;
+  const selectPhoto = async (files) => {
+    if (busy || processingPhoto || !files?.length) return;
     const selected = files[0];
     const validation = files.length > 1 ? "Choose one photo at a time." : photoError(selected);
     setPhoto(null);
@@ -85,13 +78,17 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     if (photoInput.current) photoInput.current.value = "";
     if (validating) setFieldErrors(validate(fields, intent, validation ? null : selected));
     if (validation) return;
-    setPhoto(selected);
-    setDirty(true);
+    if (profile.data_saver) {
+      setProcessingPhoto(true);
+      try { setPhoto(await compressPhoto(selected)); setDirty(true); }
+      catch (failure) { setPhotoValidation(failure.message); }
+      finally { setProcessingPhoto(false); }
+    } else { setPhoto(selected); setDirty(true); }
   };
   const save = async (event) => {
     event.preventDefault();
     const action = event.nativeEvent.submitter?.value === "save" ? "save" : "submit";
-    if (request.current || blocked || savedDraft) return;
+    if (busy || processingPhoto || request.current || blocked || savedDraft) return;
     setIntent(action);
     setValidating(true);
     const validation = validate(fields, action);
@@ -205,7 +202,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
       <form onSubmit={save} noValidate>
         <RemoteState compact {...categories} />
         {!categories.loading && !categories.error && available.length === 0 && <p role="status">No categories are available. A category must be added before you can save a draft.</p>}
-        <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}>
+        <fieldset disabled={busy || processingPhoto} style={{ border: 0, padding: 0, margin: 0 }}>
           <TraceDraftSection step="category" onActivate={setActiveStep}>
           <label className="lbl" htmlFor="draft-category">Category (required)</label>
           <select className="input" id="draft-category" name="category_id" {...fieldProps("category_id")} required value={fields.category_id} onChange={change} disabled={categories.loading || Boolean(categories.error)}>
@@ -245,6 +242,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
                 <input className="trace-photo-upload__input" ref={photoInput} id="draft-photo" {...fieldProps("photo")} aria-describedby={[fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation", "draft-photo-hint"].filter(Boolean).join(" ")} type="file" accept={PHOTO_TYPES.join(",")} onChange={(event) => selectPhoto(event.target.files)} />
                 <button className="trace-photo-upload__browse" type="button" onClick={() => photoInput.current?.click()}>Browse files</button>
               </div>
+              {processingPhoto && <p role="status">Preparing smaller photo…</p>}
               {photo && <div className="trace-photo-upload__row">
                 <SelectedPhoto file={photo} />
                 <div className="trace-photo-upload__details"><span className="trace-photo-upload__name">{photo.name}</span><small>{photo.size < 1024 * 1024 ? `${Math.max(1, Math.ceil(photo.size / 1024))} KB` : `${(photo.size / (1024 * 1024)).toFixed(1)} MB`} · {uploading ? "Uploading…" : "Ready to upload"}</small></div>
@@ -252,6 +250,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
               </div>}
             </div>
             <p className="hint" id="draft-photo-hint">JPEG, PNG or WebP, up to 20 MB. Your selected photo uploads only when you submit. Save draft saves the details only; you will need to select the photo again when you return.</p>
+            {profile.data_saver && <p className="hint">Data saver is on. Preview your prepared photo before submitting.</p>}
             {fieldError("photo")}
             {photoValidation && <p id="draft-photo-validation" role="alert">{photoValidation}</p>}
           </div>}

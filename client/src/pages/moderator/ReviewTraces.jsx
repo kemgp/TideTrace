@@ -15,10 +15,11 @@ import { categoryLabel } from "./TraceMarker.jsx";
 const labels={approved: "Approved", revision_requested: "Needs revision", rejected: "Rejected" };
 const reviewBase=(role)=> role === "admin" ? "/admin/review" : "/moderator/review";
 function TraceQueuePhoto({trace,className,emptyClassName}){
-  const {readData}=useApp();
+  const {readData,profile}=useApp();
   const [url,setUrl]=useState("");
   const [empty,setEmpty]=useState(false);
   useEffect(()=>{
+    if(profile?.data_saver)return;
     const controller=new AbortController();
     setUrl("");
     setEmpty(false);
@@ -48,7 +49,8 @@ function TraceQueuePhoto({trace,className,emptyClassName}){
     };
     load();
     return()=>controller.abort();
-  },[trace,readData]);
+  },[trace,readData,profile?.data_saver]);
+  if(profile?.data_saver)return <span className={emptyClassName}>Open Trace to load photos</span>;
   if(url){
     return(
       <img

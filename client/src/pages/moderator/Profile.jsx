@@ -1,3 +1,4 @@
+import DataSaverPreference from "../../components/DataSaverPreference.jsx";
 import NotificationPreferences from "../../components/NotificationPreferences.jsx";
 import ProfilePhoto from "../../components/ProfilePhoto.jsx";
 import React,{useState} from "react";
@@ -176,24 +177,8 @@ export default function ModeratorProfile(){
                 </div>
                 <NotificationPreferences />
 
-                {/* DATA SAVER */}
-                <div className="preference-box app-setting-row">
-                  <div>
-                    <strong>
-                      Data saver
-                    </strong>
-                    <p>
-                      Reduce media quality to use less mobile data.
-                    </p>
-                  </div>
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      disabled
-                    />
-                    <span></span>
-                  </label>
-                </div>
+              <DataSaverPreference />
+
                 {/* DARK MODE */}
                 <div className="preference-box app-setting-row">
                   <div>

@@ -469,3 +469,22 @@ it("reloads notification preferences after an uncertain save without repeating t
   expect(screen.getByRole("switch", { name: "New Tides" }).getAttribute("aria-checked")).toBe("false");
   expect(calls.mock.calls.filter(([url, options]) => url === "/api/notification-preferences" && options.method === "PATCH")).toHaveLength(1);
 });
+
+it.each(["user", "moderator", "admin"])("saves and restores the %s data saver preference without visible confirmations", async (role) => {
+  const { account } = setup(role, (url, options, saved) => {
+    if (url === "/api/profile/data-saver") {
+      saved.data_saver = JSON.parse(options.body).data_saver;
+      return ok({ id: saved.id, data_saver: saved.data_saver });
+    }
+    if (url === "/api/notification-preferences") return ok({ submission_updates: true, trace_comments: true, new_tides: true });
+  });
+  account.data_saver = false;
+  const view = open(`/${role}/profile`);
+  fireEvent.click(await screen.findByRole("button", { name: /App settings/ }));
+  fireEvent.click(screen.getByRole("switch", { name: "Data saver" }));
+  await waitFor(() => expect(screen.getByRole("switch", { name: "Data saver" }).getAttribute("aria-checked")).toBe("true"));
+  view.unmount();
+  open(`/${role}/profile`);
+  fireEvent.click(await screen.findByRole("button", { name: /App settings/ }));
+  expect(screen.getByRole("switch", { name: "Data saver" }).getAttribute("aria-checked")).toBe("true");
+});

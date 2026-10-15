@@ -1,3 +1,4 @@
+import DataSaverPreference from "../../../components/DataSaverPreference.jsx";
 import NotificationPreferences from "../../../components/NotificationPreferences.jsx";
 import ProfilePhoto from "../../../components/ProfilePhoto.jsx";
 import UsageActivity from "../../../components/UsageActivity.jsx";
@@ -153,23 +154,11 @@ export default function Profile() {
           {pane === "app" && (
             <div className="card">
               <header className="user-settings__panel-heading"><h3>App settings</h3><p>Manage your notifications and appearance.</p></header>
-              <p className="user-settings__notice">Data saver is not available yet. Notification preferences are saved to your account.</p>
+
 
               <NotificationPreferences />
 
-              <div className="setrow">
-                <div>
-                  <div className="l">
-                    Data saver
-                  </div>
-
-                  <div className="s">
-                    Lower-quality media uploads on mobile data
-                  </div>
-                </div>
-
-                <Toggle />
-              </div>
+              <DataSaverPreference />
 
               <div className="setrow">
 

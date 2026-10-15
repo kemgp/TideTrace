@@ -73,6 +73,9 @@ try {
   await db.exec(await readFile(new URL('20261015000300_notification_preferences.sql', migrationDir), 'utf8'));
   await db.exec(await readFile(new URL('./notification-preferences.sql', import.meta.url), 'utf8'));
   console.log('PASS: notification preference persistence, isolation and event delivery.');
+  await db.exec(await readFile(new URL('20261015000400_data_saver.sql', migrationDir), 'utf8'));
+  await db.exec(await readFile(new URL('./data-saver.sql', import.meta.url), 'utf8'));
+  console.log('PASS: data saver defaults, persistence, ownership and active-account restrictions.');
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);
   const bootstrap = (await readFile(new URL('../bootstrap-first-admin.sql', import.meta.url), 'utf8')).replaceAll('REPLACE_WITH_YOUR_AUTH_USER_UUID','20000000-0000-0000-0000-000000000001');

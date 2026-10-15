@@ -74,6 +74,10 @@ export function contentRoutes(gateway) {
     const body = z.object({ display_name: text(100) }).strict().parse(req.body);
     send(res, first(await result(req.db.from("profiles").update(body).eq("id", req.user.id).select("id,display_name"))));
   });
+  router.patch("/profile/data-saver", member, async (req, res) => {
+    const body = z.object({ data_saver: z.boolean() }).strict().parse(req.body);
+    send(res, await result(req.db.rpc("set_data_saver", { p_enabled: body.data_saver })));
+  });
   router.get("/contributions", member, async (req, res) => {
     const query = page.extend({ status: z.enum(["draft", "pending", "approved", "revision_requested", "rejected"]).optional() }).parse(req.query);
     let contributions = req.db.from("traces").select(traceSelect).eq("author_id", req.user.id);

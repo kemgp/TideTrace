@@ -1,3 +1,5 @@
+import SelectedPhoto from "./SelectedPhoto.jsx";
+import { compressPhoto } from "../api/compressPhoto.js";
 import React, { useEffect, useRef, useState } from "react";
 import SubmitTrace from "./SubmitTrace.jsx";
 import { ApiError } from "../api/auth.js";
@@ -6,11 +8,14 @@ import { useApp } from "../context/AppContext.jsx";
 import { PHOTO_TYPES as TYPES, photoError } from "../api/photos.js";
 
 function SavedPhoto({ media, index }) {
-  const { readData } = useApp();
+  const { readData, profile } = useApp();
+  const [requested, setRequested] = useState(false);
+  const deferred = profile?.data_saver && !requested;
   const [attempt, setAttempt] = useState(0);
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
+    if (deferred) return;
     const controller = new AbortController();
     setUrl("");
     setError("");
@@ -19,10 +24,12 @@ function SavedPhoto({ media, index }) {
       if (!controller.signal.aborted) setUrl(data.url);
     }).catch((failure) => { if (!controller.signal.aborted) setError(failure.message); });
     return () => controller.abort();
-  }, [media.id, readData, attempt]);
+  }, [media.id, readData, attempt, deferred]);
+  const video = media.mime_type === "video/mp4";
+  if (deferred) return <button type="button" className="btn outline sm" onClick={() => setRequested(true)}>Load {video ? "video" : "photo"} {index + 1}</button>;
   return <>
     {error ? <div><p role="alert">Photo {index + 1}: {error}</p><button className="btn outline sm" onClick={() => setAttempt((value) => value + 1)}>Reload photo {index + 1}</button></div>
-      : url ? <img src={url} alt={media.alt_text || `Trace photo ${index + 1}`} referrerPolicy="no-referrer" onError={() => setError("Preview could not load. Reload it to get a fresh link.")} style={{ display: "block", width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 8 }} />
+      : url ? video ? <video src={url} controls preload="none" onError={() => setError("Video could not load. Reload it to get a fresh link.")} aria-label={`Trace video ${index + 1}`} style={{ width: "100%", maxHeight: 320 }} /> : <img src={url} alt={media.alt_text || `Trace photo ${index + 1}`} referrerPolicy="no-referrer" onError={() => setError("Preview could not load. Reload it to get a fresh link.")} style={{ display: "block", width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 8 }} />
         : <p role="status">Loading photo {index + 1}…</p>}
   </>;
 }
@@ -49,7 +56,8 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
   const update = (saved) => { if (onChange) onChange(saved); else setLocalTrace(saved); };
   const editable = contribution && current.author_id === profile?.id && ["draft", "revision_requested"].includes(current.status) && !current.is_hidden && !current.deleted_at;
   const media = [...(current.trace_media || [])].sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id));
-  const select = (event) => {
+  const select = async (event) => {
+    if (busy || locked || operationLock.current) return;
     const selected = event.target.files?.[0];
     setFile(null);
     setError("");
@@ -57,7 +65,12 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
     if (!selected) return;
     const validation = photoError(selected);
     if (validation) { setError(validation); event.target.value = ""; return; }
-    setFile(selected);
+    if (profile.data_saver) {
+      setBusy("compress");
+      try { setFile(await compressPhoto(selected)); }
+      catch (failure) { setError(failure.message); }
+      finally { setBusy(""); }
+    } else setFile(selected);
   };
   const refresh = async (signal) => {
     const saved = await readData(`${contribution ? "contributions" : "traces"}/${encodeURIComponent(trace.id)}`, { signal });
@@ -138,7 +151,7 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
     {media.length === 0 && <p className={hero ? "trace-detail__media-empty" : "hint"}>No photos attached yet.</p>}
     <div className={hero ? "trace-detail__media-grid" : undefined} style={hero ? undefined : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 16 }}>
       {media.map((item, index) => <div className={hero ? "trace-detail__media-item" : undefined} key={item.id}>
-        {TYPES.includes(item.mime_type) ? <SavedPhoto media={item} index={index} /> : <p className="hint">Video attachment (playback is not available yet).</p>}
+        {TYPES.includes(item.mime_type) || item.mime_type === "video/mp4" ? <SavedPhoto key={`${item.id}:${Boolean(profile?.data_saver)}`} media={item} index={index} /> : <p className="hint">Unsupported attachment.</p>}
         {editable && <button className="btn outline sm" style={{ marginTop: 8 }} disabled={locked || Boolean(busy) || uncertain} onClick={() => run("remove", item.id)}>Remove {TYPES.includes(item.mime_type) ? "photo" : "attachment"} {index + 1}</button>}
       </div>)}
     </div>
@@ -146,7 +159,8 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
       <label className="lbl" htmlFor="trace-photo">Choose a photo</label>
       <input ref={input} id="trace-photo" type="file" accept={TYPES.join(",")} disabled={locked || Boolean(busy) || uncertain || Boolean(attachment)} onChange={select} />
       <p className="hint">JPEG, PNG or WebP, up to 20 MB. Your selected photo uploads when you submit for review. The selection is not saved if you leave or reload this page.</p>
-      {file && <p>{file.name}</p>}
+      {busy === "compress" && <p role="status">Preparing smaller photo…</p>}
+      {file && <div><SelectedPhoto file={file} /><p>{file.name} · {Math.max(1, Math.ceil(file.size / 1024))} KB</p></div>}
       {file && !uncertain && !attachment && <button className="btn outline sm" disabled={locked || Boolean(busy)} onClick={() => { setFile(null); if (input.current) input.current.value = ""; }}>Clear selected photo</button>}
 
     </div>}

@@ -1175,3 +1175,15 @@ test("notification preferences require an active account and accept only one sup
   state.status = "suspended";
   await bearer(request(app).patch("/api/notification-preferences")).send({ key: "new_tides", enabled: false }).expect(403);
 });
+
+test("data saver is an active-account preference with a strict boolean payload", async () => {
+  const { app, calls, state } = fixture({ handler: ({ url, body }) => url.pathname === "/rest/v1/rpc/set_data_saver" ? json({ id: userId, data_saver: body.p_enabled }) : undefined });
+  await request(app).patch("/api/profile/data-saver").send({ data_saver: true }).expect(401);
+  const saved = await bearer(request(app).patch("/api/profile/data-saver")).send({ data_saver: true }).expect(200);
+  assert.equal(saved.body.data.data_saver, true);
+  assert.deepEqual(businessCalls(calls).at(-1).body, { p_enabled: true });
+  await bearer(request(app).patch("/api/profile/data-saver")).send({ data_saver: "true" }).expect(400);
+  await bearer(request(app).patch("/api/profile/data-saver")).send({ data_saver: true, id: traceId }).expect(400);
+  state.status = "suspended";
+  await bearer(request(app).patch("/api/profile/data-saver")).send({ data_saver: false }).expect(403);
+});
