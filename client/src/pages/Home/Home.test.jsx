@@ -14,7 +14,7 @@ it('shows the completed reduced-motion page and live totals',()=>{
  expect(screen.getAllByRole('heading',{level:1})).toHaveLength(1);
  expect(screen.getByText('Community participation')).toBeTruthy();
  expect(screen.getAllByText('27',{selector:'b'})).toHaveLength(1);
- expect(screen.getByRole('link',{name:"Start Tracing — it's free"}).getAttribute('href')).toBe('/register');
+ expect(screen.getByRole('link',{name:'Make Your First Trace',exact:true}).getAttribute('href')).toBe('/register');
  expect(document.querySelectorAll('main')).toHaveLength(1);
  expect(document.querySelectorAll('.tt-pending')).toHaveLength(0);
 });
@@ -25,6 +25,6 @@ it('closes navigation with Escape and returns focus to the toggle',()=>{
 });
 it('routes authenticated contributors to upload and restores scroll preferences on unmount',()=>{
  session.role='user';const previous=document.documentElement.style.scrollBehavior;const page=open();
- expect(screen.getByRole('link',{name:'Start Tracing',exact:true}).getAttribute('href')).toBe('/user/traces/upload');
+ expect(screen.getByRole('link',{name:'Make Your First Trace',exact:true}).getAttribute('href')).toBe('/user/traces/upload');
  expect(document.documentElement.style.scrollBehavior).toBe('auto');page.unmount();expect(document.documentElement.style.scrollBehavior).toBe(previous);
 });
