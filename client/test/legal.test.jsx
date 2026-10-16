@@ -14,13 +14,14 @@ it.each([["/terms-of-service", "TideTrace Terms and Conditions"], ["/privacy-pol
   expect(screen.queryByText(/Publication notes/)).toBeNull();
   expect(document.title).not.toContain("Page not found");
 });
-it("links from the home footer to the legal pages", async () => {
+it.each([
+  ["Terms of Service", "TideTrace Terms and Conditions"],
+  ["Privacy Policy", "TideTrace Privacy Policy"],
+])("links from the home footer to %s", async (label, title) => {
   open("/");
   const footer = within(screen.getByRole("contentinfo"));
-  fireEvent.click(footer.getByRole("link", { name: "Terms of Service" }));
-  expect(await screen.findByRole("heading", { level: 1, name: "TideTrace Terms and Conditions" })).toBeTruthy();
-  fireEvent.click(footer.getByRole("link", { name: "Privacy Policy" }));
-  expect(await screen.findByRole("heading", { level: 1, name: "TideTrace Privacy Policy" })).toBeTruthy();
+  fireEvent.click(footer.getByRole("link", { name: label }));
+  expect(await screen.findByRole("heading", { level: 1, name: title })).toBeTruthy();
 });
 it("shows linked registration terms that open separately from the form", async () => {
   open("/register");

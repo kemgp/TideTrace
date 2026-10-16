@@ -1,11 +1,11 @@
+import Home from "./pages/Home/index.jsx";
 import LegalPage from "./pages/legal/LegalPage.jsx";
 import PageMetadata from "./components/PageMetadata.jsx";
 import React,{useEffect,useState} from "react";
-import {Link,Navigate,Route,Routes,useLocation,useNavigate} from "react-router-dom";
+import {Link,Navigate,Route,Routes,useLocation} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
-import useCommunitySummary, { communityMetrics } from "./hooks/useCommunitySummary.js";
 import Navbar from "./components/Navbar.jsx";
 import SkeletonLoader from "./components/SkeletonLoader.jsx";
 import Login from "./pages/auth/Login.jsx";
@@ -47,232 +47,6 @@ const WAVE=(
     <path d="M2 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/>
   </svg>
 );
-function Home(){
-  const navigate=useNavigate();
-  const community=useCommunitySummary();
-  const metricValue=(key)=>community.loading ? <span className="sk" aria-label="Loading total"/> : community.data ? community.data[key].toLocaleString() : "—";
-  return(
-    <div className="view-home">
-      <header className="hero" id="home-top">
-        <div className="wrap hero-grid">
-          <div>
-            <span className="eyebrow">Community-powered conservation</span>
-            <h1>Every small act becomes <em>visible</em> care for the sea.</h1>
-            <p className="lead">
-              TideTrace turns ordinary sightings, clean-ups, and stories from coastal communities into a
-              living archive — closing the gap between people and the crises we're facing, one trace at a time.
-            </p>
-            <div className="cta-row">
-              <button className="btn clay" onClick={()=>navigate("/login")}>
-                Start Tracing — it's free
-              </button>
-              <a href="#home-how">
-                <button className="btn outline">See how it works</button>
-              </a>
-            </div>
-            <div className="trust">
-              <div className="avatar-stack">
-                <i style={{background:"var(--tan)"}}/>
-                <i style={{background:"var(--teal)"}}/>
-                <i style={{background:"var(--clay)"}}/>
-                <i style={{background:"var(--blue)"}}/>
-              </div>
-              <span>Built for coastal communities across the Visayas</span>
-            </div>
-          </div>
-          <div className="hero-visual">
-            <div className="device-frame">
-              <div className="bar">
-                <span/>
-                <span/>
-                <span/>
-              </div>
-              <div className="content">
-                <div className="fake-banner">
-                  <div className="t">Our community in numbers</div>
-                  <div className="s">All-time participation and learning</div>
-                </div>
-                <div className="fake-stats" aria-busy={community.loading}>
-                  {communityMetrics.map(([key,label])=><div key={key}><b>{metricValue(key)}</b><span>{label}</span></div>)}
-                </div>
-                <div className="fake-card">
-                  <div className="thumb" style={{background:"var(--tan)"}}/>
-                  <div>
-                    <div className="t">Share a coastal observation</div>
-                    <div className="s">Document what you see with a Trace</div>
-                  </div>
-                </div>
-                <div className="fake-card">
-                  <div className="thumb" style={{background:"var(--teal)"}}/>
-                  <div>
-                    <div className="t">Learn with Tides</div>
-                    <div className="s">Explore lessons about our coasts</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="float-chip c1">
-              <div className="ic" style={{background:"#e2f2f2"}}>
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#5aa2a8" strokeWidth={2}>
-                  <path d="M3 12h18M12 3v18"/>
-                </svg>
-              </div>
-              <div>
-                <div className="t">New Trace</div>
-                <div className="s">share what you see</div>
-              </div>
-            </div>
-            <div className="float-chip c2">
-              <div className="ic" style={{background:"#fbe7db"}}>
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#ce6d38" strokeWidth={2}>
-                  <path d="M20 6 9 17l-5-5"/>
-                </svg>
-              </div>
-              <div>
-                <div className="t">Reviewed Traces</div>
-                <div className="s">approved by moderators</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <svg className="wave-divider" viewBox="0 0 1440 60" preserveAspectRatio="none">
-          <path d="M0 30 Q60 5 120 30 T240 30 T360 30 T480 30 T600 30 T720 30 T840 30 T960 30 T1080 30 T1200 30 T1320 30 T1440 30 V60 H0 Z" fill="#ffffff"/>
-          <path d="M0 30 Q60 5 120 30 T240 30 T360 30 T480 30 T600 30 T720 30 T840 30 T960 30 T1080 30 T1200 30 T1320 30 T1440 30" stroke="#5aa2a8" strokeWidth={2} fill="none"/>
-        </svg>
-      </header>
-      <section className="hsec" id="home-mission">
-        <div className="wrap mission-h sh" style={{marginBottom:0}}>
-          <span className="tagline">The core question</span>
-          <h2>
-            How do we enable people to care more, and do more, <span>for each other and the planet?</span>
-          </h2>
-          <p>
-            Climate change and biodiversity loss aren't the only crises we face — apathy is too. Not because
-            people don't care, but because they feel unconnected, powerless, and distant. TideTrace exists to
-            close that gap, one small, visible act at a time.
-          </p>
-        </div>
-      </section>
-      <section className="hsec bg" id="home-features">
-        <div className="wrap">
-          <div className="sh">
-            <span className="tagline" style={{color:"var(--clay)"}}>What makes it different</span>
-            <h2>Built on people, not just data</h2>
-            <p>
-              TideTrace sits at the intersection of citizen science, social participation, and environmental
-              education — rooted in local knowledge.
-            </p>
-          </div>
-          <div className="pgrid">
-            <div className="pillar">
-              <div className="ic" style={{background:"#e2f2f2"}}>
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#5aa2a8" strokeWidth={2}>
-                  <path d="M12 21c-4-4-8-8.5-8-13a8 8 0 0 1 16 0c0 4.5-4 9-8 13Z"/>
-                  <circle cx={12} cy={8} r="2.5"/>
-                </svg>
-              </div>
-              <h3>Emotional, not just statistical</h3>
-              <p>Centered on belonging and participation — not spreadsheets and charts alone.</p>
-            </div>
-            <div className="pillar">
-              <div className="ic" style={{background:"#fbe7db"}}>
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#ce6d38" strokeWidth={2}>
-                  <path d="M12 16V4M7 9l5-5 5 5"/>
-                  <path d="M4 20h16"/>
-                </svg>
-              </div>
-              <h3>Ordinary actions, real impact</h3>
-              <p>Storytelling, clean-ups, documentation, and learning — all become ecological contributions.</p>
-            </div>
-            <div className="pillar">
-              <div className="ic" style={{background:"#e3ecfa"}}>
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#314e9d" strokeWidth={2}>
-                  <circle cx={12} cy={12} r={9}/>
-                  <path d="M12 3v18M3 12h18"/>
-                </svg>
-              </div>
-              <h3>Community + technology</h3>
-              <p>Citizen science and local ecological knowledge, working together — not replacing one another.</p>
-            </div>
-            <div className="pillar">
-              <div className="ic" style={{background:"#eaf6e9"}}>
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#5aa2a8" strokeWidth={2}>
-                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/>
-                </svg>
-              </div>
-              <h3>Care that's affordable</h3>
-              <p>Care can't be sustained if survival isn't. We build for accessibility and dignity first.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="hsec impact" id="home-impact">
-        <div className="wrap">
-          <div className="sh">
-            <span className="tagline">Community participation</span>
-            <h2>Our community in numbers</h2>
-            <p>Published observations, community contributions, and learning milestones.</p>
-          </div>
-          <div className="igrid" aria-busy={community.loading}>
-            {communityMetrics.map(([key,label])=><div className="istat" key={key}><b>{metricValue(key)}</b><span>{label}</span></div>)}
-          </div>
-          {community.error && <div role="alert"><p>{community.error}</p><button className="btn outline sm" onClick={community.retry}>Retry community totals</button></div>}
-        </div>
-      </section>
-      <section className="hsec" id="home-how">
-        <div className="wrap">
-          <div className="sh">
-            <span className="tagline" style={{color:"var(--clay)"}}>Getting started</span>
-            <h2>Three steps to your first trace</h2>
-          </div>
-          <div className="sgrid3">
-            <div className="step">
-              <div className="num">1</div>
-              <h3>Join your community</h3>
-              <p>Sign up and connect to your barangay or coastal community — see what's already been logged nearby.</p>
-            </div>
-            <div className="step">
-              <div className="num">2</div>
-              <h3>Log what you see</h3>
-              <p>Snap a photo, record a story, or note a sighting. It takes under a minute to add to the shared archive.</p>
-            </div>
-            <div className="step">
-              <div className="num">3</div>
-              <h3>Watch the impact grow</h3>
-              <p>See your contribution join the collective — visualized alongside everyone else's small acts of care.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="hsec quote">
-        <div className="wrap">
-          <blockquote>
-            "Small acts have large impact. Through many small actions, the collective becomes visible."
-          </blockquote>
-          <div className="who">— TideTrace vision statement</div>
-        </div>
-      </section>
-      <section className="hsec">
-        <div className="wrap">
-          <div className="cta-final">
-            <h2>Your first trace takes less than a minute.</h2>
-            <p>Join coastal communities already turning ordinary moments into a living archive of the sea.</p>
-            <div className="cta-row">
-              <button className="btn clay" onClick={()=>navigate("/login")}>
-                Start Tracing
-              </button>
-              <a href="#home-features">
-                <button className="btn outline" style={{borderColor:"#fff",color:"#fff"}}>
-                  Learn more
-                </button>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
 function Footer(){
   return(
     <footer>
@@ -473,6 +247,7 @@ function AppShell(){
       />
     );
   }
+  if(location.pathname === "/") return <div className="app-shell"><Home/><Footer/><Toast/></div>;
   return(
     <div
       className={`app-shell ${
@@ -510,9 +285,7 @@ function AppShell(){
             <Route
               path="/"
               element={
-                <div className="view">
-                  <Home/>
-                </div>
+                <Home/>
               }
             />
             <Route
