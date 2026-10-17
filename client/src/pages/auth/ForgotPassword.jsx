@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { AuthLayout } from "./AuthLayout.jsx";
+import { AuthLayout, EmailField } from "./AuthLayout.jsx";
 import { ApiError, authRequest } from "../../api/auth.js";
 import VerificationCode from "./VerificationCode.jsx";
 import ResetPassword from "./ResetPassword.jsx";
@@ -36,20 +36,24 @@ export default function ForgotPassword() {
       }}
       onResend={() => sendEmail(sentEmail)}
       onBack={() => { setSentEmail(""); setError(""); }} />
-    <Link className="btn ghost sm" to="/login">Back to log in</Link>
+    <div className="recovery-verification-footer"><Link className="btn ghost sm" to="/login">← Back to log in</Link></div>
   </div></div>;
 
-  return <AuthLayout title="Password recovery">
-    <p className="sub">Enter your account email and we’ll send instructions to reset your password.</p>
+  return <AuthLayout title="Forgot your password?" cardClassName="recovery-card"
+    subtitle="Enter the email you used to sign up. We’ll send you instructions to reset your password."
+    footer={<div className="recovery-footer">
+      <Link className="recovery-login" to="/login">← Back to log in</Link>
+      <Link className="recovery-home" to="/">Back to home</Link>
+    </div>}>
     <form onSubmit={submit} aria-busy={busy}>
       {error && <p className="auth-code-error" role="alert">{error}</p>}
-      <div className="fgroup">
-        <label htmlFor="recovery-email">Email</label>
-        <input id="recovery-email" className="input" type="email" autoComplete="email" required maxLength={254} disabled={busy}
-          value={email} onChange={(event) => setEmail(event.target.value)} />
-      </div>
-      <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy}>{busy ? "Sending…" : "Send recovery email"}</button>
+      <EmailField id="recovery-email" placeholder="you@example.com" busy={busy}
+        value={email} onChange={(event) => setEmail(event.target.value)} />
+      <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy}>
+        {busy && <span className="button-spinner" aria-hidden="true" />}
+        {busy ? "Sending email…" : "Send recovery email"}
+      </button>
     </form>
-    <Link className="btn ghost sm" to="/login">Back to log in</Link>
+    <p className="recovery-help">Next, check your inbox. If the email doesn’t arrive, check your spam folder.</p>
   </AuthLayout>;
 }

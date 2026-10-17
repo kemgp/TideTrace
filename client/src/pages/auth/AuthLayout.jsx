@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-export function AuthLayout({ title, children, tab }) {
-  return <div className="auth-wrap"><div className="auth-card">
+export function AuthLayout({ title, children, tab, subtitle = "Community-powered ecosystem conservation", footer, cardClassName = "" }) {
+  return <div className="auth-wrap"><div className={`auth-card ${cardClassName}`}>
     <div className="auth-brand">
       <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#203463" strokeWidth="1.8" aria-hidden="true"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0" /><path d="M2 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0" /></svg>
       <span>TideTrace</span>
     </div>
     <h1>{title}</h1>
-    <p className="sub">Community-powered ecosystem conservation</p>
+    <p className="sub">{subtitle}</p>
     {tab && <div className="auth-tabs">
       <Link to="/login" className={tab === "login" ? "auth-tab on" : "auth-tab"} aria-current={tab === "login" ? "page" : undefined}>Log in</Link>
       <Link to="/register" className={tab === "register" ? "auth-tab on" : "auth-tab"} aria-current={tab === "register" ? "page" : undefined}>Sign up</Link>
     </div>}
     {children}
-    <div style={{ textAlign: "center", marginTop: 14 }}><Link className="btn ghost sm" to="/">← Back to home</Link></div>
+    {footer ?? <div style={{ textAlign: "center", marginTop: 14 }}><Link className="btn ghost sm" to="/">← Back to home</Link></div>}
   </div></div>;
 }
 

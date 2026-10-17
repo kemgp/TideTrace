@@ -30,8 +30,22 @@ export default function AuthCallback() {
 
   if (confirmation?.type === "recovery") return <ResetPassword session={confirmation.session} />;
 
+  if (error) return <AuthLayout title="This email link isn’t working" cardClassName="email-link-error-card"
+    subtitle="Let’s help you get back into your account."
+    footer={<div className="recovery-footer">
+      <Link className="recovery-login" to="/login">← Back to log in</Link>
+      <Link className="recovery-home" to="/">Back to home</Link>
+    </div>}>
+    <div className="email-link-notice" role="alert">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v6m0 3v1" /></svg>
+      <p>{error}</p>
+    </div>
+    <Link className="btn blue email-link-retry" to="/forgot-password">Request a new recovery email</Link>
+    <p className="recovery-help">Use the link in the newest email. Older links may no longer work.</p>
+    <p className="email-link-signup-help">Confirming a new account? <Link to="/login">Log in to request another confirmation email.</Link></p>
+  </AuthLayout>;
+
   return <AuthLayout title="Confirm your email">
-    {error ? <><p className="auth-code-error" role="alert">{error}</p><Link className="btn blue" to="/login">Back to log in</Link><Link className="btn ghost sm" to="/forgot-password">Request a new recovery email</Link></>
-      : <p role="status">Checking your account…</p>}
+    <p role="status">Checking your account…</p>
   </AuthLayout>;
 }

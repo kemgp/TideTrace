@@ -111,7 +111,7 @@ it.each(["user", "moderator", "admin"])("routes %s password changes through the 
   expect(link.getAttribute("href")).toBe("/forgot-password");
   expect(screen.queryByPlaceholderText("Enter current password")).toBeNull();
   fireEvent.click(link);
-  await screen.findByRole("heading", { name: "Password recovery" });
+  await screen.findByRole("heading", { name: "Forgot your password?" });
   expect(calls.mock.calls.some(([url]) => url === "/api/auth/password")).toBe(false);
 });
 

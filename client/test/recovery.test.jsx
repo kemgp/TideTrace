@@ -54,7 +54,9 @@ it("requests recovery without claiming that an account exists", async () => {
   await requestEmail(userEvent.setup());
   expect(await screen.findByRole("heading", { name: "Check your email" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Resend email in 60s" }).disabled).toBe(true);
-  expect(screen.getByText(/If an account exists for admin@example.test/)).toBeTruthy();
+  expect(screen.getByText(/If an account exists for this email/)).toBeTruthy();
+  expect(screen.getByText(email)).toBeTruthy();
+  expect(screen.getByPlaceholderText("Enter your code")).toBeTruthy();
   expect(calls.mock.calls[0][0]).toBe("/api/auth/forgot-password");
   expect(JSON.parse(calls.mock.calls[0][1].body)).toEqual({ email });
 });

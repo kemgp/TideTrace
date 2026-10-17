@@ -751,3 +751,31 @@ html.dark-mode .remote-skeleton-line{background-image:linear-gradient(90deg,#263
 .button-spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;flex:none;animation:button-spin .8s linear infinite;}
 @keyframes button-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.button-spinner{animation:none;}}
+
+/* A focused recovery screen with one primary action. */
+.recovery-card .sub{line-height:1.7;margin-bottom:24px;}
+.recovery-help{margin-top:14px;color:var(--soft);font-size:11.5px;line-height:1.6;text-align:center;}
+.recovery-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);}
+.recovery-footer a{display:inline-flex;align-items:center;min-height:44px;font-size:12px;border-radius:6px;}
+.recovery-login{color:var(--blue);font-weight:600;}
+.recovery-home{color:var(--soft);}
+.recovery-footer a:hover{text-decoration:underline;}
+.recovery-footer a:focus-visible{outline:2px solid var(--blue);outline-offset:4px;}
+
+.verification-actions>.btn{display:block;margin:10px auto 0;}
+.recovery-mail-icon{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 16px;border-radius:16px;background:#edf7ff;color:var(--blue);}
+.recovery-verification .recovery-delivery{margin:10px 0 12px;line-height:1.65;}
+.recovery-email-address{padding:10px 12px;border-radius:9px;background:var(--bg);color:var(--navy);font-size:13px;font-weight:600;text-align:center;overflow-wrap:anywhere;}
+.recovery-instructions{margin:16px 0 22px;font-size:12.5px;line-height:1.65;color:var(--soft);text-align:center;}
+.recovery-code-help{margin-bottom:12px;font-size:12px;color:var(--soft);}
+.recovery-email-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:4px 12px;margin-top:8px;}
+.recovery-email-actions .btn{min-height:44px;}
+.recovery-verification-footer{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);text-align:center;}
+
+.email-link-error-card .sub{line-height:1.65;margin-bottom:20px;}
+.email-link-notice{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;padding:14px;border:1px solid #efd4cb;border-radius:10px;background:#fff4ef;color:#a6503c;}
+.email-link-notice svg{flex-shrink:0;margin-top:1px;}
+.email-link-notice p{font-size:12px;line-height:1.65;overflow-wrap:anywhere;}
+.email-link-retry{width:100%;text-align:center;}
+.email-link-signup-help{margin-top:16px;font-size:11.5px;line-height:1.6;color:var(--soft);text-align:center;}
+.email-link-signup-help a{color:var(--blue);text-decoration:underline;text-underline-offset:3px;}
