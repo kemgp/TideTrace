@@ -7,6 +7,7 @@ import {ROLE_HOME} from "./api/auth.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
 import Navbar from "./components/Navbar.jsx";
+import PublicNavbar from "./components/home/PublicNavbar.jsx";
 import SkeletonLoader from "./components/SkeletonLoader.jsx";
 import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
@@ -260,7 +261,9 @@ function AppShell(){
               :""
       }`}
     >
-      <Navbar/>
+      {!role && ["/login", "/register", "/forgot-password", "/auth/callback"].includes(location.pathname)
+        ? <PublicNavbar />
+        : <Navbar />}
         {loadingPage&&<SkeletonLoader path={pagePath}/>}
       {sessionNotice&&(
         <div className="demo-notice" role="status">

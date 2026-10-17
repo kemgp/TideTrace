@@ -14,3 +14,7 @@
 
 .tt-total-skeleton{display:inline-block;width:65px;height:24px;border-radius:5px;background:#c7dcee80}.tt-community-error{margin-top:24px;text-align:center}.tt-community-error .tt-btn{margin-top:12px;color:#fff;border-color:#fff}
 @media(max-width:640px){}
+
+/* Public navigation keeps the same typography on home and auth routes. */
+.tt-nav{font:400 14px/1.5 Inter,sans-serif;color:var(--navy);color-scheme:light;}
+.tt-nav a:focus-visible,.tt-nav button:focus-visible{outline:3px solid var(--teal);outline-offset:4px;}

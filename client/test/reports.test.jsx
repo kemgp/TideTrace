@@ -184,7 +184,7 @@ it("blocks duplicate member reports and ignores the save after logout", async ()
   await screen.findByText(remove ? "Content removed. Decision saved." : "Report dismissed. Decision saved.");
   expect(JSON.parse(writes(calls)[0][1].body)).toEqual({ remove_content: remove, reason: "Reviewed comment" });
   expect(calls.mock.calls.some(([url]) => url.includes("type=comment"))).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Dismissed", exact: true }));
+  fireEvent.change(screen.getByLabelText("Report status"), { target: { value: "dismissed" } });
   await waitFor(() => expect(calls.mock.calls.some(([url]) => url.includes("status=dismissed") && url.includes("type=comment"))).toBe(true));
  });
 

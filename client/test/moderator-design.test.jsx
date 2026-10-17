@@ -46,16 +46,19 @@ it("loads real comment reports without demo records", async () => {
   const fetcher = setup("/moderator/comments");
   await screen.findByText("No open comment reports on this page.");
   expect(screen.queryByText("Guest_204")).toBeNull();
+  expect(screen.queryByLabelText("Report filters")).toBeNull();
+  expect(screen.getByLabelText("Report status")).toBeTruthy();
   expect(fetcher.mock.calls.some(([url]) => url.includes("type=comment"))).toBe(true);
 });
 
-it("loads the saved report status selected by each tab", async () => {
+it("loads the saved report status selected from the dropdown", async () => {
   const fetcher = setup("/moderator/reports");
   await screen.findByText("No open reports on this page.");
-  fireEvent.click(screen.getByRole("button", { name: "Dismissed" }));
+  expect(screen.queryByLabelText("Report filters")).toBeNull();
+  fireEvent.change(screen.getByLabelText("Report status"), { target: { value: "dismissed" } });
   await screen.findByText("No dismissed reports on this page.");
   expect(fetcher.mock.calls.some(([url]) => url.includes("reports?status=dismissed"))).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Removed" }));
+  fireEvent.change(screen.getByLabelText("Report status"), { target: { value: "resolved" } });
   await screen.findByText("No resolved reports on this page.");
   expect(fetcher.mock.calls.some(([url]) => url.includes("reports?status=resolved"))).toBe(true);
 });

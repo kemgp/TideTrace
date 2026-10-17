@@ -19,12 +19,14 @@ function ReportQueue({ commentsOnly }) {
   const reports = result.data || [];
   return <div className="wrap mod-reports-page" style={{ maxWidth: 800 }}>
     <div className="vhead"><span className="eyebrow teale">{commentsOnly ? "Manage comments" : "Manage reports"}</span><h2>{commentsOnly ? "Flagged comments" : "Reported content"}</h2><p>Review the content and report reason. Dismissing keeps the content; removing hides it from public views. Every decision requires a reason and is saved in moderation history.</p></div>
-    {role === "mod" && <div className="chiprow mod-status-tabs" aria-label="Report filters">{[["open", commentsOnly ? "Flagged" : "Open"], ["dismissed", "Dismissed"], ["resolved", "Removed"]].map(([value, label]) => <button key={value} className={`chip ${status === value ? "on" : ""}`} aria-pressed={status === value} onClick={() => { setStatus(value); setOffset(0); }}>{label}</button>)}</div>}
     <div className="row mod-report-tools" style={{ flexWrap: "wrap" }}>
-      <label>Report status <select className="input" aria-label="Report status" value={status} onChange={(event) => { setStatus(event.target.value); setOffset(0); }}>
-        <option value="open">Open</option><option value="resolved">Resolved — content removed</option><option value="dismissed">Dismissed</option>
+      <label>Status <select className="input" aria-label="Report status" value={status} onChange={(event) => { setStatus(event.target.value); setOffset(0); }}>
+        <option value="open">{commentsOnly ? "Flagged" : "Open"}</option><option value="resolved">Removed</option><option value="dismissed">Dismissed</option>
       </select></label>
-      <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>Refresh reports</button>
+      <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1" /></svg>
+        Refresh
+      </button>
       {role === "admin" && <Link className="btn ghost sm" to="/admin/review/history">Moderation history</Link>}
     </div>
     <RemoteState {...result} />
@@ -34,7 +36,7 @@ function ReportQueue({ commentsOnly }) {
 }
 
 function ReportDecision({ initialReport, commentsOnly }) {
-  const { writeData, readData, role } = useApp();
+  const { writeData, readData } = useApp();
   const inputId = useId();
   const [report, setReport] = useState(initialReport);
   const [reason, setReason] = useState("");
@@ -69,26 +71,37 @@ function ReportDecision({ initialReport, commentsOnly }) {
   }
   const title = report.trace?.title || report.comment?.trace?.title || "Unavailable Trace";
   return <article className="card mod-report-card" style={{ marginTop: 16, overflowWrap: "anywhere" }} aria-label={`Report: ${title}`}>
-    {role === "mod" && <div className="mod-card-top"><span className={`badge ${report.status === "resolved" ? "removed" : report.status}`}>{report.status === "resolved" ? "Removed" : report.status}</span></div>}
-    <h3>{report.trace_id ? "Trace" : "Comment"}: {title}</h3>
-    <p className="hint">{report.comment_id ? "Comment" : "Trace"} by {(report.comment_id ? report.comment?.author : report.trace?.author)?.display_name || "Unavailable member"}</p>
-    <p className="hint">Reported by {report.reporter?.display_name || "Community member"}{report.created_at ? ` · ${new Date(report.created_at).toLocaleString()}` : ""}</p>
-    <div className="mod-report-reason"><p><b>Report reason:</b> {report.reason}</p></div>
+    <header className="mod-report-header">
+      <div>
+        <h3>{report.trace_id ? "Trace" : "Comment"}: {title}</h3>
+        <p className="hint">{report.comment_id ? "Comment" : "Trace"} by {(report.comment_id ? report.comment?.author : report.trace?.author)?.display_name || "Unavailable member"}</p>
+      </div>
+      <span className={`badge ${report.status === "resolved" ? "removed" : report.status}`}>{report.status === "resolved" ? "Removed" : report.status === "dismissed" ? "Dismissed" : commentsOnly ? "Flagged" : "Open"}</span>
+    </header>
+    <p className="hint mod-report-meta">Reported by {report.reporter?.display_name || "Community member"}{report.created_at ? <> · <time dateTime={report.created_at} title={new Date(report.created_at).toLocaleString()}>{new Date(report.created_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</time></> : ""}</p>
+    <div className="mod-report-reason"><span className="mod-report-label">Report reason</span><p>{report.reason}</p></div>
     <details><summary>View reported content</summary>
       {report.trace_id ? report.trace ? <><p style={{ whiteSpace: "pre-wrap" }}>{report.trace.description}</p><TracePhotos trace={report.trace} /><p>{report.trace.is_hidden || report.trace.deleted_at ? "This Trace is already hidden or deleted." : "This Trace is visible."}</p></> : <p>Content is no longer available.</p>
         : report.comment ? <><p style={{ whiteSpace: "pre-wrap" }}>{report.comment.body}</p><p>Comment status: {report.comment.status}</p></> : <p>Content is no longer available.</p>}
     </details>
-    <p><b>Status:</b> {report.status === "resolved" ? "Resolved — content removed" : report.status === "dismissed" ? "Dismissed" : "Open"}</p>
-    {report.status === "open" ? <form noValidate onSubmit={(event) => event.preventDefault()}>
+    {report.status === "open" ? <form className="mod-report-decision" noValidate onSubmit={(event) => event.preventDefault()}>
       <fieldset disabled={busy || blocked} style={{ border: 0, padding: 0 }}>
+        <h4>Review decision</h4>
+        <p className="hint" id={`${inputId}-help`}>Explain your decision before choosing an action. It will be saved in moderation history.</p>
         <label className="lbl" htmlFor={inputId}>Decision reason</label>
-        <textarea className="input" id={inputId} maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} />
+        <textarea className="input" id={inputId} aria-describedby={`${inputId}-help`} placeholder="Briefly explain why you’re keeping or removing this content…" maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} />
         <div className="row" style={{ marginTop: 12 }}>
           <button type="button" className="btn outline sm" onClick={() => run(false)}>{commentsOnly ? "Keep comment" : "Dismiss report"}</button>
           <button type="button" className="btn clay sm" onClick={() => run(true)}>{commentsOnly ? "Remove comment" : "Remove content"}</button>
         </div>
       </fieldset>
-    </form> : <><p><b>Decision reason:</b> {report.resolution_reason}</p><p className="hint">{report.resolver?.display_name || "Staff member"}{report.resolved_at ? ` · ${new Date(report.resolved_at).toLocaleString()}` : ""}</p></>}
+    </form> : <section className={`mod-report-outcome ${report.status}`} aria-label="Saved decision">
+      <h4>{report.status === "resolved" ? `${report.comment_id ? "Comment" : "Content"} removed` : "Report dismissed"}</h4>
+      <p className="mod-outcome-description">{report.status === "resolved" ? "Removal recorded for this report." : "No removal was requested for this report."}</p>
+      <span className="mod-report-label">Decision reason</span>
+      <p className="mod-outcome-reason">{report.resolution_reason || "No reason recorded."}</p>
+      <p className="hint">Reviewed by {report.resolver?.display_name || "Staff member"}{report.resolved_at ? <> · <time dateTime={report.resolved_at} title={new Date(report.resolved_at).toLocaleString()}>{new Date(report.resolved_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</time></> : ""}</p>
+    </section>}
     {busy && <p role="status">Checking saved decision…</p>}
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
