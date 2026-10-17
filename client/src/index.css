@@ -51,6 +51,33 @@ button{font:inherit;cursor:pointer;}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
 .input{width:100%;height:38px;border:1.5px solid var(--line);border-radius:9px;padding:0 12px;font:inherit;font-size:13px;color:var(--navy);background:#fff;}
 .input:focus{outline:2px solid var(--blue);outline-offset:1px;}
+/* Auth field states: preserve the existing field dimensions and form layout. */
+.auth-card input.input{
+  border-color:#d5dbe3;
+  border-radius:12px;
+  background:#fff;
+  color:#172033;
+  caret-color:#5f85e5;
+  box-shadow:0 1px 2px rgba(23,32,51,.03);
+}
+.auth-card input.input::placeholder{color:#9ca3af;opacity:1;}
+.auth-card input.input:focus{
+  border-color:#5f85e5;
+  outline:none;
+  box-shadow:0 0 0 4px rgba(95,133,229,.13),0 2px 8px rgba(95,133,229,.12);
+}
+.auth-card input.input:user-invalid,
+.auth-card input.input[aria-invalid="true"]{
+  border-color:#b96b59;
+  box-shadow:none;
+}
+.auth-card input.input:user-invalid:focus,
+.auth-card input.input[aria-invalid="true"]:focus{
+  box-shadow:0 0 0 4px rgba(185,107,89,.13);
+}
+.auth-email-error{color:#b96b59;font-size:11px;margin-top:5px;}
+.auth-password-error{display:flex;align-items:center;gap:6px;width:fit-content;max-width:100%;margin-top:7px;padding:5px 9px;border:1px solid #efd4cb;border-radius:8px;background:#fff4ef;color:#a6503c;font-size:11px;line-height:1.4;}
+.auth-password-error svg{flex-shrink:0;}
 textarea.input{height:110px;padding:10px 12px;resize:vertical;}
 .tgl{width:37px;height:21px;border-radius:12px;background:var(--teal);position:relative;flex:none;border:none;}
 .tgl::after{content:'';position:absolute;top:2.5px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;}

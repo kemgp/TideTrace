@@ -50,6 +50,30 @@ async function submitRegistration(user) {
 
 describe("backend authentication", () => {
   it.each([
+    ["/login", "Log in"], ["/register", "Create account"],
+  ])("shows inline email validation on %s and clears it after correction", async (path, button) => {
+    const calls = mockApi(() => undefined);
+    const user = userEvent.setup();
+    openApp(path);
+    if (path === "/register") await user.type(screen.getByLabelText("Full name"), "Test Member");
+    const input = screen.getByLabelText("Email");
+    await user.type(input, "saas");
+    await user.type(screen.getByLabelText("Password", { exact: true }), password);
+    const invalidEvent = vi.fn();
+    input.addEventListener("invalid", invalidEvent);
+    await user.click(within(input.closest("form")).getByRole("button", { name: button, exact: true }));
+    expect(screen.getByRole("alert").textContent).toBe("enter a valid email address");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.getAttribute("aria-describedby")).toBe(screen.getByRole("alert").id);
+    expect(invalidEvent.mock.calls[0][0].defaultPrevented).toBe(true);
+    expect(calls).not.toHaveBeenCalled();
+    await user.clear(input);
+    await user.type(input, email);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(input.hasAttribute("aria-invalid")).toBe(false);
+  });
+
+  it.each([
     ["user", "/user/dashboard"], ["moderator", "/moderator/dashboard"], ["admin", "/admin/dashboard"],
   ])("routes a verified %s to the correct dashboard", async (role, path) => {
     const calls = mockApi((url) => {
