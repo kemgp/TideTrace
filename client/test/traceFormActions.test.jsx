@@ -1,6 +1,7 @@
 import React, { StrictMode } from "react";
 import { expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
@@ -190,12 +191,110 @@ it("saves and resubmits revised form fields using the same Trace and new version
 });
 
 
-it("saves only draft details even when a photo is selected", async () => {
+it("saves draft details and the selected photo without submitting", async () => {
   const calls = flowSetup();
   open("/user/traces/upload");
   await fillForm();
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
   await screen.findByRole("link", { name: "Edit draft" });
-  expect(screen.getByText("No photos attached yet.")).toBeTruthy();
-  expect(calls.mock.calls.filter(([, options]) => options.method === "POST").map(([url]) => url)).toEqual(["/api/traces"]);
+  expect(await screen.findByAltText("Trace photo 1")).toBeTruthy();
+  expect(calls.mock.calls.filter(([, options]) => options.method === "POST").map(([url]) => url)).toEqual(["/api/traces", media]);
+});
+
+it.each(["new", "saved"])("uses the shared selector for %s Traces with picker, drop, preview and removal without writes", async (location) => {
+  const calls = setup((url) => url === detail ? response(trace({ trace_media: [] })) : undefined);
+  open(location === "new" ? "/user/traces/upload" : `/user/contributions/${trace().id}`);
+  const input = await screen.findByLabelText(/^Choose a photo/);
+  const browse = screen.getByRole("button", { name: "Browse files" });
+  const picker = vi.spyOn(input, "click");
+  const user = userEvent.setup();
+  browse.focus();
+  await user.keyboard("{Enter}");
+  expect(picker).toHaveBeenCalledTimes(1);
+  await user.keyboard(" ");
+  expect(picker).toHaveBeenCalledTimes(2);
+  expect(browse.getAttribute("aria-controls")).toBe(input.id);
+  expect(input.accept).toBe("image/jpeg,image/png,image/webp");
+  expect(document.getElementById(input.getAttribute("aria-describedby"))).toBeTruthy();
+  const selected = file();
+  fireEvent.change(input, { target: { files: [selected] } });
+  await screen.findByAltText("Selected photo preview");
+  const removeLabel = location === "new" ? "Remove selected photo" : "Clear selected photo";
+  fireEvent.click(screen.getByRole("button", { name: removeLabel }));
+  expect(screen.queryByAltText("Selected photo preview")).toBeNull();
+  const dropArea = screen.getByText("Drag and drop your photo here").parentElement;
+  fireEvent.dragOver(dropArea);
+  expect(dropArea.className).toContain("is-dragging");
+  fireEvent.drop(dropArea, { dataTransfer: { files: [selected] } });
+  expect(dropArea.className).not.toContain("is-dragging");
+  await screen.findByAltText("Selected photo preview");
+  expect(screen.getByText(selected.name, { selector: ".trace-photo-upload__name" })).toBeTruthy();
+  expect(screen.getByText(/Ready to upload/)).toBeTruthy();
+  expect(calls.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
+  if (location === "saved") expect(screen.queryByRole("heading", { name: /Step 4/ })).toBeNull();
+});
+
+it.each(["new", "saved"])("associates dropped-file validation with the %s Trace input and Browse files button", async (location) => {
+  const calls = setup((url) => url === detail ? response(trace({ trace_media: [] })) : undefined);
+  open(location === "new" ? "/user/traces/upload" : `/user/contributions/${trace().id}`);
+  const input = await screen.findByLabelText(/^Choose a photo/);
+  const dropArea = screen.getByText("Drag and drop your photo here").parentElement;
+  for (const [files, message] of [
+    [[new File(["text"], "bad.svg", { type: "image/svg+xml" })], "Choose a JPEG, PNG or WebP photo."],
+    [[new File([], "empty.png", { type: "image/png" })], "Choose a non-empty photo no larger than 20 MB."],
+    [[new File([new Uint8Array(20 * 1024 * 1024 + 1)], "large.png", { type: "image/png" })], "Choose a non-empty photo no larger than 20 MB."],
+    [[file(), file()], "Choose one photo at a time."],
+  ]) {
+    fireEvent.drop(dropArea, { dataTransfer: { files } });
+    const error = await screen.findByRole("alert");
+    expect(error.textContent).toBe(message);
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.getAttribute("aria-describedby").split(" ")).toContain(error.id);
+    expect(screen.getByRole("button", { name: "Browse files" }).getAttribute("aria-describedby").split(" ")).toContain(error.id);
+  }
+  expect(calls.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
+});
+
+it("locks the main form selector against drops, picks and removal while uploading", async () => {
+  let finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const calls = flowSetup({ slowUpload: pending });
+  open("/user/traces/upload");
+  await fillForm();
+  fireEvent.click(screen.getByRole("button", { name: "Submit Trace" }));
+  await screen.findByRole("button", { name: "Uploading photo…" });
+  expect(screen.getByRole("button", { name: "Browse files" }).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "Remove selected photo" }).disabled).toBe(true);
+  expect(screen.getByLabelText(/^Choose a photo/).disabled).toBe(true);
+  fireEvent.drop(screen.getByText("Drag and drop your photo here").parentElement, { dataTransfer: { files: [new File(["new"], "replacement.png", { type: "image/png" })] } });
+  expect(screen.getByText("coast.png", { selector: ".trace-photo-upload__name" })).toBeTruthy();
+  expect(calls.mock.calls.filter(([url]) => url === media)).toHaveLength(1);
+  await act(async () => finish(response(photo)));
+  await screen.findByText(/Your Trace is awaiting a reviewer/);
+});
+
+it("locks the saved draft selector against drops, picks and removal while uploading", async () => {
+  let saved = trace({ trace_media: [] }), finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const calls = setup((url) => {
+    if (url === detail) return response(saved);
+    if (url === media) { saved = { ...saved, trace_media: [photo], version: 2 }; return pending; }
+    if (url === submitPath) return response({ ...saved, status: "pending", version: 3 });
+    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+  });
+  open(`/user/contributions/${trace().id}`);
+  const input = await screen.findByLabelText("Choose a photo");
+  fireEvent.change(input, { target: { files: [file()] } });
+  const submit = screen.getByRole("button", { name: "Submit for review" });
+  await waitFor(() => expect(submit.disabled).toBe(false));
+  fireEvent.click(submit);
+  await screen.findByRole("button", { name: "Uploading photo…" });
+  expect(screen.getByRole("button", { name: "Browse files" }).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "Clear selected photo" }).disabled).toBe(true);
+  expect(input.disabled).toBe(true);
+  fireEvent.drop(screen.getByText("Drag and drop your photo here").parentElement, { dataTransfer: { files: [new File(["new"], "replacement.png", { type: "image/png" })] } });
+  expect(screen.getByText("coast.png", { selector: ".trace-photo-upload__name" })).toBeTruthy();
+  expect(calls.mock.calls.filter(([url]) => url === media)).toHaveLength(1);
+  await act(async () => finish(response(photo)));
+  await screen.findByText(/Your Trace is awaiting a reviewer/);
 });

@@ -1,6 +1,6 @@
-import SelectedPhoto from "./SelectedPhoto.jsx";
+import TracePhotoSelector from "./TracePhotoSelector.jsx";
 import { compressPhoto } from "../api/compressPhoto.js";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import SubmitTrace from "./SubmitTrace.jsx";
 import { ApiError } from "../api/auth.js";
 import { useApp } from "../context/AppContext.jsx";
@@ -34,7 +34,7 @@ function SavedPhoto({ media, index }) {
   </>;
 }
 
-export default function TracePhotos({ trace, contribution = false, hero = false, initialUpload = null, onChange, onLockedChange, onValidation, locked: externalLocked = false, operationLock: sharedLock }) {
+export default function TracePhotos({ trace, contribution = false, hero = false, initialUpload = null, saveOnly = false, onChange, onLockedChange, onValidation, locked: externalLocked = false, operationLock: sharedLock }) {
   const { readData, writeData, profile } = useApp();
   const [localTrace, setLocalTrace] = useState(trace);
   const current = onChange ? trace : localTrace;
@@ -46,6 +46,7 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
   const [attachment, setAttachment] = useState(initialUpload?.attachment || null);
   const [submissionLocked, setSubmissionLocked] = useState(false);
   const [validation, setValidation] = useState({});
+  const reportValidation = useCallback((next) => { setValidation(next); onValidation?.(next); }, [onValidation]);
   const localLock = useRef(null);
   const operationLock = sharedLock || localLock;
   const locked = externalLocked || submissionLocked;
@@ -56,15 +57,15 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
   const update = (saved) => { if (onChange) onChange(saved); else setLocalTrace(saved); };
   const editable = contribution && current.author_id === profile?.id && ["draft", "revision_requested"].includes(current.status) && !current.is_hidden && !current.deleted_at;
   const media = [...(current.trace_media || [])].sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id));
-  const select = async (event) => {
-    if (busy || locked || operationLock.current) return;
-    const selected = event.target.files?.[0];
+  const select = async (files) => {
+    if (busy || locked || operationLock.current || uncertain || attachment || !files?.length) return;
+    const selected = files[0];
     setFile(null);
     setError("");
     setNotice("");
-    if (!selected) return;
-    const validation = photoError(selected);
-    if (validation) { setError(validation); event.target.value = ""; return; }
+    if (input.current) input.current.value = "";
+    const validation = files.length > 1 ? "Choose one photo at a time." : photoError(selected);
+    if (validation) { setError(validation); return; }
     if (profile.data_saver) {
       setBusy("compress");
       try { setFile(await compressPhoto(selected)); }
@@ -72,18 +73,19 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
       finally { setBusy(""); }
     } else setFile(selected);
   };
-  const refresh = async (signal) => {
+  const refresh = async (signal, minimumVersion = current.version) => {
     const saved = await readData(`${contribution ? "contributions" : "traces"}/${encodeURIComponent(trace.id)}`, { signal });
-    if (saved?.id !== trace.id || !Array.isArray(saved.trace_media)) throw new Error("Unable to reload saved attachments. Please try again.");
+    if (saved?.id !== trace.id || saved.author_id !== profile.id || !Number.isInteger(saved.version) || saved.version < 1 || saved.version < minimumVersion || !Array.isArray(saved.trace_media)) throw new ApiError("Unable to reload saved attachments. Please try again.", "INVALID_RESPONSE");
     if (!signal.aborted) update(saved);
     return saved;
   };
-  // Called only by the explicit submit action, using its abort signal and shared lock.
+  // Shared by explicit submission and save-only photo recovery, under one lock.
   const preparePhoto = async (signal, source) => {
     if (!file && !attachment) return;
     setBusy("upload");
     setError("");
     setNotice("");
+    let uploaded = false;
     try {
       let saved = attachment && source.trace_media.find((item) => item.object_path === attachment);
       if (!saved) saved = attachment
@@ -91,26 +93,32 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
         : await writeData(`traces/${encodeURIComponent(trace.id)}/media`, { method: "POST", file, signal });
       if (signal.aborted) return;
       if (!saved?.id || saved.trace_id !== trace.id || !TYPES.includes(saved.mime_type)) throw new ApiError("Upload response could not be verified.", "INVALID_RESPONSE");
-      update({ ...source, trace_media: [...source.trace_media.filter((item) => item.id !== saved.id), saved] });
+      uploaded = true;
+      // Attachment changes bump the Trace version. Reload instead of retaining stale fields/version.
+      if (saved.object_path) setAttachment(saved.object_path);
+      const latest = await refresh(signal, source.version);
+      if (signal.aborted) return;
+      if (!latest.trace_media.some((item) => item.id === saved.id)) throw new ApiError("Unable to verify the saved photo.", "INVALID_RESPONSE");
       setFile(null);
       setAttachment(null);
       if (input.current) input.current.value = "";
+      return latest;
     } catch (failure) {
       if (signal.aborted || failure.code === "CANCELLED") throw failure;
       if (failure.code === "MEDIA_ATTACH_FAILED" && typeof failure.details?.object_path === "string") {
         setAttachment(failure.details.object_path);
-        setError("Your photo uploaded, but attaching it failed. Submit for review again to retry with the existing upload.");
-      } else if (failure.code === "NETWORK_ERROR" || failure.code === "INVALID_RESPONSE" || failure.status >= 500) {
+        setError(`Your photo uploaded, but attaching it failed. ${saveOnly ? "Retry attachment" : "Submit for review again"} to retry with the existing upload.`);
+      } else if (uploaded || failure.code === "NETWORK_ERROR" || failure.code === "INVALID_RESPONSE" || failure.status >= 500) {
         setUncertain(true);
         setError("We could not confirm the photo upload. Reload saved attachments and check them before trying again.");
       } else setError(failure.message);
-      throw new ApiError("Resolve the photo upload before submitting.", "PHOTO_UPLOAD_FAILED");
+      throw new ApiError("Resolve the photo upload before continuing.", "PHOTO_UPLOAD_FAILED");
     } finally {
       if (!signal.aborted) setBusy("");
     }
   };
   const run = async (action, id) => {
-    if (request.current || locked || operationLock?.current) return;
+    if (request.current || locked || operationLock?.current || (action === "upload" && (uncertain || !editable || (!file && !attachment)))) return;
     const controller = new AbortController();
     request.current = controller;
     if (operationLock) operationLock.current = controller;
@@ -127,15 +135,24 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
         if (input.current) input.current.value = "";
         setUncertain(false);
         setNotice("Saved attachments reloaded. Check the photos before uploading again.");
+      } else if (action === "upload") {
+        const latest = await refresh(controller.signal);
+        if (controller.signal.aborted) return;
+        if (latest.author_id !== profile.id || !["draft", "revision_requested"].includes(latest.status) || latest.is_hidden || latest.deleted_at) throw new Error("This Trace is no longer available for photo changes.");
+        await preparePhoto(controller.signal, latest);
+        if (controller.signal.aborted) return;
+        setNotice("Photo saved and attached. Your details and photo are saved; this action did not submit the Trace for review.");
       } else if (action === "remove") {
         await writeData(`media/${encodeURIComponent(id)}`, { method: "DELETE", signal: controller.signal });
         wrote = true;
         if (controller.signal.aborted) return;
-        update({ ...current, trace_media: (current.trace_media || []).filter((item) => item.id !== id) });
+        await refresh(controller.signal);
+        if (controller.signal.aborted) return;
         setNotice("Photo removed from this draft.");
       }
     } catch (failure) {
       if (controller.signal.aborted || failure.code === "CANCELLED") return;
+      if (failure.code === "PHOTO_UPLOAD_FAILED") return;
       if (action !== "reload" && (wrote || failure.code === "NETWORK_ERROR" || failure.code === "INVALID_RESPONSE" || failure.status >= 500)) {
         setUncertain(true);
         setError("We could not confirm the change. Reload saved attachments and check them before trying again.");
@@ -155,24 +172,21 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
         {editable && <button className="btn outline sm" style={{ marginTop: 8 }} disabled={locked || Boolean(busy) || uncertain} onClick={() => run("remove", item.id)}>Remove {TYPES.includes(item.mime_type) ? "photo" : "attachment"} {index + 1}</button>}
       </div>)}
     </div>
-    {editable && <div style={{ marginTop: 16 }}>
-      <label className="lbl" htmlFor="trace-photo">Choose a photo</label>
-      <input ref={input} id="trace-photo" type="file" accept={TYPES.join(",")} disabled={locked || Boolean(busy) || uncertain || Boolean(attachment)} onChange={select} />
-      <p className="hint">JPEG, PNG or WebP, up to 20 MB. Your selected photo uploads when you submit for review. The selection is not saved if you leave or reload this page.</p>
-      {busy === "compress" && <p role="status">Preparing smaller photo…</p>}
-      {file && <div><SelectedPhoto file={file} /><p>{file.name} · {Math.max(1, Math.ceil(file.size / 1024))} KB</p></div>}
-      {file && !uncertain && !attachment && <button className="btn outline sm" disabled={locked || Boolean(busy)} onClick={() => { setFile(null); if (input.current) input.current.value = ""; }}>Clear selected photo</button>}
-
-    </div>}
+    {editable && <TracePhotoSelector id="trace-photo" label="Choose a photo" inputRef={input} file={file} onSelect={select}
+      disabled={locked || Boolean(busy) || uncertain || Boolean(attachment)} processing={busy === "compress"} uploading={busy === "upload"}
+      invalid={Boolean(error || validation.photo)} describedBy={[error && "trace-photo-error", validation.photo && "trace-photo-validation"].filter(Boolean).join(" ")}
+      removeLabel="Clear selected photo" onRemove={!uncertain && !attachment ? () => { setFile(null); if (input.current) input.current.value = ""; } : undefined}
+      helper={<>JPEG, PNG or WebP, up to 20 MB. {saveOnly ? "Retry saving the photo to this existing draft. This does not submit it for review." : "Saved photos stay with the draft. On this detail page, Submit for review uploads a newly selected photo and sends the Trace for review."} Wait for confirmation before leaving.</>} />}
     {(busy === "remove" || busy === "reload") && <div role="status">{busy === "remove" ? "Removing attachment…" : "Reloading saved attachments…"}</div>}
-    {!onValidation && validation.photo && <p role="alert">{validation.photo}</p>}
-    {error && <p role="alert">{error}</p>}
+    {!onValidation && validation.photo && <p id="trace-photo-validation" role="alert">{validation.photo}</p>}
+    {error && <p id="trace-photo-error" role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {!onChange && contribution && current.status === "pending" && <p role="status">Submitted for review. Open your saved Trace to check its status.</p>}
     {(uncertain || attachment) && <button className="btn outline sm" disabled={locked || Boolean(busy)} onClick={() => run("reload")}>Reload saved attachments</button>}
-    {editable && <SubmitTrace trace={current} onChange={update} photosBlocked={Boolean(busy) || uncertain}
+    {editable && saveOnly && (file || attachment) && <button className="btn outline" disabled={locked || Boolean(busy) || uncertain} onClick={() => run("upload")}>{busy === "upload" ? "Uploading photo…" : attachment ? "Retry attachment" : "Retry photo upload"}</button>}
+    {editable && !saveOnly && <SubmitTrace trace={current} onChange={update} photosBlocked={Boolean(busy) || uncertain}
       hasSelectedPhoto={Boolean(file || attachment)} preparePhoto={preparePhoto} operationLock={operationLock}
-      onLockedChange={setSubmissionLocked} onValidation={onValidation || setValidation} />}
+      onLockedChange={setSubmissionLocked} onValidation={reportValidation} />}
     {!onValidation && Object.entries(validation).filter(([key]) => key !== "photo").map(([key, message]) => <p key={key} role="alert">{message}</p>)}
   </section>;
 }

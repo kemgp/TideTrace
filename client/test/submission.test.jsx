@@ -179,9 +179,10 @@ it("discards a submission response after logout", async () => {
 });
 
 it("validates the photo inline on submit after the last attachment is removed", async () => {
+  let saved = complete();
   const calls = submissionSetup((url, options) => {
-    if (url === detail) return response(complete());
-    if (url === `/api/media/${photo.id}` && options.method === "DELETE") return { ok: true, status: 204 };
+    if (url === detail) return response(saved);
+    if (url === `/api/media/${photo.id}` && options.method === "DELETE") { saved = complete({ trace_media: [], version: 2 }); return { ok: true, status: 204 }; }
   });
   open(`/user/contributions/${trace().id}`);
   await ready();

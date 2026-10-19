@@ -1,4 +1,4 @@
-import SelectedPhoto from "./SelectedPhoto.jsx";
+import TracePhotoSelector from "./TracePhotoSelector.jsx";
 import { compressPhoto } from "../api/compressPhoto.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -13,7 +13,6 @@ import TraceMap from "./TraceMap.jsx";
 import TracePhotos from "./TracePhotos.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { PHOTO_TYPES, photoError } from "../api/photos.js";
-import "./TracePhotoUpload.css";
 
 export default function TraceDraftForm({ trace = null, onReload }) {
   const { readData, writeData, showToast, profile } = useApp();
@@ -42,7 +41,6 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   const [savedDraft, setSavedDraft] = useState(null);
   const [initialUpload, setInitialUpload] = useState(null);
   const photoInput = useRef(null);
-  const [draggingPhoto, setDraggingPhoto] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
   const [blocked, setBlocked] = useState(false);
@@ -101,7 +99,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
-    setStage("Saving Trace…");
+    setStage(action === "save" ? "Saving draft…" : "Saving Trace…");
     setError("");
     let savedRecord = null;
     let submitting = false;
@@ -115,19 +113,27 @@ export default function TraceDraftForm({ trace = null, onReload }) {
         throw new ApiError("The service returned an unexpected response.", "INVALID_RESPONSE");
       }
       savedRecord = saved;
-      if (action === "submit" && !trace && photo) {
+      if (!trace && photo) {
         setUploading(true);
         setStage("Uploading photo…");
+        let uploaded = null;
         try {
           const media = await writeData(`traces/${encodeURIComponent(saved.id)}/media`, { method: "POST", file: photo, signal: controller.signal });
           if (controller.signal.aborted) return;
           if (!media?.id || media.trace_id !== saved.id || !PHOTO_TYPES.includes(media.mime_type)) throw new ApiError("Upload response could not be verified.", "INVALID_RESPONSE");
+          uploaded = media;
+          if (action === "save") {
+            const latest = await readData(`contributions/${encodeURIComponent(saved.id)}`, { signal: controller.signal });
+            if (controller.signal.aborted) return;
+            if (latest?.id !== saved.id || latest.author_id !== profile.id || !Number.isInteger(latest.version) || latest.version < saved.version || !Array.isArray(latest.trace_media) || !latest.trace_media.some((item) => item.id === media.id)) throw new ApiError("Unable to verify the saved photo. Reload saved attachments before trying again.", "INVALID_RESPONSE");
+            savedRecord = latest;
+          }
         } catch (failure) {
           if (controller.signal.aborted || failure.code === "CANCELLED") return;
-          const attachment = failure.code === "MEDIA_ATTACH_FAILED" && typeof failure.details?.object_path === "string" ? failure.details.object_path : null;
-          const uncertain = !attachment && (failure.code === "NETWORK_ERROR" || failure.code === "INVALID_RESPONSE" || failure.status >= 500);
-          setInitialUpload({ file: photo, attachment, uncertain, error: attachment
-            ? "Your photo uploaded, but attaching it failed. Submit for review again to retry with the existing upload."
+          const attachment = failure.code === "MEDIA_ATTACH_FAILED" && typeof failure.details?.object_path === "string" ? failure.details.object_path : uploaded?.object_path || null;
+          const uncertain = Boolean(uploaded) || (!attachment && (failure.code === "NETWORK_ERROR" || failure.code === "INVALID_RESPONSE" || failure.status >= 500));
+          setInitialUpload({ file: photo, attachment, uncertain, error: attachment && !uncertain
+            ? `Your photo uploaded, but attaching it failed. ${action === "save" ? "Retry attachment" : "Submit for review again"} to retry with the existing upload.`
             : uncertain ? "We could not confirm the photo upload. Reload saved attachments and check them before trying again." : failure.message });
           setSavedDraft({ ...saved, trace_media: saved.trace_media || [] });
           setDirty(false);
@@ -186,8 +192,8 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   };
 
   if (savedDraft) return <>
-    <div className="vhead"><h2>{recoveryMessage ? "Trace saved" : "Draft saved"}</h2><p>{recoveryMessage || "Your Trace details are saved. Submit for review below to finish uploading your photo and send this saved draft to the reviewer; you do not need to create another draft."}</p></div>
-    {!recoveryMessage && <Card><TracePhotos trace={savedDraft} contribution initialUpload={initialUpload} /></Card>}
+    <div className="vhead"><h2>{recoveryMessage ? "Trace saved" : intent === "save" ? "Draft details saved" : "Draft saved"}</h2><p>{recoveryMessage || (intent === "save" ? "Your Trace details were saved. Recover the photo below before leaving, or open the saved draft. Saving a draft does not submit it for review." : "Your Trace details are saved. Submit for review below to finish uploading your photo and send this saved draft to the reviewer; you do not need to create another draft.")}</p></div>
+    {!recoveryMessage && <Card><TracePhotos trace={savedDraft} contribution initialUpload={initialUpload} saveOnly={intent === "save"} /></Card>}
     <Link className="btn outline" style={{ marginTop: 16 }} to={`/user/contributions/${encodeURIComponent(savedDraft.id)}`}>{recoveryMessage ? "Open saved Trace" : "Open saved draft"}</Link>
   </>;
 
@@ -227,33 +233,15 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           {fieldError("description")}
           </TraceDraftSection>
           <TraceDraftSection step="photo" onActivate={setActiveStep}>
-          {!trace && <div className="trace-photo-upload">
-            <label className="lbl" htmlFor="draft-photo">Choose a photo (Required)</label>
-            <div className="trace-photo-upload__card">
-              <div className={`trace-photo-upload__drop${draggingPhoto ? " is-dragging" : ""}`}
-                onDragOver={(event) => { event.preventDefault(); if (!busy) setDraggingPhoto(true); }}
-                onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDraggingPhoto(false); }}
-                onDrop={(event) => { event.preventDefault(); setDraggingPhoto(false); selectPhoto(event.dataTransfer.files); }}>
-                <svg className="trace-photo-upload__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M15 33H11a8 8 0 0 1-2-15.7A12 12 0 0 1 32 13a10 10 0 0 1 5 20h-5M24 40V21m-7 7 7-7 7 7" />
-                </svg>
-                <strong>Drag and drop your photo here</strong>
-                <span>or</span>
-                <input className="trace-photo-upload__input" ref={photoInput} id="draft-photo" {...fieldProps("photo")} aria-describedby={[fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation", "draft-photo-hint"].filter(Boolean).join(" ")} type="file" accept={PHOTO_TYPES.join(",")} onChange={(event) => selectPhoto(event.target.files)} />
-                <button className="trace-photo-upload__browse" type="button" onClick={() => photoInput.current?.click()}>Browse files</button>
-              </div>
-              {processingPhoto && <p role="status">Preparing smaller photo…</p>}
-              {photo && <div className="trace-photo-upload__row">
-                <SelectedPhoto file={photo} />
-                <div className="trace-photo-upload__details"><span className="trace-photo-upload__name">{photo.name}</span><small>{photo.size < 1024 * 1024 ? `${Math.max(1, Math.ceil(photo.size / 1024))} KB` : `${(photo.size / (1024 * 1024)).toFixed(1)} MB`} · {uploading ? "Uploading…" : "Ready to upload"}</small></div>
-                <button className="trace-photo-upload__remove" type="button" aria-label="Remove selected photo" title="Remove selected photo" onClick={() => { setPhoto(null); if (validating) setFieldErrors(validate(fields, intent, null)); if (photoInput.current) photoInput.current.value = ""; }}>×</button>
-              </div>}
-            </div>
-            <p className="hint" id="draft-photo-hint">JPEG, PNG or WebP, up to 20 MB. Your selected photo uploads only when you submit. Save draft saves the details only; you will need to select the photo again when you return.</p>
-            {profile.data_saver && <p className="hint">Data saver is on. Preview your prepared photo before submitting.</p>}
+          {!trace && <TracePhotoSelector id="draft-photo" label="Choose a photo (required for submission)" inputRef={photoInput}
+            file={photo} onSelect={selectPhoto} disabled={busy || processingPhoto || blocked} processing={processingPhoto} uploading={uploading}
+            invalid={Boolean(fieldErrors.photo || photoValidation)} describedBy={[fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation"].filter(Boolean).join(" ")}
+            onRemove={() => { setPhoto(null); if (validating) setFieldErrors(validate(fields, intent, null)); if (photoInput.current) photoInput.current.value = ""; }}
+            helper="JPEG, PNG or WebP, up to 20 MB. Save draft saves your details and selected photo so you can return later. A photo is required for submission, but optional for a draft.">
+            {profile.data_saver && <p className="hint">Data saver is on. Preview your prepared photo before saving or submitting.</p>}
             {fieldError("photo")}
             {photoValidation && <p id="draft-photo-validation" role="alert">{photoValidation}</p>}
-          </div>}
+          </TracePhotoSelector>}
           {trace && <div><p className="hint">Manage attached photos from the saved Trace's detail page.</p>{fieldError("photo")}{fieldErrors.photo && <Link to={`/user/contributions/${trace.id}`}>Add a photo</Link>}</div>}
           </TraceDraftSection>
           <TraceDraftSection step="review" onActivate={setActiveStep}>
@@ -262,7 +250,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           {error && <p role="alert">{error}</p>}
           <div className="trace-draft-actions">
             <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "submit" ? stage : revision ? "Resubmit for review" : "Submit Trace"}</button>
-            <button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "save" ? "Saving draft…" : saveLabel}</button>
+            <button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "save" ? stage : saveLabel}</button>
             {blocked && trace && <button className="btn outline" type="button" onClick={onReload}>{revision ? "Discard local changes and reload Trace" : "Discard local changes and reload saved draft"}</button>}
           </div>
           </TraceDraftSection>

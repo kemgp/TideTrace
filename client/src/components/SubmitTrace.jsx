@@ -67,9 +67,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
       }
       if (hasSelectedPhoto) {
         setStage("Uploading photo…");
-        await preparePhoto(controller.signal, latest);
-        if (controller.signal.aborted) return;
-        const refreshed = await readData(`contributions/${encodeURIComponent(trace.id)}`, { signal: controller.signal });
+        const refreshed = await preparePhoto(controller.signal, latest);
         if (controller.signal.aborted) return;
         if (refreshed?.id !== trace.id || refreshed.author_id !== profile.id || !Number.isInteger(refreshed.version) || refreshed.version < latest.version || !Array.isArray(refreshed.trace_media)) throw new ApiError("Unable to verify the Trace after uploading. Reload it before submitting.", "INVALID_RESPONSE");
         onChange(refreshed);

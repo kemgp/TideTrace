@@ -127,7 +127,7 @@ it("blocks double saves and never automatically retries an uncertain create", as
   const button = screen.getByRole("button", { name: "Save draft" });
   fireEvent.click(button);
   fireEvent.click(button);
-  expect(screen.getByRole("button", { name: "Saving…" }).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "Saving draft…" }).disabled).toBe(true);
   await act(async () => reject(new TypeError("connection lost")));
   expect((await screen.findByRole("alert")).textContent).toMatch(/could not confirm/);
   expect(screen.getByLabelText("Title").value).toBe("Keep this text");

@@ -69,7 +69,7 @@ it("does not silently upload an unprocessed file when decoding fails", async () 
   expect(URL.revokeObjectURL).toHaveBeenCalled();
 });
 
-it("prepares the new-submission preview before sending the same file to upload", async () => {
+it.each(["Save draft", "Submit Trace"])("prepares the preview before %s sends the same compressed file to upload", async (action) => {
   imageMocks();
   const { default: TraceDraftForm } = await import("../src/components/TraceDraftForm.jsx");
   const category = { id: "category", name: "Seagrass" };
@@ -88,21 +88,23 @@ it("prepares the new-submission preview before sending the same file to upload",
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Coast" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Shore" } });
   fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Observation" } });
-  fireEvent.change(screen.getByLabelText("Choose a photo (Required)"), { target: { files: [new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" })] } });
+  fireEvent.change(screen.getByLabelText("Choose a photo (required for submission)"), { target: { files: [new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" })] } });
   await screen.findByAltText("Selected photo preview");
   expect(writeData).not.toHaveBeenCalled();
   const processed = URL.createObjectURL.mock.calls.at(-1)[0];
   expect(processed.name).toBe("coast.webp");
-  fireEvent.click(screen.getByRole("button", { name: "Submit Trace" }));
+  fireEvent.click(screen.getByRole("button", { name: action }));
   await waitFor(() => expect(writeData.mock.calls.some(([path]) => path.endsWith("/media"))).toBe(true));
   expect(writeData.mock.calls.find(([path]) => path.endsWith("/media"))[1].file).toBe(processed);
 });
 
-it("prepares a smaller preview when adding evidence to a saved draft", async () => {
+it.each(["picker", "drop"])("prepares a smaller preview when adding evidence to a saved draft via %s", async (source) => {
   imageMocks();
   useApp.mockReturnValue({ profile: { id: "viewer", data_saver: true }, readData: vi.fn(async () => []), writeData: vi.fn() });
   render(<MemoryRouter><TracePhotos contribution trace={{ id: "draft", author_id: "viewer", status: "draft", trace_media: [] }} /></MemoryRouter>);
-  fireEvent.change(screen.getByLabelText("Choose a photo"), { target: { files: [new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" })] } });
+  const files = [new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" })];
+  if (source === "drop") fireEvent.drop(screen.getByText("Drag and drop your photo here").parentElement, { dataTransfer: { files } });
+  else fireEvent.change(screen.getByLabelText("Choose a photo"), { target: { files } });
   await screen.findByAltText("Selected photo preview");
   expect(URL.createObjectURL.mock.calls.at(-1)[0].name).toBe("coast.webp");
 });

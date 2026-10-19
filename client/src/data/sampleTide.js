@@ -20,10 +20,10 @@ Illustrative example: “During our visit, we observed plastic bottles and food 
 Choose the available category that best matches your observation. Enter a location another person can understand, such as a barangay, beach, or public landmark. Avoid unnecessary private addresses or personal information.
 
 3. Select a supporting photo
-Choose a photo that clearly shows your observation. Avoid misleading edits and unrelated images. TideTrace accepts JPEG, PNG and WebP photos up to 20 MB. Selecting a photo does not upload it immediately; it uploads when you submit for review.
+Choose a photo that clearly shows your observation. Avoid misleading edits and unrelated images. TideTrace accepts JPEG, PNG and WebP photos up to 20 MB. Selecting a photo does not upload it immediately; on the new Trace form, it uploads when you save a draft or submit for review.
 
 4. Save a draft or submit
-Save draft stores your details while you finish the observation. Only a category is required. A selected photo is not saved with the draft, so select it again when you return.
+Save draft stores your details and any selected photo while you finish the observation. Only a category is required; a photo is optional for a draft. Wait for confirmation that both details and photo are saved before leaving. If the photo fails, your details remain saved and you can retry the photo on the recovery screen without submitting for review.
 
 Choose Submit Trace, or Submit for review on a saved draft, once the title, description, location, category and photo are complete. The Trace becomes Pending review and cannot be edited while pending.
 

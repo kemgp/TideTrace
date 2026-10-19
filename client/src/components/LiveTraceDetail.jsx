@@ -31,7 +31,7 @@ function TraceContent({ initialTrace, contribution }) {
   const { profile } = useApp();
   const [current, setCurrent] = useState(initialTrace);
   const [fieldErrors, setFieldErrors] = useState({});
-  const fieldError = (name) => fieldErrors[name] ? <p role="alert" style={{ color: "var(--clay)" }}>{fieldErrors[name]}</p> : null;
+  const fieldError = (name) => fieldErrors[name] ? <p id={name === "photo" ? "trace-photo-validation" : undefined} role="alert" style={{ color: "var(--clay)" }}>{fieldErrors[name]}</p> : null;
   const [submissionLocked, setSubmissionLocked] = useState(false);
   const operationLock = useRef(null);
   const trace = displayTrace(current);
