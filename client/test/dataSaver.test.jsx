@@ -41,7 +41,7 @@ function imageMocks(blobSize = 10) {
   vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
   vi.stubGlobal("Image", class { naturalWidth = 4000; naturalHeight = 3000; set src(value) { queueMicrotask(() => this.onload()); } });
   const draw = vi.fn();
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage: draw });
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(type => type === "2d" ? { drawImage: draw } : null);
   vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(function(done) {
     expect(this.width).toBe(1600); expect(this.height).toBe(1200);
     done(new Blob(["a".repeat(blobSize)], { type: "image/webp" }));
@@ -52,6 +52,8 @@ it("reduces dimensions and upload bytes while retaining the previewable processe
   imageMocks();
   const file = new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" });
   const prepared = await compressPhoto(file);
+  expect(prepared).toBeInstanceOf(File);
+  expect(prepared).toBeInstanceOf(Blob);
   expect(prepared.name).toBe("coast.webp");
   expect(prepared.type).toBe("image/webp");
   expect(prepared.size).toBeLessThan(file.size);
@@ -67,6 +69,14 @@ it("does not silently upload an unprocessed file when decoding fails", async () 
   vi.stubGlobal("Image", class { set src(value) { queueMicrotask(() => this.onerror()); } });
   await expect(compressPhoto(new File(["photo"], "broken.png", { type: "image/png" }))).rejects.toThrow("could not be opened");
   expect(URL.revokeObjectURL).toHaveBeenCalled();
+});
+
+it.each(["context", "encoding"])("rejects unavailable canvas %s and releases the source URL", async (unavailable) => {
+  imageMocks();
+  if (unavailable === "context") HTMLCanvasElement.prototype.getContext.mockReturnValue(null);
+  else HTMLCanvasElement.prototype.toBlob.mockImplementation(done => done(null));
+  await expect(compressPhoto(new File(["photo"], "coast.png", { type: "image/png" }))).rejects.toThrow(unavailable === "context" ? "compression is unavailable" : "Could not prepare");
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:photo");
 });
 
 it.each(["Save draft", "Submit Trace"])("prepares the preview before %s sends the same compressed file to upload", async (action) => {

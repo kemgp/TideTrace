@@ -180,10 +180,6 @@ async function submitButton() {
 }
 
 async function prepareInitialPhoto(file = png()) {
-  vi.stubGlobal("URL", class extends URL {
-    static createObjectURL = vi.fn(() => "blob:selected-photo");
-    static revokeObjectURL = vi.fn();
-  });
   open("/user/traces/upload");
   await screen.findByRole("option", { name: "Seagrass" });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: trace().title } });
@@ -206,7 +202,8 @@ it("selects and previews a photo on the initial form, then saves before uploadin
   });
   const file = png();
   await prepareInitialPhoto(file);
-  expect(await screen.findByAltText("Selected photo preview")).toBeTruthy();
+  const preview = await screen.findByAltText("Selected photo preview");
+  const previewURL = preview.getAttribute("src");
   expect(calls.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
   const button = screen.getByRole("button", { name: "Submit Trace" });
   fireEvent.click(button);
@@ -217,7 +214,7 @@ it("selects and previews a photo on the initial form, then saves before uploadin
   const writes = calls.mock.calls.filter(([, options]) => options.method === "POST");
   expect(writes.map(([url]) => url)).toEqual(["/api/traces", upload, submit]);
   expect(writes[1][1].body).toBe(file);
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:selected-photo");
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith(previewURL);
 });
 
 it("can remove a selected initial photo and save without uploading it", async () => {

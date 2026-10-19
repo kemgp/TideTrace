@@ -94,12 +94,13 @@ Run these commands from the project root:
 | --- | --- |
 | `npm run dev` | Start the frontend development server. |
 | `npm run build` | Build the frontend into `client/dist/`. |
+| `npm test` | From the repository root, run backend HTTP tests and all frontend tests, including the homepage. |
 | `npm run preview` | Preview an existing frontend build locally. |
 | `npm run lint` | Run ESLint against `client/`. |
 | `npm --prefix server run dev` | Run the backend placeholder in Node.js watch mode. |
 | `npm --prefix server start` | Execute the backend placeholder once. |
 
-Backend commands do not currently expose an API. No automated test scripts are configured, and the root lint command does not cover the backend.
+For current API commands and setup, see the [repository guide](../README.md). `npm test` runs the backend suite followed by the frontend suite using `client/vitest.config.mjs`; `npm run test --workspace=client` runs the frontend alone. SQL policy checks and live integration checks run separately as described in the [automated test scope](../README.md#automated-test-scope).
 
 ## Environment configuration
 

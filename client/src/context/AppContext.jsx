@@ -1,4 +1,4 @@
-import React,{createContext,useCallback,useContext,useEffect,useMemo,useState,useSyncExternalStore} from "react";
+import React,{createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,useSyncExternalStore} from "react";
 import {ApiError,authRequest} from "../api/auth.js";
 import {createSessionManager} from "../api/session.js";
 import {getData,requestData} from "../api/data.js";
@@ -36,6 +36,8 @@ export function AppProvider({children}){
   );
 
   const [toast,setToast]=useState("");
+  const toastTimer=useRef(null);
+  useEffect(()=>()=>window.clearTimeout(toastTimer.current),[]);
 
   useEffect(()=>{
     const shouldUseDarkMode=darkMode&&!!role;
@@ -57,8 +59,8 @@ export function AppProvider({children}){
 
   const showToast=useCallback((msg)=>{
     setToast(msg);
-    window.clearTimeout(showToast._t);
-    showToast._t=window.setTimeout(()=>setToast(""),2600);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current=window.setTimeout(()=>setToast(""),2600);
   },[]);
 
   const login=useCallback((email,password)=>authenticate(async()=>{

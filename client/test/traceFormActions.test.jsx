@@ -43,7 +43,6 @@ async function fillForm({ addPhoto = true } = {}) {
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Lawis" } });
   fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Updated evidence" } });
   if (addPhoto) {
-    vi.stubGlobal("URL", class extends URL { static createObjectURL = () => "blob:photo"; static revokeObjectURL = () => {}; });
     fireEvent.change(screen.getByLabelText(/^Choose a photo/), { target: { files: [file()] } });
   }
 }
@@ -69,7 +68,6 @@ function flowSetup({ uploadFailure, submitFailure, slowUpload } = {}) {
 
 it("accepts a dropped photo, validates drops, and removes the selection without uploading", async () => {
   const calls = setup(() => undefined);
-  vi.stubGlobal("URL", class extends URL { static createObjectURL = () => "blob:photo"; static revokeObjectURL = () => {}; });
   open("/user/traces/upload");
   const dropArea = (await screen.findByText("Drag and drop your photo here")).parentElement;
   fireEvent.drop(dropArea, { dataTransfer: { files: [file()] } });

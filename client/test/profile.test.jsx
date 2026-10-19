@@ -8,7 +8,7 @@ import { SESSION_KEY } from "../src/api/session.js";
 function preparePhoto() {
   vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:selected-photo");
   vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ fillRect: vi.fn(), drawImage: vi.fn() });
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(type => type === "2d" ? { fillRect: vi.fn(), drawImage: vi.fn() } : null);
   vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((done) => done(new Blob(["cropped photo"], { type: "image/png" })));
 }
 async function previewAndSave() {

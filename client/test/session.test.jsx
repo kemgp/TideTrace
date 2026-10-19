@@ -19,6 +19,7 @@ function api(handler = () => undefined) {
     if (result) return result;
     if (url === "/api/auth/me") return response(profile());
     if (url === "/api/auth/logout") return response(null, 204);
+    if (url === "/api/profile/photo/cleanup") return response({ removed: 0 });
     if (url.startsWith("/api/contributions?")) return response([]);
     throw new Error(`Unexpected request ${url}`);
   });
@@ -42,6 +43,18 @@ function open(path = "/user/contributions") {
   return render(<StrictMode><MemoryRouter initialEntries={[path]}><App /><Location /></MemoryRouter></StrictMode>);
 }
 
+async function expectRestoredMember() {
+  await screen.findByRole("heading", { name: "Your traces & their status" });
+  expect(screen.getByTestId("route").textContent).toBe("/user/contributions");
+  expect(screen.getByRole("button", { name: "Log out" })).toBeTruthy();
+}
+
+async function expectAccountIdentity() {
+  fireEvent.click(screen.getByRole("button", { name: "Profile settings" }));
+  expect((await screen.findByRole("textbox", { name: "Full name" })).value).toBe(profile().display_name);
+  expect(screen.getByRole("textbox", { name: "Email address" }).value).toBe(profile().email);
+}
+
 it("restores a protected deep link on reload without redirecting to login", async () => {
   saves(session());
   let finish;
@@ -51,12 +64,12 @@ it("restores a protected deep link on reload without redirecting to login", asyn
   expect(screen.getByText("Restoring your session…").getAttribute("role")).toBe("status");
   expect(screen.getByTestId("route").textContent).toBe("/user/contributions");
   await act(async () => finish(response(profile())));
-  expect(await screen.findByText(/Signed in as Session Member/)).toBeTruthy();
+  await expectRestoredMember();
   expect(calls.mock.calls.filter(([url]) => url === "/api/auth/me")).toHaveLength(1);
   view.unmount();
   open();
-  expect(await screen.findByText(/Signed in as Session Member/)).toBeTruthy();
-  expect(screen.getByTestId("route").textContent).toBe("/user/contributions");
+  await expectRestoredMember();
+  await expectAccountIdentity();
 });
 
 it("refreshes an expired saved session once and persists both rotated tokens", async () => {
@@ -132,7 +145,9 @@ it("keeps saved tokens during an outage and lets the user retry on the same rout
   expect(JSON.parse(window.sessionStorage.getItem(SESSION_KEY))).toEqual(saved);
   offline = false;
   fireEvent.click(screen.getByRole("button", { name: "Retry connection" }));
-  expect(await screen.findByText(/Signed in as Session Member/)).toBeTruthy();
+  await expectRestoredMember();
+  expect(JSON.parse(window.sessionStorage.getItem(SESSION_KEY))).toEqual(saved);
+  await expectAccountIdentity();
 });
 
 it("retains rotated tokens when the subsequent profile request fails", async () => {

@@ -125,8 +125,18 @@ Frontend and backend dependencies are declared in their workspace manifests. Run
 | `npm run start:server` | Start the API without file watching. |
 | `npm run build` | Build the frontend into `client/dist/`. |
 | `npm run preview` | Preview the frontend build; start the API separately for `/api` requests. |
-| `npm test` | Run backend HTTP tests and frontend authentication, session, Trace reading, draft and photo-upload tests. |
+| `npm test` | Run all backend HTTP tests, then all maintained frontend tests, including the homepage. |
 | `npm run verify:reads` | Check live Trace reads against the configured Supabase project without writing records. |
+
+### Automated test scope
+
+Run `npm test` from the repository root and `npm run build` for the production frontend. The root test command includes both workspaces. Frontend discovery uses the single `client/vitest.config.mjs` configuration for `test/` and `src/` files named `*.test.js`, `*.test.jsx`, `*.spec.js` or `*.spec.jsx`; the homepage tests run once through that command. To check order independence, run `npm run test --workspace=client -- --sequence.shuffle --sequence.seed=20261019`.
+
+The API tests bind temporary local HTTP ports and use a mocked Supabase transport; they need no live account or Supabase credentials. A restricted execution environment must allow local listeners. The frontend uses jsdom, keeps its real `URL`, `File` and `Blob` implementations, and doubles only the missing object-URL methods and unavailable canvas contexts. Photo tests supply scoped image-decoding, drawing and encoding doubles. Mounted components, mock APIs, storage, timers and application theme state are cleaned up between tests. These checks do not validate real image decoding, GPU rendering or browser layout.
+
+Database policy/workflow checks run **separately** through `supabase/tests/local-check.mjs` with an independently installed PGlite dependency; follow the [local SQL instructions](supabase/README.md#validation-and-references). That harness applies migrations to a disposable local database with Auth/Storage stubs and does not access a hosted project. Hosted SQL checks require a freshly migrated disposable development project; never run the fixture SQL against production.
+
+`npm run verify:reads` and `npm run verify:tides` are separate, optional live read checks using configured development/staging credentials. Signed-in draft persistence, real Storage upload/attachment, signed URL expiry, email delivery, cross-tab behavior and browser rendering still need manual integration verification in a disposable development/staging project. None of these live checks run as part of `npm test`.
 
 ## Rate limits
 

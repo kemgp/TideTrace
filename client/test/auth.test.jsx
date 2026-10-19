@@ -60,7 +60,7 @@ describe("backend authentication", () => {
     await user.type(input, "saas");
     await user.type(screen.getByLabelText("Password", { exact: true }), password);
     const invalidEvent = vi.fn();
-    input.addEventListener("invalid", invalidEvent);
+    input.addEventListener("invalid", invalidEvent, { once: true });
     await user.click(within(input.closest("form")).getByRole("button", { name: button, exact: true }));
     expect(screen.getByRole("alert").textContent).toBe("enter a valid email address");
     expect(input.getAttribute("aria-invalid")).toBe("true");
@@ -85,7 +85,9 @@ describe("backend authentication", () => {
     await waitFor(() => expect(screen.getByTestId("route").textContent).toBe(path));
     expect(JSON.parse(calls.mock.calls[0][1].body)).toEqual({ email, password });
     expect(calls.mock.calls[1][1].headers.Authorization).toBe("Bearer test-access-token");
-    expect(screen.getByText(/Signed in as Test Member/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Profile settings" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Log out" })).toBeTruthy();
+    expect(screen.getByText(/\bTest Member\b/)).toBeTruthy();
     expect(Object.keys(window.localStorage).filter((key) => key !== "tidetrace-dark-mode")).toEqual([]);
     expect(JSON.parse(window.sessionStorage.getItem(SESSION_KEY))).toEqual({ access_token: "test-access-token", refresh_token: "test-refresh-token", expires_at: expect.any(Number) });
   });
