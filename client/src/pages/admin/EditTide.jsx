@@ -7,6 +7,7 @@ import RemoteState from "../../components/RemoteState.jsx";
 import TideLesson from "../../components/TideLesson.jsx";
 import Card from "../../components/Card.jsx";
 import { sampleTide } from "../../data/sampleTide.js";
+import { useUnsavedChanges } from "../../components/NavigationGuard.jsx";
 
 const slugFor = (title) => title.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 200).replace(/-$/, "");
 const validLesson = (lesson) => lesson?.id && typeof lesson.title === "string" && typeof lesson.slug === "string" && typeof lesson.body === "string" && ["draft", "published", "archived"].includes(lesson.status) && typeof lesson.updated_at === "string" && Number.isFinite(Date.parse(lesson.updated_at));
@@ -33,20 +34,15 @@ function Editor({ initial }) {
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [preview, setPreview] = useState(false);
-  const [dirty, setDirty] = useState(false);
+  const dirty = Object.keys(fields).some(name => fields[name] !== (saved?.[name] || ""));
   const request = useRef(null);
+  const allowNavigation = useUnsavedChanges(dirty || busy, { onDiscard: () => request.current?.abort(), pendingRequest: busy });
   useEffect(() => () => request.current?.abort(), []);
-  useEffect(() => {
-    const warn = (event) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
   const change = (event) => {
     const { name, value } = event.target;
     if (name === "slug") setCustomSlug(true);
     setFields((old) => ({ ...old, [name]: value, ...(name === "title" && !customSlug ? { slug: slugFor(value) } : {}) }));
     setErrors((old) => ({ ...old, [name]: "", ...(name === "title" && !customSlug ? { slug: "" } : {}) }));
-    setDirty(true);
   };
   const run = async (status, reload = false) => {
     if (request.current || (!reload && blocked)) return;
@@ -64,14 +60,14 @@ function Editor({ initial }) {
         const latest = await readData(`admin/tides/${encodeURIComponent(saved.id)}`, { signal: controller.signal });
         if (controller.signal.aborted) return;
         if (!validLesson(latest) || latest.id !== saved.id) throw new ApiError("Unable to verify the saved lesson.", "INVALID_RESPONSE");
-        setSaved(latest); setFields({ title: latest.title, slug: latest.slug, body: latest.body }); setErrors({}); setDirty(false); setBlocked(false); return;
+        setSaved(latest); setFields({ title: latest.title, slug: latest.slug, body: latest.body }); setErrors({}); setBlocked(false); return;
       }
       const body = { title: fields.title.trim(), slug: fields.slug.trim(), body: fields.body, status, ...(saved ? { updated_at: saved.updated_at } : {}) };
       writing = true;
       const lesson = await writeData(saved ? `admin/tides/${encodeURIComponent(saved.id)}` : "admin/tides", { method: saved ? "PUT" : "POST", body, signal: controller.signal });
       if (controller.signal.aborted) return;
       if (!validLesson(lesson) || (saved && lesson.id !== saved.id) || lesson.status !== status || lesson.title !== body.title || lesson.slug !== body.slug || lesson.body !== body.body) throw new ApiError("The save response could not be verified.", "INVALID_RESPONSE");
-      setDirty(false);
+      allowNavigation();
       showToast(status === "published" ? "Lesson published" : status === "archived" ? "Lesson archived" : "Lesson saved as draft");
       if (!saved) { navigate(`/admin/tides/${encodeURIComponent(lesson.id)}/edit`, { replace: true }); return; }
       setSaved(lesson); setFields({ title: lesson.title, slug: lesson.slug, body: lesson.body }); setCustomSlug(true);
@@ -94,7 +90,7 @@ function Editor({ initial }) {
       <p><b>Saved status:</b> {saved?.status || "Not saved"}</p>
       <form noValidate onSubmit={(event) => { event.preventDefault(); run(saved?.status || "draft"); }}>
         <fieldset disabled={busy || blocked} style={{ border: 0, padding: 0, minWidth: 0 }}>
-          {!saved && <button type="button" className="btn outline sm" onClick={() => { setFields({ ...sampleTide }); setCustomSlug(true); setErrors({}); setDirty(true); }}>Use sample lesson</button>}
+          {!saved && <button type="button" className="btn outline sm" onClick={() => { setFields({ ...sampleTide }); setCustomSlug(true); setErrors({}); }}>Use sample lesson</button>}
           <label className="lbl" htmlFor="tide-title" style={{ marginTop: 16 }}>Lesson title</label><input className="input" maxLength={200} {...fieldProps("title")} />{fieldError("title")}
           <label className="lbl" htmlFor="tide-slug" style={{ marginTop: 16 }}>Slug</label><input className="input" maxLength={200} {...fieldProps("slug")} />{fieldError("slug")}<p className="hint">A unique lesson name using lowercase letters, numbers and hyphens. Suggested from the title until you edit it.</p>
           <label className="lbl" htmlFor="tide-body" style={{ marginTop: 16 }}>Lesson content</label><textarea className="input" rows={16} maxLength={100000} {...fieldProps("body")} />{fieldError("body")}<p className="hint">Plain text with line breaks. HTML is displayed as text. Saving changes to a published lesson updates what members read.</p>

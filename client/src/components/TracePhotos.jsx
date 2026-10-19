@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import SubmitTrace from "./SubmitTrace.jsx";
 import { ApiError } from "../api/auth.js";
 import { useApp } from "../context/AppContext.jsx";
+import { useUnsavedChanges } from "./NavigationGuard.jsx";
 
 import { PHOTO_TYPES as TYPES, photoError } from "../api/photos.js";
 
@@ -45,6 +46,7 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
   const [uncertain, setUncertain] = useState(initialUpload?.uncertain || false);
   const [attachment, setAttachment] = useState(initialUpload?.attachment || null);
   const [submissionLocked, setSubmissionLocked] = useState(false);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [validation, setValidation] = useState({});
   const reportValidation = useCallback((next) => { setValidation(next); onValidation?.(next); }, [onValidation]);
   const localLock = useRef(null);
@@ -56,6 +58,10 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
   useEffect(() => { onLockedChange?.(submissionLocked || Boolean(busy)); }, [submissionLocked, busy, onLockedChange]);
   const update = (saved) => { if (onChange) onChange(saved); else setLocalTrace(saved); };
   const editable = contribution && current.author_id === profile?.id && ["draft", "revision_requested"].includes(current.status) && !current.is_hidden && !current.deleted_at;
+  useUnsavedChanges(editable && Boolean(file || attachment || busy || submissionPending), {
+    onDiscard: () => { request.current?.abort(); operationLock.current?.abort(); },
+    pendingRequest: Boolean(busy && busy !== "compress") || submissionPending,
+  });
   const media = [...(current.trace_media || [])].sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id));
   const select = async (files) => {
     if (busy || locked || operationLock.current || uncertain || attachment || !files?.length) return;
@@ -186,7 +192,7 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
     {editable && saveOnly && (file || attachment) && <button className="btn outline" disabled={locked || Boolean(busy) || uncertain} onClick={() => run("upload")}>{busy === "upload" ? "Uploading photo…" : attachment ? "Retry attachment" : "Retry photo upload"}</button>}
     {editable && !saveOnly && <SubmitTrace trace={current} onChange={update} photosBlocked={Boolean(busy) || uncertain}
       hasSelectedPhoto={Boolean(file || attachment)} preparePhoto={preparePhoto} operationLock={operationLock}
-      onLockedChange={setSubmissionLocked} onValidation={reportValidation} />}
+      onLockedChange={setSubmissionLocked} onPendingChange={setSubmissionPending} onValidation={reportValidation} />}
     {!onValidation && Object.entries(validation).filter(([key]) => key !== "photo").map(([key, message]) => <p key={key} role="alert">{message}</p>)}
   </section>;
 }

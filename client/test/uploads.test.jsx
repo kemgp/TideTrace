@@ -1,7 +1,7 @@
 import React, { StrictMode } from "react";
 import { expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
 
@@ -454,6 +454,7 @@ it.each(["logout", "navigate"])("cancels draft photo saving on %s without late s
     await screen.findByRole("heading", { name: "Welcome to TideTrace" });
   } else {
     fireEvent.click(screen.getByRole("link", { name: "Back to My Contributions" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }));
     await screen.findByRole("heading", { name: "Your traces & their status" });
   }
   expect(calls.mock.calls.find(([url]) => url === upload)[1].signal.aborted).toBe(true);
@@ -566,6 +567,7 @@ it.each(["logout", "navigate"])("cancels an attachment-only recovery on %s", asy
     await screen.findByRole("heading", { name: "Welcome to TideTrace" });
   } else {
     fireEvent.click(screen.getByRole("link", { name: "Open saved draft" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }));
     await screen.findByRole("link", { name: "Edit draft" });
   }
   expect(calls.mock.calls.find(([url]) => url === `${upload}/attach`)[1].signal.aborted).toBe(true);

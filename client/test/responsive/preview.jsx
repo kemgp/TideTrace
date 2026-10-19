@@ -2,7 +2,7 @@
 // It does not read or write a real account session or contact the backend.
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import App from "../../src/App.jsx";
 import { SESSION_KEY } from "../../src/api/session.js";
 import "../../src/index.css";
@@ -54,7 +54,8 @@ if (frameMode) {
     else if (route.endsWith("traces") || route === "contributions") data = [trace, { ...trace, id: "trace-2" }];
     return new Response(JSON.stringify({ data }), { status: 200, headers: { "Content-Type": "application/json" } });
   };
-  createRoot(document.getElementById("root")).render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
+  const router = createMemoryRouter([{ path: "*", element: <App /> }], { initialEntries: [path] });
+  createRoot(document.getElementById("root")).render(<RouterProvider router={router} />);
   let actionFound = true;
   const measure = () => {
     const width = document.documentElement.clientWidth;

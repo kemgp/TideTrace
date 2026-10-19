@@ -1,7 +1,7 @@
 import React, { StrictMode } from "react";
 import { it, expect, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
 const as_of = "2026-09-28T10:00:00Z";

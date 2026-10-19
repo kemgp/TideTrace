@@ -1,7 +1,7 @@
 import React from "react";
 import { it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
 const ok=data=>({ok:true,status:200,json:async()=>({data})});

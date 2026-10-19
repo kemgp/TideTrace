@@ -25,6 +25,7 @@ export function AppProvider({children}){
   const [sessions]=useState(createSessionManager);
   const {account,ready:sessionReady,error:sessionError,notice:sessionNotice}=useSyncExternalStore(sessions.subscribe,sessions.getSnapshot);
   const {authenticate,clearSession,retrySession}=sessions;
+  const getCurrentAccount=useCallback(()=>sessions.getSnapshot().account,[sessions]);
 
   useEffect(()=>sessions.start(),[sessions]);
 
@@ -317,6 +318,7 @@ export function AppProvider({children}){
     () => ({
       role,
       profile,
+      getCurrentAccount,
 
       darkMode,
       setDarkMode,
@@ -369,6 +371,7 @@ export function AppProvider({children}){
     [
       role,
       profile,
+      getCurrentAccount,
       darkMode,
       readData,
       writeData,

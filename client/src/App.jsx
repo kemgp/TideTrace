@@ -1,4 +1,5 @@
 import Home from "./pages/Home/index.jsx";
+import NavigationGuard from "./components/NavigationGuard.jsx";
 import LegalPage from "./pages/legal/LegalPage.jsx";
 import PageMetadata from "./components/PageMetadata.jsx";
 import React,{useEffect,useState} from "react";
@@ -53,10 +54,10 @@ function Footer(){
     <footer>
       <div className="wrap foot-in">
         <div className="foot-main">
-          <a className="foot-brand" href="/" aria-label="TideTrace home">
+          <Link className="foot-brand" to="/" aria-label="TideTrace home">
             {WAVE}
             <span>TideTrace</span>
-          </a>
+          </Link>
           <p className="foot-tagline">Community-powered ecosystem conservation.</p>
         </div>
         <div className="foot-details">
@@ -668,8 +669,10 @@ function AppShell(){
 export default function App(){
   return(
     <AppProvider>
+      <NavigationGuard>
       <PageMetadata/>
       <AppShell/>
+      </NavigationGuard>
     </AppProvider>
   );
 }

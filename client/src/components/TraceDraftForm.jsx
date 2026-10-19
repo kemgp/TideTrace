@@ -13,6 +13,9 @@ import TraceMap from "./TraceMap.jsx";
 import TracePhotos from "./TracePhotos.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { PHOTO_TYPES, photoError } from "../api/photos.js";
+import { useUnsavedChanges } from "./NavigationGuard.jsx";
+
+const draftFields = (trace) => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null });
 
 export default function TraceDraftForm({ trace = null, onReload }) {
   const { readData, writeData, showToast, profile } = useApp();
@@ -20,7 +23,8 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   const revision = trace?.status === "revision_requested";
   const saveLabel = revision ? "Save changes" : "Save draft";
   const categories = useRemoteData("categories", { collection: true });
-  const [fields, setFields] = useState(() => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null }));
+  const [fields, setFields] = useState(() => draftFields(trace));
+  const [savedFields, setSavedFields] = useState(() => draftFields(trace));
   const [activeStep, setActiveStep] = useState("category");
   const jumpToStep = (step) => {
     setActiveStep(step);
@@ -41,17 +45,14 @@ export default function TraceDraftForm({ trace = null, onReload }) {
   const [savedDraft, setSavedDraft] = useState(null);
   const [initialUpload, setInitialUpload] = useState(null);
   const photoInput = useRef(null);
-  const [dirty, setDirty] = useState(false);
+  const dirty = Object.keys(fields).some(name => fields[name] !== savedFields[name]);
   const [error, setError] = useState("");
   const [blocked, setBlocked] = useState(false);
   const request = useRef(null);
+  const allowNavigation = useUnsavedChanges(!savedDraft && (dirty || Boolean(photo) || processingPhoto || busy), {
+    onDiscard: () => request.current?.abort(), pendingRequest: busy,
+  });
   useEffect(() => () => { request.current?.abort(); }, []);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event) => { event.preventDefault(); event.returnValue = ""; };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
 
   const available = categories.data || [];
   const validCategory = available.some((category) => category.id === fields.category_id);
@@ -65,7 +66,6 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     const next = { ...fields, [event.target.name]: event.target.value };
     setFields(next);
     if (validating) setFieldErrors(validate(next));
-    setDirty(true);
   };
   const selectPhoto = async (files) => {
     if (busy || processingPhoto || !files?.length) return;
@@ -78,10 +78,10 @@ export default function TraceDraftForm({ trace = null, onReload }) {
     if (validation) return;
     if (profile.data_saver) {
       setProcessingPhoto(true);
-      try { setPhoto(await compressPhoto(selected)); setDirty(true); }
+      try { setPhoto(await compressPhoto(selected)); }
       catch (failure) { setPhotoValidation(failure.message); }
       finally { setProcessingPhoto(false); }
-    } else { setPhoto(selected); setDirty(true); }
+    } else setPhoto(selected);
   };
   const save = async (event) => {
     event.preventDefault();
@@ -113,6 +113,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
         throw new ApiError("The service returned an unexpected response.", "INVALID_RESPONSE");
       }
       savedRecord = saved;
+      setSavedFields(fields);
       if (!trace && photo) {
         setUploading(true);
         setStage("Uploading photo…");
@@ -128,6 +129,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
             if (latest?.id !== saved.id || latest.author_id !== profile.id || !Number.isInteger(latest.version) || latest.version < saved.version || !Array.isArray(latest.trace_media) || !latest.trace_media.some((item) => item.id === media.id)) throw new ApiError("Unable to verify the saved photo. Reload saved attachments before trying again.", "INVALID_RESPONSE");
             savedRecord = latest;
           }
+          setPhoto(null);
         } catch (failure) {
           if (controller.signal.aborted || failure.code === "CANCELLED") return;
           const attachment = failure.code === "MEDIA_ATTACH_FAILED" && typeof failure.details?.object_path === "string" ? failure.details.object_path : uploaded?.object_path || null;
@@ -136,7 +138,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
             ? `Your photo uploaded, but attaching it failed. ${action === "save" ? "Retry attachment" : "Submit for review again"} to retry with the existing upload.`
             : uncertain ? "We could not confirm the photo upload. Reload saved attachments and check them before trying again." : failure.message });
           setSavedDraft({ ...saved, trace_media: saved.trace_media || [] });
-          setDirty(false);
+          setPhoto(null); // The recovery component now owns the unsaved file/path.
           return;
         } finally {
           if (!controller.signal.aborted) setUploading(false);
@@ -161,12 +163,12 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           if (controller.signal.aborted) return;
           if (submitted?.id !== saved.id || submitted.status !== "pending" || !Number.isInteger(submitted.version) || submitted.version <= latest.version) throw new ApiError("Submission response could not be verified.", "INVALID_RESPONSE");
         }
-        setDirty(false);
+        allowNavigation();
         showToast("Trace submitted for review.");
         navigate(`/user/contributions/${encodeURIComponent(saved.id)}`, { replace: true });
         return;
       }
-      setDirty(false);
+      allowNavigation();
       showToast(revision ? "Changes saved. This Trace still needs revision until you resubmit it." : "Draft saved. You can continue from My Contributions.");
       navigate(`/user/contributions/${encodeURIComponent(saved.id)}`, { replace: true });
     } catch (failure) {
@@ -174,7 +176,6 @@ export default function TraceDraftForm({ trace = null, onReload }) {
       const uncertain = failure.code === "NETWORK_ERROR" || failure.code === "INVALID_RESPONSE" || failure.status >= 500;
       if (savedRecord) {
         setSavedDraft({ ...savedRecord, trace_media: savedRecord.trace_media || [] });
-        setDirty(false);
         setRecoveryMessage(submitting && uncertain ? "Your details were saved, but we could not confirm submission. Open the saved Trace to check its status before trying again." : `Your details were saved, but submission did not complete: ${failure.message} Open the saved Trace to review it before trying again.`);
         return;
       }
@@ -222,7 +223,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           <label className="lbl" htmlFor="draft-location" style={{ marginTop: 16 }}>Location</label>
           <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
           {fieldError("location_name")}
-          <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => { setFields((current) => ({ ...current, ...point })); setDirty(true); }} />
+          <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => setFields((current) => ({ ...current, ...point }))} />
           </TraceDraftSection>
           <TraceDraftSection step="description" onActivate={setActiveStep}>
           <label className="lbl" htmlFor="draft-title" style={{ marginTop: 16 }}>Title</label>
@@ -246,7 +247,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           </TraceDraftSection>
           <TraceDraftSection step="review" onActivate={setActiveStep}>
           {!trace && <TraceDraftSummary fields={fields} categories={available} photo={photo} />}
-          <p className="hint">{dirty ? "You have unsaved changes. Save before leaving this page." : `Changes are saved only when you choose ${saveLabel}.`}</p>
+          <p className="hint">{dirty || photo || processingPhoto ? "You have unsaved changes. Save before leaving this page." : `Changes are saved only when you choose ${saveLabel}.`}</p>
           {error && <p role="alert">{error}</p>}
           <div className="trace-draft-actions">
             <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "submit" ? stage : revision ? "Resubmit for review" : "Submit Trace"}</button>

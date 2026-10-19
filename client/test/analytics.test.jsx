@@ -1,7 +1,7 @@
 import React from "react";
 import { expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
 const summary = { id:"staff",role:"admin",as_of:"2026-10-05T00:00:00Z",traces:0,approved:0,pending:0,rejected:0,needs_revision:0,comments:0,completions:0,my_reviews:0,my_report_decisions:0,categories:[],users:0,active_users:0,reviewers:[] };

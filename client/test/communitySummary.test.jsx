@@ -1,6 +1,6 @@
 import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "./router.jsx";
 import { it, expect, vi } from "vitest";
 import App from "../src/App.jsx";
 const data={id:"community",published_traces:12,contributors:4,published_tides:3,tides_completed:27,as_of:"2026-10-10T00:00:00Z"};

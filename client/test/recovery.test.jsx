@@ -2,7 +2,8 @@ import React, { StrictMode } from "react";
 import { expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrowserRouter, useLocation } from "react-router-dom";
+import { BrowserRouter } from "./router.jsx";
+import { useLocation } from "react-router-dom";
 import App from "../src/App.jsx";
 
 const email = "admin@example.test";

@@ -1,7 +1,7 @@
 import React from "react";
 import { it, expect, vi } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 function open(path) {
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: {} }) })));

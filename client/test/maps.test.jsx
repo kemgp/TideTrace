@@ -103,7 +103,7 @@ it("shows a map authentication failure after initialization without clearing the
 
 it("saves a picked pin through the real draft form, restores it and persists clearing it", async () => {
   const { default: App } = await import("../src/App.jsx");
-  const { MemoryRouter } = await import("react-router-dom");
+  const { MemoryRouter } = await import("./router.jsx");
   const { SESSION_KEY } = await import("../src/api/session.js");
   const categoryId = "30000000-0000-4000-8000-000000000001";
   const traceId = "20000000-0000-4000-8000-000000000001";

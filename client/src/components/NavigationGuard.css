@@ -1,0 +1,10 @@
+.leave-dialog-overlay{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:16px;background:#10182799;}
+.leave-dialog{box-sizing:border-box;width:100%;max-width:460px;max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:14px;padding:24px;background:var(--white);color:var(--navy);box-shadow:0 16px 48px #10182740;}
+.leave-dialog h2{margin:0 0 12px;font-size:21px;}
+.leave-dialog p{margin:0 0 12px;overflow-wrap:anywhere;}
+.leave-dialog-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;}
+.leave-dialog-actions .btn{flex:1 1 160px;min-height:44px;}
+.leave-dialog button:focus-visible{outline:3px solid var(--blue);outline-offset:3px;}
+html.dark-mode .leave-dialog{background:#172235;color:#e7eef7;border-color:#34445d;}
+html.dark-mode .leave-dialog .outline{background:transparent;color:#d9e3f0;border-color:#8fa9d6;}
+html.dark-mode .leave-dialog button:focus-visible{outline-color:#a9b8ff;}

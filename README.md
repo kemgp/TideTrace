@@ -189,7 +189,9 @@ Trace reading, draft creation/editing, photo uploads, and submission for review 
 
 Open a saved draft and choose **Edit draft**. The form loads its saved fields and version, with **Submit Trace** as the primary action and **Save draft** as secondary. Authors can edit their available Draft and Needs revision records; Pending, Approved, Rejected, hidden and deleted records remain locked.
 
-Saving is manual. Unsaved text remains in the form after an error, and closing or reloading the browser warns about unsaved form changes. In-app navigation does not autosave. Location is entered as text; map pinning is not connected. Changing an existing location name clears previously saved coordinates, while other edits preserve them.
+Saving is manual. Trace creation, draft/revision editors, saved-draft photo selections and photo recovery screens protect unsaved text, files and attachment-recovery paths. App links, Back/Forward and programmatic navigation away show **You have unsaved changes. Leave this page and discard them?** Choose **Keep editing** (or Escape) to preserve local state, or **Discard changes** to continue to the requested destination. Discarding does not delete saved details or attachments. Text and photo state are tracked separately; saving details alone does not clear protection for a failed photo upload. Reverting fields to their saved values or removing an unsaved photo clears protection when nothing else is pending.
+
+Reloading or closing the browser uses its native unsaved-changes warning, whose wording the browser controls. Navigation does not autosave or replay writes. If a request is in flight, leaving aborts the client request but the server may still complete it; check the saved record before trying again. Confirmed saves/submissions, logout, expired sessions and access-control redirects proceed normally. Map edits participate in the same unsaved-field protection.
 
 If another tab or an attachment change has updated the Trace, a stale save is rejected. Copy any text you want to keep, then choose **Discard local changes and reload saved draft** before editing again. If a save response is lost or cannot be verified, the app does not automatically replay the write; check My Contributions before trying again.
 
@@ -257,6 +259,8 @@ Keep the frontend and API running. Authoring uses the existing `tides` table. Fo
 4. Choose **Publish** when the content is complete. Published lessons appear in the member library (`/user/tides`), and `/user/tides/:id` supports direct links and reloads. Lists are paginated at 25 records. Saved publication status drives the admin badge; simulated completion, module and duration values are not displayed.
 5. For a published lesson, **Save published changes** updates the member-visible content. **Return to draft** removes member access while preserving the record. **Archive** also removes member access and keeps the record editable by admins. Each save/publication action saves the current form fields.
 6. On a conflict, copy text you want to preserve and use **Discard local changes and reload saved lesson**. The API compares the supplied `updated_at` with the stored timestamp in the update query. Lost/uncertain save responses are not replayed automatically; check the saved record before trying again. A duplicate slug gets an inline error.
+
+Lesson creation and editing use the same unsaved-changes confirmation as Trace editors, including previews and pending saves. A confirmed save establishes the new baseline; returning title, slug and content to those saved values clears the warning.
 
 ### Member completion
 

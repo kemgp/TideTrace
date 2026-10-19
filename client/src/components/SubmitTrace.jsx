@@ -8,7 +8,7 @@ import { ApiError } from "../api/auth.js";
 const editable = (trace, owner) => trace.author_id === owner && ["draft", "revision_requested"].includes(trace.status) && !trace.is_hidden && !trace.deleted_at;
 
 
-export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelectedPhoto = false, preparePhoto, operationLock, onLockedChange, onValidation }) {
+export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelectedPhoto = false, preparePhoto, operationLock, onLockedChange, onPendingChange, onValidation }) {
   const { readData, writeData, profile } = useApp();
   const categories = useRemoteData("categories", { collection: true });
   const [attempted, setAttempted] = useState(false);
@@ -19,6 +19,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
   const request = useRef(null);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => { onLockedChange(busy || blocked); }, [busy, blocked, onLockedChange]);
+  useEffect(() => { onPendingChange?.(busy); }, [busy, onPendingChange]);
   const revision = trace.status === "revision_requested";
   const ready = !categories.loading && !categories.error;
   useEffect(() => {
