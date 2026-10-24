@@ -7,7 +7,7 @@ export default function Features(){return (
             <h2>Built on people, not just data</h2>
             <p>
               TideTrace sits at the intersection of citizen science, social participation, and environmental
-              education — rooted in local knowledge.
+              education. It is rooted in local knowledge.
             </p>
           </div>
           <div className="tt-pgrid">
@@ -19,7 +19,7 @@ export default function Features(){return (
                 </svg>
               </div>
               <h3>Emotional, not just statistical</h3>
-              <p>Centered on belonging and participation — not spreadsheets and charts alone.</p>
+              <p>Centered on belonging and participation, not spreadsheets and charts alone.</p>
             </SpotlightCard>
             <SpotlightCard className="tt-pillar" spotlightColor="#5AA2A8" intensity={0.16} spotlightSize={240} proximity={0} flare={false} borderGlow={0} style={{"--spotlight-card-surface":"#fff"}}>
               <div className="tt-ic" style={{background:"#fbe7db"}}>
@@ -29,7 +29,7 @@ export default function Features(){return (
                 </svg>
               </div>
               <h3>Ordinary actions, real impact</h3>
-              <p>Storytelling, clean-ups, documentation, and learning — all become ecological contributions.</p>
+              <p>Storytelling, clean-ups, documentation, and learning. They all become ecological contributions.</p>
             </SpotlightCard>
             <SpotlightCard className="tt-pillar" spotlightColor="#5AA2A8" intensity={0.16} spotlightSize={240} proximity={0} flare={false} borderGlow={0} style={{"--spotlight-card-surface":"#fff"}}>
               <div className="tt-ic" style={{background:"#e3ecfa"}}>
@@ -39,7 +39,7 @@ export default function Features(){return (
                 </svg>
               </div>
               <h3>Community + technology</h3>
-              <p>Citizen science and local ecological knowledge, working together — not replacing one another.</p>
+              <p>Citizen science and local ecological knowledge, working together. Not replacing one another.</p>
             </SpotlightCard>
             <SpotlightCard className="tt-pillar" spotlightColor="#5AA2A8" intensity={0.16} spotlightSize={240} proximity={0} flare={false} borderGlow={0} style={{"--spotlight-card-surface":"#fff"}}>
               <div className="tt-ic" style={{background:"#eaf6e9"}}>
