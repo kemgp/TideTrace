@@ -10,7 +10,7 @@ export default function Hero({reduced,join}){
  <div className="tt-hero-content tt-wrap">
  {reduced?<span className="tt-static-pill">Explore · Contribute · Learn</span>:<RotatingText texts={words} rotationInterval={2000} staggerFrom="last" staggerDuration={0.025} splitBy="characters" highlight highlightColor="#314E9D" mainClassName="tt-pill"/>}
  <StrokeText reduced={reduced}/>
- <p className="tt-lead">TideTrace turns ordinary sightings, clean-ups, and stories from coastal communities into a living archive — closing the gap between people and the crises we're facing, one trace at a time.</p>
+ <p className="tt-lead">TideTrace turns ordinary sightings, clean-ups, and stories from coastal communities into a living archive. Closing the gap between people and the crises we're facing, one trace at a time.</p>
  <div className="tt-actions"><Link className="tt-btn tt-clay" to={join}>Make Your First Trace</Link><a className="tt-btn tt-outline" href="#home-how">See how it works</a></div>
  </div><WaveDivider/></header>;
 }
