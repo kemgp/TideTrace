@@ -232,9 +232,9 @@ function Decision({initialTrace,onReload}){
       <label className="lbl" htmlFor="review-reason">Feedback (required for revision or rejection)</label>
       <textarea id="review-reason" className="input" rows={4} maxLength={2000} value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} />
       <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
-        <button className="btn teal" disabled={busy || blocked} onClick={() => decide("approved")}>Approve &amp; publish</button>
-        <button className="btn clay" disabled={busy || blocked} onClick={() => decide("revision_requested")}>Request revision</button>
-        <button className="btn outline" disabled={busy || blocked} onClick={() => decide("rejected")}>Reject</button>
+        <button className="btn blue" disabled={busy || blocked} onClick={() => decide("approved")}>Approve &amp; publish</button>
+        <button className="btn outline" disabled={busy || blocked} onClick={() => decide("revision_requested")}>Request revision</button>
+        <button className="btn danger" disabled={busy || blocked} onClick={() => decide("rejected")}>Reject</button>
       </div>
     </section>}
     {busy && <p role="status">Saving decision…</p>}

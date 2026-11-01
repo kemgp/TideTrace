@@ -289,7 +289,7 @@ export default function Dashboard() {
 
       <div className="g2">
         <Button
-          variant="teal"
+          variant="blue"
           onClick={() => navigate("/moderator/review")}
         >
           ✓ Review pending traces

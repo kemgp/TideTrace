@@ -3,7 +3,7 @@ export default function Features(){return (
       <section className="tt-hsec tt-bg" id="home-features">
         <div className="tt-wrap">
           <div className="tt-sh">
-            <span className="tt-tagline" style={{color:"var(--clay)"}}>What makes it different</span>
+            <span className="tt-tagline" style={{color:"var(--clay-strong)"}}>What makes it different</span>
             <h2>Built on people, not just data</h2>
             <p>
               TideTrace sits at the intersection of citizen science, social participation, and environmental

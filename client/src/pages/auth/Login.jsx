@@ -51,7 +51,7 @@ export default function Login() {
       <EmailField id="login-email" value={email} busy={busy} placeholder="Email address" onChange={(event) => setEmail(event.target.value)} />
       <PasswordField id="login-password" value={password} busy={busy} placeholder="Password" onChange={(event) => setPassword(event.target.value)}/>
       <div className="auth-forgot"><Link to="/forgot-password">Forgot password?</Link></div>
-      <button className="btn clay" style={{ width: "100%" }} type="submit" disabled={busy}>{busy ? "Signing in…" : "Log in"}</button>
+      <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy}>{busy ? "Signing in…" : "Log in"}</button>
     </form>
     <p className="auth-note">Sign in with your TideTrace account. Your account determines which dashboard opens.</p>
   </AuthLayout>;

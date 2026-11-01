@@ -68,7 +68,7 @@
 .moderator-shell .mod-decision h3 { font-size: 16px; margin-bottom: 8px; }
 .moderator-shell .mod-decision .hint { margin-bottom: 16px; line-height: 1.7; }
 .moderator-shell .mod-decision .btn { padding: 12px 17px; font-size: 12px; }
-.moderator-shell .mod-decision .btn.outline { color: var(--clay); border-color: var(--clay); }
+.moderator-shell .mod-decision .btn.outline { color: var(--clay-strong); border-color: var(--clay-strong); }
 .moderator-shell .mod-analytics-grid { margin-top: 24px; align-items: start; }
 .moderator-shell .mod-chart .lbl { margin-bottom: 18px; }
 .moderator-shell .mod-chart-row { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr 34px; gap: 16px; align-items: center; font-size: 12px; padding: 10px 0; }

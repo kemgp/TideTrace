@@ -27,7 +27,7 @@
 .admin-shell .lrow .avatar { width: 44px; height: 44px; display: grid; place-items: center; font-weight: 700; color: white; }
 .admin-shell .lrow .chip { padding: 4px 10px; font-size: 10px; }
 .admin-shell .mini { border-radius: 6px; padding: 7px 11px; white-space: nowrap; }
-.admin-shell .mini.clay { color: var(--clay); background: white; border: 1px solid var(--clay); }
+.admin-shell .mini.clay { color: var(--clay-strong); background: white; border: 1px solid var(--clay-strong); }
 .admin-shell .mini.outline { border: 1px solid var(--navy); }
 .admin-shell .hint { font-size: 12px; }
 .admin-shell footer { padding: 28px 0; background: var(--navy); }

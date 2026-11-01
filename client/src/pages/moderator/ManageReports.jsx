@@ -92,7 +92,7 @@ function ReportDecision({ initialReport, commentsOnly }) {
         <textarea className="input" id={inputId} aria-describedby={`${inputId}-help`} placeholder="Briefly explain why you’re keeping or removing this content…" maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} />
         <div className="row" style={{ marginTop: 12 }}>
           <button type="button" className="btn outline sm" onClick={() => run(false)}>{commentsOnly ? "Keep comment" : "Dismiss report"}</button>
-          <button type="button" className="btn clay sm" onClick={() => run(true)}>{commentsOnly ? "Remove comment" : "Remove content"}</button>
+          <button type="button" className="btn danger sm" onClick={() => run(true)}>{commentsOnly ? "Remove comment" : "Remove content"}</button>
         </div>
       </fieldset>
     </form> : <section className={`mod-report-outcome ${report.status}`} aria-label="Saved decision">
