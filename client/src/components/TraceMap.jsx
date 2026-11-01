@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./TraceMap.css";
-import { coordinates, lookupPinLocation, loadMaps, mapId, mapsConfigured, onMapAuthFailure } from "../api/maps.js";
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, coordinates, lookupPinLocation, loadMaps, mapId, mapsConfigured, onMapAuthFailure } from "../api/maps.js";
 
 export default function TraceMap({ latitude, longitude, onChange, disabled = false }) {
   const position = coordinates(latitude, longitude);
@@ -27,7 +27,7 @@ export default function TraceMap({ latitude, longitude, onChange, disabled = fal
     loadMaps().then((maps) => {
       if (!active) return;
       const current = latest.current;
-      map = new maps.Map(host.current, { center: current.position || { lat: 12.8797, lng: 121.774 }, zoom: current.position ? 15 : 6, mapId: mapId(), streetViewControl: false, mapTypeControl: false, gestureHandling: "cooperative" });
+      map = new maps.Map(host.current, { center: current.position || DEFAULT_MAP_CENTER, zoom: current.position ? 15 : DEFAULT_MAP_ZOOM, mapId: mapId(), streetViewControl: false, mapTypeControl: false, gestureHandling: "cooperative" });
       marker = new maps.marker.AdvancedMarkerElement({ map: current.position ? map : null, position: current.position || undefined, title: editable ? "Trace location — drag to adjust" : "Saved Trace location", gmpDraggable: editable && !current.disabled });
       const update = (point) => {
         if (!active || latest.current.disabled || !editable || !point) return;

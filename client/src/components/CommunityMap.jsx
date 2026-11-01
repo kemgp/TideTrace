@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { useApp } from "../context/AppContext.jsx";
-import { coordinates, loadMaps, mapId, mapsConfigured, onMapAuthFailure } from "../api/maps.js";
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, coordinates, loadMaps, mapId, mapsConfigured, onMapAuthFailure } from "../api/maps.js";
 import Button from "./Button.jsx";
 import "./CommunityMap.css";
 
@@ -33,7 +33,7 @@ export default function CommunityMap({ query, category, onList }) {
     const unsubscribe = onMapAuthFailure(() => fail("Map access is unavailable. You can still browse the list."));
     loadMaps().then((maps) => {
       if (!active) return;
-      const map = new maps.Map(host.current, { center: { lat: 12.8797, lng: 121.774 }, zoom: 6, mapId: mapId(),
+      const map = new maps.Map(host.current, { center: DEFAULT_MAP_CENTER, zoom: DEFAULT_MAP_ZOOM, mapId: mapId(),
         streetViewControl: false, mapTypeControl: false, gestureHandling: "cooperative" });
       instance.current = { map, maps };
       listeners = [map.addListener("idle", () => {

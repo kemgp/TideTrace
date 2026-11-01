@@ -1,3 +1,5 @@
+export const DEFAULT_MAP_CENTER = { lat: 10.7202, lng: 122.5621 };
+export const DEFAULT_MAP_ZOOM = 12;
 let loading;
 let authFailed = false;
 const failureListeners = new Set();

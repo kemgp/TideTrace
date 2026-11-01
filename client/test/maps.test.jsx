@@ -164,3 +164,12 @@ it("ignores an old lookup when the pin moves and handles lookup failures", async
   await screen.findByText(/Location name unavailable/);
   expect(screen.getByText("Saved coordinates: 11.000000, 125.000000")).toBeTruthy();
 });
+
+it("starts an empty picker over Iloilo City without selecting a pin", async () => {
+  render(<Picker />);
+  await openMap();
+  expect(maps[0].options.center).toEqual({ lat: 10.7202, lng: 122.5621 });
+  expect(maps[0].options.zoom).toBe(12);
+  expect(markers[0].map).toBeNull();
+  expect(screen.queryByText(/Selected coordinates/)).toBeNull();
+});

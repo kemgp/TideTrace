@@ -18,7 +18,7 @@ beforeEach(() => {
   readData = vi.fn().mockResolvedValue({ pins: [pin], truncated: true });
   useApp.mockReturnValue({ readData });
   loadMaps.mockResolvedValue({ Map: class {
-    constructor() { map = this; this.handlers = {}; }
+    constructor(host, options) { map = this; this.options = options; this.handlers = {}; }
     addListener(name, handler) { this.handlers[name] = handler; return { remove: vi.fn() }; }
     getBounds() { return { toJSON: () => ({ south: 0, north: 20, west: 120, east: 130 }) }; }
     getCenter() { return { lat: () => 12, lng: () => 125 }; }
@@ -86,4 +86,10 @@ it("keeps loaded results and keyboard focus while refreshing the viewport", asyn
   expect(screen.getByRole("button", { name: /Reef observation/ })).toBe(select);
   expect(document.activeElement).toBe(select);
   expect(screen.getByText("Updating Traces…")).toBeTruthy();
+});
+
+it("starts the community map over Iloilo City", async () => {
+  open(); await ready();
+  expect(map.options.center).toEqual({ lat: 10.7202, lng: 122.5621 });
+  expect(map.options.zoom).toBe(12);
 });
