@@ -32,3 +32,10 @@ it('routes authenticated contributors to upload and restores scroll preferences 
  expect(screen.getByRole('link',{name:'Make Your First Trace',exact:true}).getAttribute('href')).toBe('/user/traces/upload');
  expect(document.documentElement.style.scrollBehavior).toBe('auto');page.unmount();expect(document.documentElement.style.scrollBehavior).toBe(previous);
 });
+it('shows real headline text, the drawn quote underline and wave edges between sections',()=>{
+ open();
+ expect(screen.getAllByRole('heading',{level:1})).toHaveLength(1);
+ expect(document.querySelector('.tt-headline-plain').textContent).toContain('Every small act becomes');
+ expect(document.querySelector('.tt-quote-wave')).toBeTruthy();
+ expect(document.querySelectorAll('.tt-edge').length).toBeGreaterThanOrEqual(4);
+});
