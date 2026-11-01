@@ -45,13 +45,44 @@ export default function Navbar(){
   const navigate=useNavigate();
 
   const [open,setOpen]=useState(false);
+  const [accountOpen,setAccountOpen]=useState(false);
 
   const navRef=useRef(null);
   const menuRef=useRef(null);
+  const accountRef=useRef(null);
+  const accountToggleRef=useRef(null);
 
   useEffect(()=>{
     setOpen(false);
+    setAccountOpen(false);
   },[location.pathname,location.hash,role]);
+
+  useEffect(()=>{
+    if(!accountOpen)return;
+
+    const dismiss=(event)=>{
+      if(event.key==="Escape"){
+        setAccountOpen(false);
+        accountToggleRef.current?.focus();
+      }
+    };
+
+    const outside=(event)=>{
+      if(!accountRef.current?.contains(event.target)){
+        setAccountOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown",dismiss);
+    document.addEventListener("pointerdown",outside);
+    document.addEventListener("focusin",outside);
+
+    return()=>{
+      document.removeEventListener("keydown",dismiss);
+      document.removeEventListener("pointerdown",outside);
+      document.removeEventListener("focusin",outside);
+    };
+  },[accountOpen]);
 
   useEffect(()=>{
     if(!open)return;
@@ -84,6 +115,7 @@ export default function Navbar(){
     const desktop=window.matchMedia("(min-width:1280px)");
 
     const closeOnDesktop=()=>{
+      setAccountOpen(false);
       if(desktop.matches)setOpen(false);
     };
 
@@ -333,30 +365,48 @@ export default function Navbar(){
                   </span>
                 )}
 
-                {role==="user"&&(
-                  <button
-                    type="button"
-                    className="btn ghost sm nav-profile"
-                    onClick={()=>{
-                      setOpen(false);
-                      navigate(profilePath);
-                    }}
-                  >
-                    Change profile
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  className="btn ghost sm nav-logout"
-                  onClick={()=>{
-                    setOpen(false);
-                    logout();
-                    navigate("/login",{replace:true});
-                  }}
+                <div
+                  ref={accountRef}
+                  className={`account-menu${accountOpen?" is-open":""}`}
                 >
-                  Log out
-                </button>
+                  <button
+                    ref={accountToggleRef}
+                    type="button"
+                    className="btn ghost sm account-menu__toggle"
+                    aria-expanded={accountOpen}
+                    aria-controls="account-menu-panel"
+                    onClick={()=>setAccountOpen(previous=>!previous)}
+                  >
+                    Account
+                  </button>
+
+                  <div id="account-menu-panel" className="account-menu__panel">
+                    <button
+                      type="button"
+                      className="btn ghost sm nav-profile"
+                      onClick={()=>{
+                        setOpen(false);
+                        setAccountOpen(false);
+                        navigate(profilePath);
+                      }}
+                    >
+                      Change profile
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn ghost sm nav-logout"
+                      onClick={()=>{
+                        setOpen(false);
+                        setAccountOpen(false);
+                        logout();
+                        navigate("/login",{replace:true});
+                      }}
+                    >
+                      Log out
+                    </button>
+                  </div>
+                </div>
 
               </>
             ):(

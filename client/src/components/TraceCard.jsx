@@ -1,7 +1,6 @@
 import React,{useEffect,useState} from "react";
 import {Link} from "react-router-dom";
 import TraceStatusBadge from "./TraceStatusBadge.jsx";
-import {traceColor} from "./TraceCategory.jsx";
 import AdminIcon from "./AdminIcon.jsx";
 import {useApp} from "../context/AppContext.jsx";
 import {PHOTO_TYPES} from "../api/photos.js";
@@ -12,13 +11,13 @@ function TraceCardPhoto({trace,to}){
   const [requested,setRequested]=useState(false);
   const deferred=profile?.data_saver&&!requested;
   const [url,setUrl]=useState("");
-  const [loading,setLoading]=useState(true);
+  const [status,setStatus]=useState("loading");
 
   useEffect(()=>{
     if(deferred)return;
     const controller=new AbortController();
     setUrl("");
-    setLoading(true);
+    setStatus("loading");
 
     const loadPhoto=async()=>{
       try{
@@ -40,7 +39,7 @@ function TraceCardPhoto({trace,to}){
           .sort((a,b)=>(a.sort_order??0)-(b.sort_order??0))[0];
 
         if(!photo?.id){
-          if(!controller.signal.aborted)setLoading(false);
+          if(!controller.signal.aborted)setStatus("none");
           return;
         }
 
@@ -51,12 +50,12 @@ function TraceCardPhoto({trace,to}){
 
         if(!controller.signal.aborted){
           setUrl(data?.url||"");
-          setLoading(false);
+          setStatus(data?.url?"ready":"unavailable");
         }
       }catch(error){
         if(!controller.signal.aborted){
           setUrl("");
-          setLoading(false);
+          setStatus("unavailable");
         }
       }
     };
@@ -65,7 +64,7 @@ function TraceCardPhoto({trace,to}){
     return()=>controller.abort();
   },[trace?.id,trace?.trace_media,readData,deferred]);
 
-  if(deferred)return <div className="trace-card-photo"><button type="button" className="btn outline sm" onClick={()=>setRequested(true)}>Load photo</button></div>;
+  if(deferred)return <div className="trace-card-photo trace-card-photo-saver"><span>Data saver is on</span><button type="button" className="btn outline sm" onClick={()=>setRequested(true)}>Load photo</button></div>;
 
   if(url){
     const PhotoTag=to?Link:"div";
@@ -75,19 +74,17 @@ function TraceCardPhoto({trace,to}){
           src={url}
           alt={trace?.title?`${trace.title} photo`:"Trace photo"}
           referrerPolicy="no-referrer"
-          onError={()=>setUrl("")}
+          onError={()=>{setUrl("");setStatus("unavailable");}}
         />
       </PhotoTag>
     );
   }
 
+  if(status==="loading")return <div className="trace-card-photo trace-card-photo-loading" aria-hidden="true"/>;
+
   return(
-    <div
-      className="trace-card-photo trace-card-photo-fallback"
-      style={{background:traceColor(trace.category)}}
-      aria-hidden="true"
-    >
-      {!loading&&<span>No photo</span>}
+    <div className="trace-card-photo trace-card-photo-fallback">
+      <span>{status==="unavailable"?"Photo unavailable":"No photo"}</span>
     </div>
   );
 }
@@ -115,12 +112,30 @@ export default function TraceCard({trace,to}){
           object-fit:contain;
           display:block;
         }
-        .trace-card-photo-fallback{
-          color:#fff;
-          font-size:13px;
+        .trace-card-photo-fallback,
+        .trace-card-photo-saver{
+          color:var(--soft);
+          font-size:var(--fs-meta);
+        }
+        .trace-card-photo-saver{
+          flex-direction:column;
+          gap:10px;
+        }
+        .trace-card-photo-loading{
+          animation:trace-photo-pulse 1.4s ease-in-out infinite;
+        }
+        @keyframes trace-photo-pulse{
+          50%{opacity:.55}
+        }
+        @media(prefers-reduced-motion:reduce){
+          .trace-card-photo-loading{animation:none}
         }
         html.dark-mode .trace-card-photo{
           background:#101827;
+        }
+        html.dark-mode .trace-card-photo-fallback,
+        html.dark-mode .trace-card-photo-saver{
+          color:#a9b8cc;
         }
         @media(max-width:640px){
           .trace-card-photo{

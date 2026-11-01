@@ -36,6 +36,17 @@ it("defers archive thumbnails without blocking Trace navigation", async () => {
   expect(readData).toHaveBeenCalledTimes(1);
 });
 
+it("shows distinct archive thumbnail states for a Trace without a photo and an unavailable photo", async () => {
+  useApp.mockReturnValue({ profile: { id: "viewer" }, readData: vi.fn(async () => ({})) });
+  const view = render(<MemoryRouter><TraceCard trace={{ id: "plain", title: "Coast", author: "Member", trace_media: [{ id: "doc", mime_type: "application/pdf" }] }} to="/user/traces/plain" /></MemoryRouter>);
+  expect(await screen.findByText("No photo")).toBeTruthy();
+  view.unmount();
+  useApp.mockReturnValue({ profile: { id: "viewer" }, readData: vi.fn(async () => { throw new Error("offline"); }) });
+  render(<MemoryRouter><TraceCard trace={{ id: "broken", title: "Reef", author: "Member", trace_media: [{ id: "photo", mime_type: "image/jpeg" }] }} to="/user/traces/broken" /></MemoryRouter>);
+  expect(await screen.findByText("Photo unavailable")).toBeTruthy();
+  expect(screen.queryByText("No photo")).toBeNull();
+});
+
 function imageMocks(blobSize = 10) {
   vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:photo");
   vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});

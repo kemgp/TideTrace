@@ -202,7 +202,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
     <div className="vhead">
       <span className="eyebrow">{revision ? "Requested revision" : "Trace draft"}</span>
       <h2>{revision ? "Edit requested revision" : trace ? "Edit your draft" : "Start a trace"}</h2>
-      <p>{revision ? "Address the moderator’s feedback and save your changes. Keep the title, description and location complete. Save changes keeps the status as Needs revision; Resubmit for review saves your changes and sends them back to the reviewer." : "Submit your completed Trace for review, or save a draft and finish it later. A category is required to save a draft; submission also needs a title, location, description and photo."}</p>
+      <p>{revision ? "Address the moderator’s feedback, then save changes (status stays Needs revision) or resubmit for review." : "Save a draft any time with just a category. To submit for review you also need a title, location, description and photo."}</p>
     </div>
     {revision && <TraceFeedback id={trace.id} />}
     <TraceDraftLayout activeStep={activeStep} onSelect={jumpToStep} editing={Boolean(trace)}>
@@ -241,7 +241,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
             file={photo} onSelect={selectPhoto} disabled={busy || processingPhoto || blocked} processing={processingPhoto} uploading={uploading}
             invalid={Boolean(fieldErrors.photo || photoValidation)} describedBy={[fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation"].filter(Boolean).join(" ")}
             onRemove={() => { setPhoto(null); if (validating) setFieldErrors(validate(fields, intent, null)); if (photoInput.current) photoInput.current.value = ""; }}
-            helper="JPEG, PNG or WebP, up to 20 MB. Save draft saves your details and selected photo so you can return later. A photo is required for submission, but optional for a draft.">
+            helper="JPEG, PNG or WebP, up to 20 MB. Required to submit; optional for a draft.">
             {profile.data_saver && <p className="hint">Data saver is on. Preview your prepared photo before saving or submitting.</p>}
             {fieldError("photo")}
             {photoValidation && <p id="draft-photo-validation" role="alert">{photoValidation}</p>}
