@@ -1,4 +1,4 @@
-# TideTrace — Handoff (2026-11-01)
+# TideTrace — Handoff (updated 2026-11-01, end of session)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -38,7 +38,7 @@ Latest commits on `main`: "Updated map center", "Added community map and sensiti
 
 Source: a Codex review (`better-*` UI/UX skills) of the live archive and submission form at desktop and 320px. The review found contrast failures, inconsistent button hierarchy, tiny type, and heavy mobile controls.
 
-**Branch:** `ui-contrast-and-buttons` (created from `main`). **Nothing is committed.**
+**Branch:** `ui-contrast-and-buttons` (created from `main`). Committed, pushed to `origin`, and merged via pull request (confirmed by the project owner). The commit message was amended afterwards to remove the Claude co-author trailer, so the commit ID differs from the original `89f8f5a`.
 
 ### Done on this branch (step 1: contrast, focus, buttons)
 
@@ -66,9 +66,11 @@ All 14 modified files are in `client/src/`.
 
 ### Verification
 
-- `npm test` (client): 407 of 408 passed on the first full run. The one failure, `moderation.test.jsx` "does not replay a conflicting or uncertain decision (502)", timed out finding a button under 40 parallel workers. Re-run alone: 13/13 passed. Treated as a load flake. It was not caused by these edits (only class names changed; the tests find buttons by role and name).
-- **Not yet done:** `npm run build`; visual check of the archive, submission form, moderator review page and homepage at desktop and 320px; contrast measurement of the final rendered colors in a browser; server tests (`npm test` at the root, not rerun).
-- `npm run build` rewrites `client/dist/`. Check `git status` afterwards to see whether `dist` is tracked, and do not commit unrelated `dist` changes with this work.
+- `npm test` (client): 407 of 408 passed on the first full run. The one failure, `moderation.test.jsx` "does not replay a conflicting or uncertain decision (502)", timed out finding a button under 40 parallel workers. Re-run alone: 13/13 passed. Treated as a load flake; it was not caused by these edits (only class names changed; the tests find buttons by role and name).
+- `npm run build`: passed (569 modules). Existing warnings, unrelated to this work: `vite.config.js` uses ESM syntax in a CommonJS file (rename to `.mjs` or set `"type": "module"`), and the JS bundle is ~817 kB (over the 500 kB warning; needs code splitting).
+- Visual check of the key pages (login, homepage, archive, submission form, moderator review) done by the project owner.
+- Not run: server tests (`npm test` at the root), 200% zoom, dark mode, real-device Safari, end-to-end submission. Contrast of the final rendered colors was calculated from the CSS values, not measured in a browser.
+- Tests cannot be run in the cloud session used for this work because the installed `node_modules` are macOS builds. Run tests and builds on the Mac.
 
 ## 5. What's left (planned, in order)
 
@@ -83,6 +85,16 @@ All 14 modified files are in `client/src/`.
 
 Out of scope of the review, still unchecked: admin/moderator flows beyond the buttons above, dark mode, 200% zoom, real-device Safari, end-to-end submission, whether the search box shows focus (`.search input` sets `outline:none`; parent focus style not checked).
 
+### Helper-note audit (decided in principle; not yet applied)
+
+About 60 small helper notes (`hint`, `auth-note`, `sub`, `*-help`). Rule: keep a note only if it prevents a mistake, protects privacy or helps recovery. Apply together with step 2 (the type scale), since the same lines use the tiny sizes. The project owner was to say which to keep before changes are made.
+
+- **Remove:** `Login.jsx:56` ("Sign in with your TideTrace account…"); the first sentence of `DashboardStats.jsx:7` (keep "Updated 10:10 PM", no seconds); user `Profile.jsx:92` ("Your community account"); `History.jsx:22` ("Filters apply to all saved decisions"); the "appears everywhere" sentence in `ProfilePhoto.jsx:186`; "…account and role are unchanged" in `ResetPassword.jsx:68`; the static "Changes are saved only when…" branch in `TraceDraftForm.jsx:253` and `EditTide.jsx:106` (show only when there are unsaved changes); raw coordinates in `TraceMap.jsx:82` (show to owner/staff only); `ForgotPassword.jsx:57` (duplicate of `VerificationCode.jsx:69`); `ProfileNameForm.jsx:54` (or shorten to "Email can't be changed here.").
+- **Shorten:** `SubmitTrace.jsx:108`; `ReviewTraces.jsx:231` (one line per action beside its button); `TraceLocationPrivacy.jsx:23`; `TraceDraftForm.jsx:228`; `NotificationPreferences.jsx:58,65`; `AccountManagement.jsx:35,102`; `StaffAnalytics.jsx:34` (definitions next to each metric); `ProfilePhoto.jsx:148`; `VerificationCode.jsx:52`; `EditTide.jsx:95-96`; `ManageReports.jsx:90`.
+- **Keep:** privacy and sensitive-location notices (`TraceLocationPrivacy.jsx:10`, `TraceDraftForm.jsx:224`, "Location withheld", community map note); required-step prompts ("Resolve any photo upload errors…", "Address the moderator's feedback…", "Use another admin account…", "This Trace is not awaiting a decision."); notes linked by `aria-describedby`/`id` (ProfilePhoto drag/arrow-keys, photo selector helper, report explanation); recovery help (code, spam folder, newest email link, request another confirmation); empty and error states ("No comments yet…", "No pending submissions…", "Queue clear…", "Map preview is unavailable", "Unsupported attachment").
+- **Meta text, not helper text:** author/date lines, review timestamps, "Member since", "Account ID", Tide slugs, draft review values. Keep the wording; give them a shared "meta" class at 13px instead of the 11px `hint` class.
+- Not covered by the audit: text passed in as props (`helper`, `AuthLayout` subtitle), placeholders, error messages, CSS-only text.
+
 ## 6. Decisions and caveats
 
 - **Primary button = blue**, not clay (blue is already the most-used variant and passes at 7.76:1). Clay is reserved for contribution actions. One clay button per screen.
@@ -94,6 +106,7 @@ Out of scope of the review, still unchecked: admin/moderator flows beyond the bu
 
 ## 7. Suggested next actions
 
-1. Run `npm run build` and look at the app (`npm run dev`) on: `/user/traces`, `/user/traces/upload`, `/moderator/review/<id>`, `/login`, the homepage — at desktop and phone widths.
-2. If it looks right, commit the branch (`git add -A && git commit`) and decide whether to merge before starting step 2.
-3. Then start the type scale.
+1. Start step 2 (type scale) together with the helper-note removals and shortenings from the audit above, and the 44px minimum for `.btn.sm`. Agree the keep/remove list first.
+2. Then the mobile layouts (steps 4–5) and the account menu, which change behavior and need more testing.
+3. Optional housekeeping: rename `vite.config.js` to `vite.config.mjs`; split the large JS bundle.
+4. Commit conventions: no Claude co-author trailer in commit messages on this project (owner's preference).
