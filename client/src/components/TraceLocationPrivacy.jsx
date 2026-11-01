@@ -1,8 +1,10 @@
 import React, { useRef, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
+import useToast from "../hooks/useToast.js";
 
 export default function TraceLocationPrivacy({ trace, onChange, disabled = false }) {
   const { writeData } = useApp();
+  const toast = useToast();
   const lock = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -15,6 +17,7 @@ export default function TraceLocationPrivacy({ trace, onChange, disabled = false
       const saved = await writeData(`traces/${trace.id}/hide-location`, { method: "POST", body: { version: trace.version } });
       if (saved?.id !== trace.id || saved.is_sensitive !== true || !Number.isInteger(saved.version) || saved.version <= trace.version) throw new Error("Unable to verify location privacy.");
       onChange({ ...trace, ...saved });
+      toast.success("Exact location hidden.");
     } catch (failure) { setUncertain(true); setError(`${failure.message} Reload the Trace to check its saved state before trying again.`); }
     finally { lock.current = false; setBusy(false); }
   };

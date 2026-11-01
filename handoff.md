@@ -213,6 +213,14 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - **B9 (done):** under 480px or data saver the WebGL waves are not mounted; the CSS gradient behind them shows instead.
 - **Tests:** new `test/landingPolish.test.jsx` (tile filtering and privacy, strip drift/pause/static/hidden cases, count-up, connector, navbar shadow and scroll-spy) and one more case in `Home.test.jsx`.
 
+#### Toast status — done on branch `toasts` (syntax-checked only; run `npm test`, `npm run build`, then look at it)
+
+- **System (done):** `useToastQueue` (in `AppContext`) owns the list and timers; `Toasts.jsx` renders two always-mounted live regions (polite for success/info, `role="alert"` for errors). Variants with icons, close button, Escape to dismiss, optional action button, max 3 stacked (oldest dropped), the same message refreshes instead of stacking, hover/focus pauses the countdown. Success 4s, info 6s, error stays until dismissed. `showToast("text")` is unchanged for callers (success); `showToast({ message, type, action, duration })` and `useToast()` (`success/error/info/dismiss`) are new. The context now exposes `toasts`, `showToast`, `dismissToast`, `pauseToast`, `resumeToast` (the old `toast` string is gone). The sign-out warning is an `info` toast for 8s.
+- **New toasts only where nothing visible confirmed the action:** notification preferences and data saver ("Preference saved." was screen-reader-only), hide exact location, submit/resubmit a Trace. Everything that already confirms on the page (profile name, comments, categories, settings, photos, reports, account changes) keeps its inline message by the one-action-one-confirmation rule.
+- **Moderator review:** the saved decision is now an outcome banner on the page ("Decision saved: Approved. It now appears in the community archive.") with a "Review the queue" link; it is not a toast because the moderator stays on the same Trace.
+- **Not done / by decision:** no Undo (needs server support per action). Error toasts exist but nothing uses them yet; add them only for background failures.
+- **Tests:** new `test/toasts.test.jsx` (regions, expiry, errors persist, queue limit, dedupe, pause, close/Escape/action), rewritten `appContext.test.jsx`, `profile.test.jsx` preference assertion, `moderation.test.jsx` banner assertion.
+
 ### Phase C — App-wide micro-interactions
 
 - **C1. Route content transition:** a 200ms fade/slide-up of the page content (View Transitions API where supported, CSS fallback). Replaces the overlay removed in A2.

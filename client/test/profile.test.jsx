@@ -438,7 +438,7 @@ it.each(["user", "moderator", "admin"])("persists three independent notification
   await waitFor(() => expect(submission.disabled).toBe(false));
   fireEvent.click(submission);
   await waitFor(() => expect(submission.disabled).toBe(false));
-  expect(screen.getByText("Preference saved.").className).toBe("sr-only");
+  expect((await screen.findByText("Preference saved.")).closest("[role='status']")).toBeTruthy();
   expect(submission.getAttribute("aria-checked")).toBe("false");
   expect(screen.getByRole("switch", { name: "Comments on my traces" }).getAttribute("aria-checked")).toBe("true");
   fireEvent.click(screen.getByRole("switch", { name: "New Tides" }));

@@ -148,7 +148,7 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
 .app-shell .foot-details { display: grid; grid-template-columns: auto auto; align-items: start; justify-content: center; gap: 24px; line-height: 1.5; }
 .app-shell .foot-details .foot-legal { text-align: left; }
 .app-shell .foot-details .foot-copy { text-align: right; }
-.app-shell .toast { width: max-content; max-width: calc(100vw - 32px); bottom: max(16px, env(safe-area-inset-bottom)); }
+.app-shell .toast-region { bottom: max(10px, env(safe-area-inset-bottom)); }
 .app-shell footer { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 
 @media (min-width: 480px) {

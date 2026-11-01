@@ -14,6 +14,8 @@ import TracePhotos from "../../components/TracePhotos.jsx";
 import {PHOTO_TYPES} from "../../api/photos.js";
 import { categoryLabel } from "./TraceMarker.jsx";
 const labels={approved: "Approved", revision_requested: "Needs revision", rejected: "Rejected" };
+// What a saved decision means for the Trace, shown under the outcome banner.
+const outcomes={approved:"It now appears in the community archive.",revision_requested:"It goes back to the author for changes.",rejected:"It will not be published."};
 const reviewBase=(role)=> role === "admin" ? "/admin/review" : "/moderator/review";
 function TraceQueuePhoto({trace,className,emptyClassName}){
   const {readData,profile}=useApp();
@@ -195,7 +197,7 @@ function Decision({initialTrace,onReload}){
       if (controller.signal.aborted) return;
       if (saved?.id !== current.id || saved.status !== decision || !Number.isInteger(saved.version) || saved.version <= current.version) throw new ApiError("Decision response could not be verified.", "INVALID_RESPONSE");
       setCurrent({ ...current, ...saved });
-      setNotice(`Decision saved: ${labels[decision]}. The pending queue and moderation history will show the saved result when opened.`);
+      setNotice(decision);
     } catch (failure) {
       if (controller.signal.aborted || failure.code === "CANCELLED") return;
       if (failure.status === 409) {
@@ -238,7 +240,7 @@ function Decision({initialTrace,onReload}){
       </div>
     </section>}
     {busy && <p role="status">Saving decision…</p>}
-    {notice && <p role="status">{notice}</p>}
+    {notice && <div className={`decision-outcome is-${notice}`} role="status"><p><strong>Decision saved: {labels[notice]}.</strong> {outcomes[notice]}</p><Link className="btn outline sm" to={reviewBase(role)}>Review the queue</Link></div>}
     {error && <p role="alert">{error}</p>}
     {blocked && <button className="btn outline" disabled={busy} onClick={onReload}>Reload Trace</button>}
   </div>;

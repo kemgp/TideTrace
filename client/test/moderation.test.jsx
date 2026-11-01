@@ -51,6 +51,8 @@ it("loads the live queue, reviews photos, approves and refreshes queue and histo
   fireEvent.change(screen.getByLabelText(/Feedback/), { target: { value: "Verified evidence" } });
   fireEvent.click(screen.getByRole("button", { name: "Approve & publish" }));
   await screen.findByText(/Decision saved: Approved/);
+  expect(screen.getByText(/It now appears in the community archive/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Review the queue" }).getAttribute("href")).toBe("/moderator/review");
   expect(screen.queryByRole("button", { name: "Reject" })).toBeNull();
   const write = calls.mock.calls.find(([url]) => url === decisionPath)[1];
   expect(JSON.parse(write.body)).toEqual({ version: 3, decision: "approved", reason: "Verified evidence" });

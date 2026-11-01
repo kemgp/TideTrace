@@ -9,6 +9,7 @@ import {readRoleHint} from "./api/roleHint.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
 import Navbar from "./components/Navbar.jsx";
+import Toast from "./components/Toasts.jsx";
 import PublicNavbar from "./components/home/PublicNavbar.jsx";
 import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
@@ -69,10 +70,6 @@ function Footer(){
       </div>
     </footer>
   );
-}
-function Toast(){
-  const {toast}=useApp();
-  return <div className={`toast ${toast?"show":""}`}>{toast}</div>;
 }
 const USER_SECTIONS={
   dashboard:{
