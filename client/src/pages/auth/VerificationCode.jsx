@@ -49,7 +49,7 @@ export default function VerificationCode({ email, onVerify, onBack, onResend, in
       <p className="recovery-email-address">{email}</p>
       <p className="recovery-instructions">Open the link in the latest email to reset your password.</p>
       <p id="recovery-code-help" className="recovery-code-help">Received a code instead? Enter it below.</p>
-    </> : <p className="sub">{`Check ${email} for a confirmation email. Follow its link, or enter the verification code if your email includes one.`}</p>}
+    </> : <p className="sub">{`Check ${email}. Use the link, or enter the code if there is one.`}</p>}
     <form onSubmit={verify} aria-busy={busy}>
       <div className="fgroup">
         <label htmlFor="signup-code">Verification code</label>

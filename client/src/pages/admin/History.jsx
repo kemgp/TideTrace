@@ -19,7 +19,7 @@ export default function History() {
   return <div className="wrap">
     <div className="vhead headrow"><div><span className="eyebrow claye">Trace moderation history</span><h2>Every decision, on record</h2><p>Audit saved moderation decisions, with the reviewer, date, and feedback recorded for each action.</p></div><div className="row"><Link className="btn outline sm" to="/admin/review">Review Traces</Link><Link className="btn outline sm" to="/admin/reports">Reports</Link></div></div>
     <div className="chiprow" aria-label="Filter moderation history">{filters.map((label) => <button className={`chip ${filter === label ? "on" : ""}`} aria-pressed={filter === label} key={label} onClick={() => { setFilter(label); setOffset(0); }}>{label}</button>)}</div>
-    <div className="admin-history-tools"><span className="hint">Filters apply to all saved decisions.</span><button className="btn ghost sm" disabled={result.loading} onClick={result.retry}>Refresh history</button></div>
+    <div className="admin-history-tools"><button className="btn ghost sm" disabled={result.loading} onClick={result.retry}>Refresh history</button></div>
     <RemoteState {...result} />
     {!result.loading && !result.error && <div className="card admin-history-list">{filtered.length ? filtered.map((row) => {
       const decision = outcome(row);

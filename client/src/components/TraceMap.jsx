@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import "./TraceMap.css";
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, coordinates, lookupPinLocation, loadMaps, mapId, mapsConfigured, onMapAuthFailure } from "../api/maps.js";
 
-export default function TraceMap({ latitude, longitude, onChange, disabled = false }) {
+export default function TraceMap({ latitude, longitude, onChange, disabled = false, showCoordinates = false }) {
   const position = coordinates(latitude, longitude);
   const editable = typeof onChange === "function";
   const enabled = mapsConfigured() && (editable || Boolean(position));
@@ -79,7 +79,7 @@ export default function TraceMap({ latitude, longitude, onChange, disabled = fal
   if (!editable && !position) return <p className="hint">No map pin was saved for this Trace.</p>;
   return <section aria-label={editable ? "Choose Trace location" : "Saved Trace location"} style={{ marginBlock: 16 }}>
     {editable && <p className="hint">Optional: click the map to place a pin, or drag the pin to adjust it. Keep the location name descriptive.</p>}
-    {position && <p className="hint" role="status">{editable ? "Selected" : "Saved"} coordinates: {position.lat.toFixed(6)}, {position.lng.toFixed(6)}</p>}
+    {position && (editable || showCoordinates) && <p className="hint" role="status">{editable ? "Selected" : "Saved"} coordinates: {position.lat.toFixed(6)}, {position.lng.toFixed(6)}</p>}
     {position && <p className="hint" aria-live="polite"><b>Pin location (approximate):</b> {enabled ? pinLabel?.key === pinKey ? pinLabel.text : "Looking up location…" : "Location name unavailable."}</p>}
     {!mapsConfigured() && <p className="hint">Map preview is unavailable.{editable ? " You can still save the location name." : ""}</p>}
     {enabled && <>

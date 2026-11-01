@@ -156,9 +156,9 @@ it("shows the pin address as a guide without editing the entered location", asyn
 it("ignores an old lookup when the pin moves and handles lookup failures", async () => {
   let finish;
   lookupPinLocation.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; })).mockRejectedValueOnce(new Error("Quota"));
-  const view = render(<TraceMap latitude={10} longitude={124} />);
+  const view = render(<TraceMap latitude={10} longitude={124} showCoordinates />);
   await waitFor(() => expect(lookupPinLocation).toHaveBeenCalledTimes(1));
-  view.rerender(<TraceMap latitude={11} longitude={125} />);
+  view.rerender(<TraceMap latitude={11} longitude={125} showCoordinates />);
   await act(async () => finish("Old location"));
   expect(screen.queryByText(/Old location/)).toBeNull();
   await screen.findByText(/Location name unavailable/);

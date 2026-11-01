@@ -87,7 +87,7 @@ function ReportDecision({ initialReport, commentsOnly }) {
     {report.status === "open" ? <form className="mod-report-decision" noValidate onSubmit={(event) => event.preventDefault()}>
       <fieldset disabled={busy || blocked} style={{ border: 0, padding: 0 }}>
         <h4>Review decision</h4>
-        <p className="hint" id={`${inputId}-help`}>Explain your decision before choosing an action. It will be saved in moderation history.</p>
+        <p className="hint" id={`${inputId}-help`}>Explain your decision. It’s saved in moderation history.</p>
         <label className="lbl" htmlFor={inputId}>Decision reason</label>
         <textarea className="input" id={inputId} aria-describedby={`${inputId}-help`} placeholder="Briefly explain why you’re keeping or removing this content…" maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} />
         <div className="row" style={{ marginTop: 12 }}>

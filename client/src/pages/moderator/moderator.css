@@ -4,34 +4,34 @@
 .moderator-shell .nav { border-bottom: 0; }
 .moderator-shell .nav-grid { min-height: 72px; grid-template-columns: auto 1fr auto; gap: 28px; }
 .moderator-shell .brand { white-space: nowrap; }
-.moderator-shell .nav-links a { font-size: 12px; padding: 9px 10px; }
+.moderator-shell .nav-links a { font-size:var(--fs-badge); padding: 9px 10px; }
 .moderator-shell .nav-right { gap: 12px; }
 .moderator-shell .avatar-btn.mod { color: white; }
-.moderator-shell .demo-notice { background: #f5f9fd; color: var(--soft); font-size: 11px; line-height: 1.6; padding: 8px 24px; border-color: #e6eff7; }
+.moderator-shell .demo-notice { background: #f5f9fd; color: var(--soft); font-size:var(--fs-badge); line-height: 1.6; padding: 8px 24px; border-color: #e6eff7; }
 .moderator-shell .view { padding: 48px 0 88px; }
 .moderator-shell .vhead { margin-bottom: 28px; }
 .moderator-shell .vhead h2 { font-size: clamp(26px, 3vw, 32px); line-height: 1.3; margin-top: 3px; }
-.moderator-shell .vhead p { max-width: 650px; font-size: 14px; line-height: 1.65; margin-top: 10px; }
-.moderator-shell .eyebrow { font-size: 10px; padding: 7px 13px; }
+.moderator-shell .vhead p { max-width: 650px; font-size:var(--fs-label); line-height: 1.65; margin-top: 10px; }
+.moderator-shell .eyebrow { font-size:var(--fs-badge); padding: 7px 13px; }
 .moderator-shell .banner.mod { border-radius: 12px; padding: 25px 26px; background: var(--teal); }
-.moderator-shell .banner b { font-size: 21px; }
-.moderator-shell .banner .s { font-size: 14px; margin-top: 4px; }
+.moderator-shell .banner b { font-size:var(--fs-section); }
+.moderator-shell .banner .s { font-size:var(--fs-label); margin-top: 4px; }
 .moderator-shell .stat { padding: 20px 14px; border-radius: 10px; }
-.moderator-shell .stat b { font-size: 26px; font-family: inherit; font-weight: 650; }
-.moderator-shell .stat span { display: block; font-size: 12px; margin-top: 6px; }
-.moderator-shell .sec-t { margin: 28px 0 16px; font-size: 19px; }
+.moderator-shell .stat b { font-size:var(--fs-title); font-family: inherit; font-weight: 650; }
+.moderator-shell .stat span { display: block; font-size:var(--fs-badge); margin-top: 6px; }
+.moderator-shell .sec-t { margin: 28px 0 16px; font-size:var(--fs-section); }
 .moderator-shell .card { padding: 20px; border-radius: 12px; box-shadow: none; }
 .moderator-shell .lrow { padding: 16px 2px; gap: 15px; border-bottom: 0; }
-.moderator-shell .lrow .t { font-size: 14px; }
-.moderator-shell .lrow .m { font-size: 12px; gap: 7px; }
-.moderator-shell .hint { font-size: 12px; }
+.moderator-shell .lrow .t { font-size:var(--fs-label); }
+.moderator-shell .lrow .m { font-size:var(--fs-badge); gap: 7px; }
+.moderator-shell .hint { font-size:var(--fs-badge); }
 .moderator-shell .mod-narrow { max-width: 760px; }
 .moderator-shell .mod-trace-marker { display: block; width: 44px; height: 44px; border-radius: 8px; flex: none; }
-.moderator-shell .mod-review-link { border: 1px solid var(--line); border-radius: 20px; padding: 5px 12px; color: var(--soft); white-space: nowrap; font-size: 12px; }
+.moderator-shell .mod-review-link { border: 1px solid var(--line); border-radius: 20px; padding: 5px 12px; color: var(--soft); white-space: nowrap; font-size:var(--fs-badge); }
 .moderator-shell .mod-queue-filters { margin: -4px 0 18px; }
 .moderator-shell .mod-queue-filters .hint { margin-top: 10px; }
 .moderator-shell .mod-report-tools { align-items: flex-end; gap: 10px; margin-bottom: 14px; }
-.moderator-shell .mod-report-tools > label { display: flex; flex-direction: column; gap: 6px; flex: 0 1 220px; min-width: 0; font-size: 11px; font-weight: 600; color: var(--soft); }
+.moderator-shell .mod-report-tools > label { display: flex; flex-direction: column; gap: 6px; flex: 0 1 220px; min-width: 0; font-size:var(--fs-badge); font-weight: 600; color: var(--soft); }
 .moderator-shell .mod-report-tools select { height: 44px; }
 .moderator-shell .mod-report-tools select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(51,79,162,.14); }
 .moderator-shell .mod-report-tools > .btn { min-height: 44px; flex-shrink: 0; }
@@ -42,43 +42,43 @@
 .moderator-shell .mod-demo-note { margin-bottom: 18px; line-height: 1.6; }
 .moderator-shell .mod-comment-list { display: grid; gap: 16px; }
 .moderator-shell .mod-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
-.moderator-shell .mod-card-top h3 { font-family: inherit; font-size: 13px; font-weight: 600; }
-.moderator-shell .mod-comment-author { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
-.moderator-shell .mod-comment-author strong { font-size: 12px; }
+.moderator-shell .mod-card-top h3 { font-family: inherit; font-size:var(--fs-meta); font-weight: 600; }
+.moderator-shell .mod-comment-author { display: flex; align-items: flex-start; gap: 10px; font-size:var(--fs-meta); }
+.moderator-shell .mod-comment-author strong { font-size:var(--fs-badge); }
 .moderator-shell .mod-comment-author p { margin-top: 5px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.moderator-shell .mod-comment-avatar { display: grid; place-items: center; width: 27px; height: 27px; flex: none; border-radius: 50%; background: var(--clay); color: white; font-size: 12px; }
-.moderator-shell .mod-reason, .moderator-shell .mod-report-reason { background: #fbe8dc; color: #a85429; border-radius: 7px; padding: 12px; margin: 14px 0; font-size: 12px; }
-.moderator-shell .mod-reason .lbl { font-size: 9px; color: #a85429; margin-bottom: 4px; }
-.moderator-shell .mod-report-card h3 { font-size: 15px; margin-bottom: 6px; }
-.moderator-shell .mod-report-card details { padding: 10px 0; font-size: 13px; }
+.moderator-shell .mod-comment-avatar { display: grid; place-items: center; width: 27px; height: 27px; flex: none; border-radius: 50%; background: var(--clay); color: white; font-size:var(--fs-badge); }
+.moderator-shell .mod-reason, .moderator-shell .mod-report-reason { background: #fbe8dc; color: #a85429; border-radius: 7px; padding: 12px; margin: 14px 0; font-size:var(--fs-badge); }
+.moderator-shell .mod-reason .lbl { font-size:var(--fs-badge); color: #a85429; margin-bottom: 4px; }
+.moderator-shell .mod-report-card h3 { font-size:var(--fs-label); margin-bottom: 6px; }
+.moderator-shell .mod-report-card details { padding: 10px 0; font-size:var(--fs-meta); }
 .moderator-shell .mod-report-card summary { cursor: pointer; font-weight: 600; }
 .moderator-shell .mod-report-card details p { margin-top: 10px; }
-.moderator-shell .mod-report-card > p { font-size: 12px; margin: 8px 0; }
+.moderator-shell .mod-report-card > p { font-size:var(--fs-badge); margin: 8px 0; }
 .moderator-shell .mod-report-card form { margin-top: 16px; }
 .moderator-shell .mod-report-card textarea { min-height: 75px; height: 75px; }
-.moderator-shell .mod-empty { text-align: center; padding: 32px 20px; font-size: 13px; color: var(--soft); }
+.moderator-shell .mod-empty { text-align: center; padding: 32px 20px; font-size:var(--fs-meta); color: var(--soft); }
 .moderator-shell .mod-review-media { margin-top: 16px; padding: 14px; border: 1px dashed var(--line); background: var(--bg); border-radius: 10px; }
 .moderator-shell .mod-review-media section { margin: 0 !important; }
-.moderator-shell .mod-review-media h3 { font-size: 12px; }
-.moderator-shell .mod-review-detail > h2 { font-size: 23px; }
+.moderator-shell .mod-review-media h3 { font-size:var(--fs-badge); }
+.moderator-shell .mod-review-detail > h2 { font-size:var(--fs-section-lg); }
 .moderator-shell .mod-review-detail > .hint { margin: 8px 0 12px; }
-.moderator-shell .mod-review-detail > h3 { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); border-top: 1px solid var(--line); padding-top: 18px; margin-top: 20px; margin-bottom: 10px; }
-.moderator-shell .mod-review-detail > p { font-size: 13px; line-height: 1.7; }
+.moderator-shell .mod-review-detail > h3 { font-size:var(--fs-badge); letter-spacing: .06em; text-transform: uppercase; color: var(--soft); border-top: 1px solid var(--line); padding-top: 18px; margin-top: 20px; margin-bottom: 10px; }
+.moderator-shell .mod-review-detail > p { font-size:var(--fs-meta); line-height: 1.7; }
 .moderator-shell .mod-decision { padding: 20px; border: 1px dashed var(--clay); border-radius: 10px; }
-.moderator-shell .mod-decision h3 { font-size: 16px; margin-bottom: 8px; }
+.moderator-shell .mod-decision h3 { font-size:var(--fs-body); margin-bottom: 8px; }
 .moderator-shell .mod-decision .hint { margin-bottom: 16px; line-height: 1.7; }
-.moderator-shell .mod-decision .btn { padding: 12px 17px; font-size: 12px; }
+.moderator-shell .mod-decision .btn { padding: 12px 17px; font-size:var(--fs-badge); }
 .moderator-shell .mod-decision .btn.outline { color: var(--clay-strong); border-color: var(--clay-strong); }
 .moderator-shell .mod-analytics-grid { margin-top: 24px; align-items: start; }
 .moderator-shell .mod-chart .lbl { margin-bottom: 18px; }
-.moderator-shell .mod-chart-row { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr 34px; gap: 16px; align-items: center; font-size: 12px; padding: 10px 0; }
+.moderator-shell .mod-chart-row { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr 34px; gap: 16px; align-items: center; font-size:var(--fs-badge); padding: 10px 0; }
 .moderator-shell .mod-chart-row > :last-child { text-align: right; }
 .moderator-shell .mod-chart-track { height: 7px; border-radius: 8px; background: var(--bg); overflow: hidden; }
 .moderator-shell .mod-chart-track > span { display: block; height: 100%; background: var(--teal); border-radius: inherit; }
 .moderator-shell footer { padding: 28px 0; }
 .moderator-shell .foot-in { grid-template-columns: 1fr auto; }
 .moderator-shell .foot-meta { display: none; }
-.moderator-shell .foot-tagline { font-size: 12px; }
+.moderator-shell .foot-tagline { font-size:var(--fs-badge); }
 .moderator-shell button:focus-visible, .moderator-shell a:focus-visible, .moderator-shell summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 @media (max-width: 1100px) {
   .moderator-shell .nav-grid { gap: 12px; grid-template-columns: 1fr auto; }
@@ -92,7 +92,7 @@
   .moderator-shell .view { padding-top: 28px; padding-bottom: 48px; }
   .moderator-shell .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .moderator-shell .g2 { grid-template-columns: 1fr; }
-  .moderator-shell .banner b { font-size: 18px; }
+  .moderator-shell .banner b { font-size:var(--fs-card); }
   .moderator-shell .card { padding: 16px; }
   .moderator-shell .mod-decision { padding: 14px; }
   .moderator-shell .mod-decision .row { align-items: stretch; }
@@ -100,7 +100,7 @@
   .moderator-shell .lrow { gap: 10px; }
   .moderator-shell .lrow .t { overflow-wrap: anywhere; }
   .moderator-shell .mod-trace-marker { width: 34px; height: 34px; }
-  .moderator-shell .mod-review-link { font-size: 10px; padding: 5px 8px; }
+  .moderator-shell .mod-review-link { font-size:var(--fs-badge); padding: 5px 8px; }
   .moderator-shell .foot-in { grid-template-columns: 1fr; }
   .moderator-shell .foot-main { flex-direction: column; gap: 8px; }
   .moderator-shell .foot-tagline { border: 0; padding: 0; }
@@ -116,18 +116,18 @@
 .moderator-shell .mod-report-header .badge{flex-shrink:0;margin-top:2px;}
 .moderator-shell .mod-report-card .mod-report-meta{margin:8px 0 16px;line-height:1.6;}
 .moderator-shell .mod-report-card .mod-report-reason{margin:0 0 14px;padding:12px 14px;background:#fff7f1;border:1px solid #f2dfd0;border-radius:9px;}
-.moderator-shell .mod-report-label{display:block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px;}
-.moderator-shell .mod-report-reason p,.moderator-shell .mod-outcome-reason{white-space:pre-wrap;line-height:1.65;font-size:13px;}
+.moderator-shell .mod-report-label{display:block;font-size:var(--fs-badge);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px;}
+.moderator-shell .mod-report-reason p,.moderator-shell .mod-outcome-reason{white-space:pre-wrap;line-height:1.65;font-size:var(--fs-meta);}
 .moderator-shell .mod-report-card details{margin:0;padding:10px 0;}
-.moderator-shell .mod-report-card summary{font-size:12px;padding:4px 0;}
+.moderator-shell .mod-report-card summary{font-size:var(--fs-badge);padding:4px 0;}
 .moderator-shell .mod-report-card form.mod-report-decision{margin-top:14px;padding-top:16px;border-top:1px solid var(--line);}
-.moderator-shell .mod-report-decision h4,.moderator-shell .mod-report-outcome h4{font-family:inherit;font-size:14px;font-weight:700;margin:0 0 5px;}
+.moderator-shell .mod-report-decision h4,.moderator-shell .mod-report-outcome h4{font-family:inherit;font-size:var(--fs-label);font-weight:700;margin:0 0 5px;}
 .moderator-shell .mod-report-decision .hint{line-height:1.6;margin-bottom:14px;}
-.moderator-shell .mod-report-decision .lbl{display:block;font-size:12px;font-weight:600;margin-bottom:6px;}
+.moderator-shell .mod-report-decision .lbl{display:block;font-size:var(--fs-badge);font-weight:600;margin-bottom:6px;}
 .moderator-shell .mod-report-decision textarea{height:88px;min-height:88px;}
 .moderator-shell .mod-report-outcome{margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#f5f8fd;}
 .moderator-shell .mod-report-outcome.dismissed{background:#f2f8f7;border-color:#cde3df;}
-.moderator-shell .mod-outcome-description{font-size:12px;color:var(--soft);line-height:1.6;margin-bottom:14px;}
+.moderator-shell .mod-outcome-description{font-size:var(--fs-badge);color:var(--soft);line-height:1.6;margin-bottom:14px;}
 .moderator-shell .mod-outcome-reason{margin-bottom:12px;}
 .moderator-shell .mod-report-outcome .hint{padding-top:10px;border-top:1px solid var(--line);line-height:1.6;}
 html.dark-mode .moderator-shell .mod-report-card .mod-report-reason{background:#34291f;border-color:#69503b;color:#efbb96;}

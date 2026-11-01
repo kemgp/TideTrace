@@ -219,7 +219,7 @@ function Decision({initialTrace,onReload}){
     <h2 style={{ marginTop: 16 }}>{trace.title}</h2>
     <p className="hint">Submitted by {trace.author}</p>
     <div className="chiprow"><span className="chip">{trace.category}</span><span className="chip">{trace.location}</span></div>
-    <TraceMap latitude={current.latitude} longitude={current.longitude} />
+    <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates />
     <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={busy || blocked} />
     <h3>Description</h3><p style={{ whiteSpace: "pre-wrap" }}>{trace.description}</p>
     {role !== "mod" && <TracePhotos trace={current} />}
@@ -228,7 +228,7 @@ function Decision({initialTrace,onReload}){
     {!own && !eligible && <p className="hint">This Trace is not awaiting a decision.</p>}
     {eligible && <section className="mod-decision" style={{ marginTop: 24 }}>
       <h3>Review decision</h3>
-      <p className="hint">Approval publishes the Trace in the community archive. Revision requests ask the author for changes. Rejection is final and preserves the record in the author's contributions.</p>
+      <p className="hint">Approve publishes the Trace. Request revision returns it to the author. Reject is final.</p>
       <label className="lbl" htmlFor="review-reason">Feedback (required for revision or rejection)</label>
       <textarea id="review-reason" className="input" rows={4} maxLength={2000} value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} />
       <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>

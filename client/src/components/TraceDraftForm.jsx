@@ -225,7 +225,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
           <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
           {fieldError("location_name")}
           <label className="row" style={{ gap: 8, marginTop: 12 }}><input type="checkbox" checked={fields.is_sensitive} onChange={(event) => setFields((current) => ({ ...current, is_sensitive: event.target.checked }))} /> Sensitive location</label>
-          <p className="hint">{fields.is_sensitive ? "Your exact pin is restricted to you and active staff. It will not appear on the community map." : "Your pin becomes public when this Trace is approved."} This setting does not remove locations from text, photos, media metadata, or previously published copies.</p>
+          <p className="hint">{fields.is_sensitive ? "Your exact pin is restricted to you and active staff. It will not appear on the community map." : "Your pin becomes public when this Trace is approved."} Text and photos may still reveal the location.</p>
           <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => setFields((current) => ({ ...current, ...point }))} />
           </TraceDraftSection>
           <TraceDraftSection step="description" onActivate={setActiveStep}>
@@ -250,7 +250,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
           </TraceDraftSection>
           <TraceDraftSection step="review" onActivate={setActiveStep}>
           {!trace && <TraceDraftSummary fields={fields} categories={available} photo={photo} />}
-          <p className="hint">{dirty || photo || processingPhoto ? "You have unsaved changes. Save before leaving this page." : `Changes are saved only when you choose ${saveLabel}.`}</p>
+          {(dirty || photo || processingPhoto) && <p className="hint">You have unsaved changes. Save before leaving this page.</p>}
           {error && <p role="alert">{error}</p>}
           <div className="trace-draft-actions">
             <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "submit" ? stage : revision ? "Resubmit for review" : "Submit Trace"}</button>

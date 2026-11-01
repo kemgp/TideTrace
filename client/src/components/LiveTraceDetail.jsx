@@ -46,7 +46,7 @@ function TraceContent({ initialTrace, contribution }) {
       <div className="chiprow trace-detail__tags"><span className="chip on">{trace.category}</span><span className="chip">{!contribution && <span aria-hidden="true">📍 </span>}{trace.location}</span></div>
       {fieldError("category_id")}
       {fieldError("location_name")}
-      {!contribution && current.is_sensitive ? <p className="hint">Location withheld</p> : <TraceMap latitude={current.latitude} longitude={current.longitude} />}
+      {!contribution && current.is_sensitive ? <p className="hint">Location withheld</p> : <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates={Boolean(contribution)} />}
       {contribution && !current.deleted_at && <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={submissionLocked} />}
       <div className="trace-detail__author"><AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} /><p className="hint"><span>{trace.author}</span>{!contribution && trace.when && <> · {trace.when}</>}</p></div>
       <div className="divider" />

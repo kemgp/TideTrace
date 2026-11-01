@@ -54,6 +54,5 @@ export default function ForgotPassword() {
         {busy ? "Sending email…" : "Send recovery email"}
       </button>
     </form>
-    <p className="recovery-help">Next, check your inbox. If the email doesn’t arrive, check your spam folder.</p>
   </AuthLayout>;
 }

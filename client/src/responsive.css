@@ -38,7 +38,7 @@ body { min-width: 0; }
 .app-shell :is(.row, .wrow, .mrow) > .input { flex: 1 1 180px; width: auto; }
 .app-shell .headrow > div { min-width: 0; }
 .app-shell .search { min-width: 0; width: 100%; flex: 1 1 220px; height: auto; min-height: 44px; }
-.app-shell .search input { min-width: 0; width: 100%; min-height: 42px; font-size: 16px; }
+.app-shell .search input { min-width: 0; width: 100%; min-height: 42px; font-size:var(--fs-body); }
 .app-shell .search svg { flex: none; }
 .app-shell .lrow { flex-wrap: wrap; align-items: center; }
 .app-shell .lrow .grow { flex: 1 1 150px; min-width: 0; }
@@ -68,14 +68,14 @@ body { min-width: 0; }
 .app-shell .nav-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; min-height: 68px; padding-block: 10px; }
 .app-shell .brand { grid-column: 1; grid-row: 1; min-width: 0; gap: 7px; white-space: nowrap; }
 .app-shell .brand svg { flex: none; }
-.app-shell .brand span { font-size: 17px; }
+.app-shell .brand span { font-size:var(--fs-card); }
 .app-shell .nav-right { grid-column: 2; grid-row: 1; gap: 6px; min-width: 0; }
 .app-shell .nav-right .role-tag { display: none; }
 .app-shell .menu-btn { display: grid; place-items: center; width: 44px; height: 44px; color: var(--navy); border-radius: 8px; }
 .app-shell .nav-panel { display: none; grid-column: 1 / -1; width: 100%; min-width: 0; max-height: calc(100dvh - 88px); overflow-y: auto; overscroll-behavior: contain; padding: 8px 0; }
 .app-shell .nav.open .nav-panel { display: grid; gap: 12px; }
 .app-shell .nav .nav-links, .app-shell .nav.open .nav-links { display: flex; position: static; width: 100%; flex-direction: column; flex-wrap: nowrap; align-items: stretch; padding: 0; gap: 4px; border: 0; grid-column: auto; grid-row: auto; }
-.app-shell .nav-links a { padding: 10px 12px; white-space: normal; min-height: 44px; font-size: 14px; }
+.app-shell .nav-links a { padding: 10px 12px; white-space: normal; min-height: 44px; font-size:var(--fs-label); }
 .app-shell .nav-actions { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
 .app-shell .nav-actions .btn { flex: 1 1 120px; }
 .app-shell .nav-actions .role-tag { align-self: center; flex: none; }
@@ -85,8 +85,8 @@ body { min-width: 0; }
 .app-shell :is(button, a.btn, a.mini, a.chip, .auth-tab, summary) { min-height: 44px; touch-action: manipulation; }
 .app-shell :is(.btn, .mini, button.chip, a.chip) { white-space: normal; line-height: 1.4; }
 .app-shell :is(.btn, a.mini, a.chip) { display: inline-flex; align-items: center; justify-content: center; }
-.app-shell :is(.input, .fp-input, .settings-field input, select, textarea) { max-width: 100%; width: 100%; min-height: 44px; font-size: 16px; }
-.app-shell input[type=file] { max-width: 100%; font-size: 14px; }
+.app-shell :is(.input, .fp-input, .settings-field input, select, textarea) { max-width: 100%; width: 100%; min-height: 44px; font-size:var(--fs-body); }
+.app-shell input[type=file] { max-width: 100%; font-size:var(--fs-label); }
 .app-shell textarea { resize: vertical; }
 .app-shell :is(.toggle-password, .password-input button, .fp-toggle-eye) { width: 44px; height: 44px; right: 2px; }
 .app-shell :is(.password-wrap, .password-input, .fp-input-wrap) input { padding-right: 50px; }
@@ -139,7 +139,7 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
 .app-shell .fp-shell { padding: 84px 16px 32px; overflow: visible; }
 .app-shell .fp-card { padding: clamp(18px, 4vw, 36px); }
 .app-shell :is(.code-inputs, .fp-code-row) { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
-.app-shell :is(.code-input, .fp-code-input) { width: 100%; min-width: 0; font-size: 16px; }
+.app-shell :is(.code-input, .fp-code-input) { width: 100%; min-width: 0; font-size:var(--fs-body); }
 .app-shell .foot-in { grid-template-columns: minmax(0, 1fr); gap: 18px; text-align: center; }
 .app-shell .foot-main { flex-direction: column; gap: 10px; }
 .app-shell .foot-tagline { padding: 0; border: 0; }
@@ -195,9 +195,9 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
   .app-shell .menu-btn { display: none; }
   .app-shell .nav-panel, .app-shell .nav.open .nav-panel { display: contents; }
   .app-shell .nav .nav-links, .app-shell .nav.open .nav-links { grid-column: 2; grid-row: 1; justify-self: center; flex-direction: row; width: auto; gap: 0; }
-  .app-shell .nav-links a { font-size: 12px; padding: 9px 8px; white-space: nowrap; }
+  .app-shell .nav-links a { font-size:var(--fs-badge); padding: 9px 8px; white-space: nowrap; }
   .app-shell .nav-actions { grid-column: 3; grid-row: 1; align-items: center; justify-self: end; flex-wrap: nowrap; border: 0; padding: 0; gap: 14px; }
-  .app-shell .nav-actions .btn { flex: none; padding-inline: 8px; font-size: 12px; white-space: nowrap; }
+  .app-shell .nav-actions .btn { flex: none; padding-inline: 8px; font-size:var(--fs-badge); white-space: nowrap; }
   .app-shell .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {

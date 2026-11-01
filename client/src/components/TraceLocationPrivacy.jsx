@@ -20,7 +20,7 @@ export default function TraceLocationPrivacy({ trace, onChange, disabled = false
   };
   return <div style={{ marginBlock: 12 }}>
     <button type="button" className="btn outline sm" disabled={disabled || busy || uncertain} onClick={hide}>{busy ? "Hiding location…" : "Hide exact location"}</button>
-    <p className="hint">Hides the pin from community pages. Text, photos, media metadata, and previously published copies may still disclose the location.</p>
+    <p className="hint">Hides the pin only. Text and photos may still reveal the location.</p>
     {error && <p role="alert">{error}</p>}
   </div>;
 }

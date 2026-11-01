@@ -31,7 +31,7 @@ export default function StaffAnalytics() {
         <Bars title="Community engagement" rows={[...(admin ? [{label:"Active accounts",value:data.active_users}] : []),{label:"Visible comments",value:data.comments},{label:"Tide completions",value:data.completions}]} />
         <Bars title="My moderation activity" rows={[{label:"Trace reviews",value:data.my_reviews},{label:"Report decisions",value:data.my_report_decisions}]} />
       </div>
-      <p className="hint">Active accounts means accounts that are not suspended, not recently online users. Visible comments belong to the included Traces. Tide completions count saved member–lesson completion records, including archived lessons. Review counts include repeat reviews after revisions.</p>
+      <p className="hint">Active accounts are not suspended. Tide completions include archived lessons. Review counts include repeat reviews after revisions.</p>
       {admin && <Bars title="Staff activity · trace reviews" rows={data.reviewers} />}
     </>}
   </div>;

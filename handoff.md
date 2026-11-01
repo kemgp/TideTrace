@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-01, end of session)
+# TideTrace — Handoff (updated 2026-11-02)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -72,9 +72,20 @@ All 14 modified files are in `client/src/`.
 - Not run: server tests (`npm test` at the root), 200% zoom, dark mode, real-device Safari, end-to-end submission. Contrast of the final rendered colors was calculated from the CSS values, not measured in a browser.
 - Tests cannot be run in the cloud session used for this work because the installed `node_modules` are macOS builds. Run tests and builds on the Mac.
 
+### Done on branch `type-scale-and-helper-notes` (step 2: type scale + helper notes) — UNCOMMITTED, UNTESTED
+
+Branched from the CLAUDE.md commit. Edits are in the working tree; tests and build have not been run (cloud/Linux shell cannot run the macOS `node_modules`). Run `npm test` and `npm run build` on the Mac first.
+
+- **Type scale:** 9 role variables in `index.css` `:root`: `--fs-badge .75rem`, `--fs-meta .8125rem`, `--fs-label .875rem`, `--fs-body 1rem`, `--fs-card 1.125rem`, `--fs-section 1.25rem`, `--fs-section-lg 1.5rem`, `--fs-title 1.75rem`, `--fs-title-lg 2rem`. Every `font-size` of 32px or less in 18 CSS files now uses a variable (mechanical mapping by value: ≤12→badge, ≤13.5→meta, ≤15→label, 16→body, ≤18→card, ≤21→section, ≤24→section-lg, ≤28→title, ≤32→title-lg). Left alone on purpose: hero `h1` 38px, the 100px size in `home.css`, the decorative `.fake-stats` mock, and the `font:` shorthands (`.code-input`, `.tt-nav`).
+- Because it is mechanical, some small text grew (9–11px → 12px, 15px → 16px by value). **Check for wrapping or overflow** in badges, chips, tables, the navbar and mobile (320px).
+- **Explicit overrides:** `.hint`, `.err`, `.auth-note` → 13px; `.input` 44px tall at 16px (stops iOS focus zoom); `.search input` and `.settings-field input` 16px; `.btn` and `.btn.sm` 14px; `.btn.sm` `min-height:44px`.
+- **Helper notes:** all approved removals and shortenings applied (see list in git diff). `ManageReports` keeps its `id`/`aria-describedby`. Changed deviations from the list: `StaffAnalytics` hint was shortened, not split next to each metric; `ReviewTraces` hint is one shortened line, not one line per button.
+- **Coordinates:** `TraceMap` now takes `showCoordinates`; raw coordinates show only when editing, in the moderator review, and in the owner's contribution view. Test in `test/maps.test.jsx` updated for this.
+- `Dashboard "Updates every 30 seconds"` sentence removed; the timestamp has no seconds and the line is hidden until data loads.
+
 ## 5. What's left (planned, in order)
 
-2. **Type scale.** Define role-based sizes in `rem` as variables (page title 28–32, section 20–24, card title 16–18, body and inputs 16, labels and buttons 14–16, metadata 13–14, badges 12) and replace the ~15 scattered pixel sizes (9.5px–17px; most-used: 12px, 11px, 14px, 13px, 12.5px). Badges are 9.5px, hints 11px, chips 11.5px. Inputs are 38px tall at 13px text; 16px prevents iOS focus zoom. Files: `index.css`, `responsive.css`, `user.css`, `admin.css`, `moderator.css`, `TraceDraftLayout.css`, `home.css`.
+2. **Type scale.** (DONE on `type-scale-and-helper-notes`, untested.) Define role-based sizes in `rem` as variables (page title 28–32, section 20–24, card title 16–18, body and inputs 16, labels and buttons 14–16, metadata 13–14, badges 12) and replace the ~15 scattered pixel sizes (9.5px–17px; most-used: 12px, 11px, 14px, 13px, 12.5px). Badges are 9.5px, hints 11px, chips 11.5px. Inputs are 38px tall at 13px text; 16px prevents iOS focus zoom. Files: `index.css`, `responsive.css`, `user.css`, `admin.css`, `moderator.css`, `TraceDraftLayout.css`, `home.css`.
 3. **Button sizing and states.** `.btn.sm` computes to about 37px tall and is used ~64 times; target 44px or document the exception. Raise labels to 14–16px. Add loading, pressed and disabled states. Retire the `teal` button variant (now unused except in `Button.jsx` docs).
 4. **Mobile filters.** Replace the three rows of category chips in `ViewTraces.jsx` with a labelled select under about 640px.
 5. **Mobile form navigation.** Turn the five-step panel in `TraceDraftLayout` into a "Jump to section" disclosure on mobile; keep the desktop sidebar.
@@ -85,7 +96,7 @@ All 14 modified files are in `client/src/`.
 
 Out of scope of the review, still unchecked: admin/moderator flows beyond the buttons above, dark mode, 200% zoom, real-device Safari, end-to-end submission, whether the search box shows focus (`.search input` sets `outline:none`; parent focus style not checked).
 
-### Helper-note audit (decided in principle; not yet applied)
+### Helper-note audit (approved; applied on `type-scale-and-helper-notes`)
 
 About 60 small helper notes (`hint`, `auth-note`, `sub`, `*-help`). Rule: keep a note only if it prevents a mistake, protects privacy or helps recovery. Apply together with step 2 (the type scale), since the same lines use the tiny sizes. The project owner was to say which to keep before changes are made.
 

@@ -32,7 +32,7 @@ function Accounts({ moderators }) {
     <div className="vhead"><span className="eyebrow claye">{moderators ? "Manage moderators" : "Manage users"}</span><h2>{moderators ? "Moderation team" : "Community accounts"}</h2>
       <p>{assigning ? "Choose an existing member to promote. New people must register first." : "Manage saved account roles and access. Every change requires a reason and is recorded."}</p>
     </div>
-    {moderators && <><button className="btn blue sm" onClick={() => { reset(); setParams(assigning ? {} : { add: "1" }); }}>{assigning ? "Back to moderators" : "Add moderator"}</button><p className="hint">Moderators share the same review and report permissions. Removing the moderator role keeps the account and its contributions.</p></>}
+    {moderators && <><button className="btn blue sm" onClick={() => { reset(); setParams(assigning ? {} : { add: "1" }); }}>{assigning ? "Back to moderators" : "Add moderator"}</button><p className="hint">Removing the moderator role keeps the account and its contributions.</p></>}
     <form className="account-filters" onSubmit={(event) => { event.preventDefault(); reset(); setQuery(search.trim()); }}>
       <div className="account-filters__search">
         <label>Search by name or account ID<input className="input" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} /></label>
@@ -99,7 +99,7 @@ function AccountEditor({ account, promote, reload, onSaved }) {
       <label>Account role<select className="input" value={role} onChange={(event) => setRole(event.target.value)}><option value="user">Member</option><option value="moderator">Moderator</option>{account.role === "admin" && <option value="admin">Admin (existing role)</option>}</select></label>
       <label>Access status<select className="input" value={status} onChange={(event) => setStatus(event.target.value)}><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
       <label>Reason for change<textarea className="input" maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
-      <p className="hint">Saving grants the selected role's permissions. Suspended accounts cannot use protected features. Names and email addresses are not changed here.</p>
+      <p className="hint">Saving grants the selected role’s permissions. Suspended accounts cannot use protected features.</p>
       <button className="btn blue sm" disabled={role === account.role && status === account.status}>{busy ? "Saving…" : "Save account changes"}</button>
     </fieldset>
     {error && <p role="alert">{error}</p>}

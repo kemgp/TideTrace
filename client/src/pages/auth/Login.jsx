@@ -53,6 +53,5 @@ export default function Login() {
       <div className="auth-forgot"><Link to="/forgot-password">Forgot password?</Link></div>
       <button className="btn blue" style={{ width: "100%" }} type="submit" disabled={busy}>{busy ? "Signing in…" : "Log in"}</button>
     </form>
-    <p className="auth-note">Sign in with your TideTrace account. Your account determines which dashboard opens.</p>
   </AuthLayout>;
 }
