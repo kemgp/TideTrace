@@ -90,3 +90,15 @@ it("does not show the Account menu to signed-out visitors", () => {
   expect(screen.queryByRole("button", { name: "Account" })).toBeNull();
 });
 
+it("shows a placeholder navbar, not the signed-out links, while the saved session is being restored", () => {
+  appState.sessionReady = false;
+  try {
+    const { container } = open(null);
+    expect(screen.getByRole("link", { name: "TideTrace" }).getAttribute("href")).toBe("/");
+    expect(screen.queryByRole("button", { name: "Log in" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Join TideTrace" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Menu" })).toBeNull();
+    expect(container.querySelector("nav").getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelectorAll(".nav-sk").length).toBeGreaterThan(0);
+  } finally { delete appState.sessionReady; }
+});

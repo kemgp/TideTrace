@@ -16,7 +16,7 @@ export default function ViewTraces() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("All");
-  const result = useRemoteData(`traces?limit=${PAGE_SIZE}&offset=${offset}${query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true });
+  const result = useRemoteData(`traces?limit=${PAGE_SIZE}&offset=${offset}${query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true, keepPrevious: true });
   const traces = useMemo(() => (result.data || []).map(displayTrace), [result.data]);
   const filtering = Boolean(query.trim()) || cat !== "All";
   const clearFilters = () => { setQuery(""); setCat("All"); setOffset(0); };
@@ -66,8 +66,9 @@ export default function ViewTraces() {
       <RemoteState compact {...categoriesResult} loading={categoriesResult.loading && !result.loading} />
       {view === "map" ? <CommunityMap query={query} category={cat} onList={() => setView("list")} /> : <>
       <RemoteState {...result} />
+      {result.refreshing && <p className="sr-only" role="status">Updating traces…</p>}
       {!result.loading && !result.error && (traces.length > 0 ? (
-        <div className="g3">
+        <div className={`g3${result.refreshing ? " is-refreshing" : ""}`} aria-busy={result.refreshing || undefined}>
           {traces.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} />)}
         </div>
       ) : (
@@ -76,7 +77,7 @@ export default function ViewTraces() {
           <Button type="button" variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button>
         </> : "No approved traces found."}</div>
       ))}
-      {!(offset === 0 && !result.loading && !result.error && traces.length === 0) && <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />}
+      {!(offset === 0 && !result.loading && !result.error && traces.length === 0) && <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || result.refreshing} />}
       </>}
     </div>
   );

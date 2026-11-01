@@ -3,6 +3,7 @@ import React,{useEffect,useRef,useState} from "react";
 import {Link,useLocation,useNavigate} from "react-router-dom";
 import {useApp} from "../context/AppContext.jsx";
 import AdminIcon from "./AdminIcon.jsx";
+import {readRoleHint,writeRoleHint} from "../api/roleHint.js";
 
 const WAVE=(
   <svg width={24} height={24} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
@@ -38,8 +39,13 @@ const adminLinks=[
   {to:"/admin/analytics",label:"Analytics",icon:"chart"},
 ];
 
+function hintedLinks(){
+  const role=readRoleHint();
+  return role==="admin"?adminLinks:role==="mod"?modLinks:userLinks;
+}
+
 export default function Navbar(){
-  const {role,logout,unreadNotificationCount}=useApp();
+  const {role,logout,unreadNotificationCount,sessionReady}=useApp();
 
   const location=useLocation();
   const navigate=useNavigate();
@@ -56,6 +62,10 @@ export default function Navbar(){
     setOpen(false);
     setAccountOpen(false);
   },[location.pathname,location.hash,role]);
+
+  useEffect(()=>{
+    if(role)writeRoleHint(role);
+  },[role]);
 
   useEffect(()=>{
     if(!accountOpen)return;
@@ -201,6 +211,43 @@ export default function Navbar(){
       :role==="mod"
         ?"/moderator/profile"
         :"/user/profile";
+
+  // While a saved session is still being restored the role is unknown. Showing the signed-out
+  // links would flash the landing-page navigation, so draw a placeholder with the same structure
+  // and classes as the real bar: the logo stays put and the space for links and the account area
+  // is reserved, so nothing moves when the real navigation arrives.
+  if(sessionReady===false&&!role){
+    return(
+      <nav className="nav nav-restoring" aria-label="Main navigation" aria-busy="true">
+        <div className="wrap nav-grid">
+          <Link className="brand" to="/">
+            {WAVE}
+            <span>TideTrace</span>
+          </Link>
+          <div className="nav-right" aria-hidden="true">
+            <span className="avatar-btn nav-sk"/>
+            <span className="nav-sk nav-sk-menu"/>
+          </div>
+          <div className="nav-panel" aria-hidden="true">
+            <ul className="nav-links">
+              {hintedLinks().map(link=>(
+                <li key={link.to}>
+                  <a>
+                    {link.icon&&<span style={{width:16,height:16,flex:"none"}}/>}
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <div className="nav-actions">
+              {readRoleHint()!=="user"&&<span className="role-tag nav-sk">{readRoleHint()==="mod"?"Moderator":"Admin"}</span>}
+              <div className="account-menu"><span className="btn ghost sm account-menu__toggle nav-sk">Account</span></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return(
     <nav

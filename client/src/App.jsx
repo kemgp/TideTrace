@@ -2,14 +2,14 @@ import Home from "./pages/Home/index.jsx";
 import NavigationGuard from "./components/NavigationGuard.jsx";
 import LegalPage from "./pages/legal/LegalPage.jsx";
 import PageMetadata from "./components/PageMetadata.jsx";
-import React,{useEffect,useState} from "react";
+import React from "react";
 import {Link,Navigate,Route,Routes,useLocation} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
+import {readRoleHint} from "./api/roleHint.js";
 import AuthCallback from "./pages/auth/AuthCallback.jsx";
 import {AppProvider,useApp} from "./context/AppContext.jsx";
 import Navbar from "./components/Navbar.jsx";
 import PublicNavbar from "./components/home/PublicNavbar.jsx";
-import SkeletonLoader from "./components/SkeletonLoader.jsx";
 import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.jsx";
@@ -182,8 +182,11 @@ function SessionGate({children}){
   }=useApp();
   if(!sessionReady){
     return(
-      <div className="wrap" role="status">
-        Restoring your session…
+      <div className="wrap session-restoring" role="status" aria-label="Restoring your session" aria-busy="true">
+        <span className="sr-only">Restoring your session…</span>
+        <div className="remote-skeleton" aria-hidden="true">
+          <span className="remote-skeleton-line"/><span className="remote-skeleton-line"/><span className="remote-skeleton-line"/>
+        </div>
       </div>
     );
   }
@@ -217,24 +220,15 @@ function AppShell(){
   const {
     role,
     profile,
+    sessionReady,
     sessionError,
     sessionNotice,
     retrySession
   }=useApp();
   const location=useLocation();
-  // Keep the skeleton visible immediately on navigation, including the first
-  // render of the destination route. Pages stay mounted to fetch their data.
-  const [loadedPath,setLoadedPath]=useState(null);
-  const pagePath=location.pathname;
-  const loadingPage=Boolean(role)&&loadedPath!==pagePath;
-  useEffect(()=>{
-    if(!role){
-      setLoadedPath(null);
-      return;
-    }
-    const timer=window.setTimeout(()=>setLoadedPath(pagePath),650);
-    return ()=>window.clearTimeout(timer);
-  },[pagePath,role]);
+  // While a saved session is restored the role is unknown; use the remembered one for layout only
+  // (container width, colours) so the page does not resize when the account arrives.
+  const shellRole=role||(sessionReady===false?readRoleHint():null);
   if(
     location.pathname!=="/auth/callback"&&
     /(?:^#|&)(access_token|error_code|error)=/.test(location.hash)
@@ -253,11 +247,11 @@ function AppShell(){
   return(
     <div
       className={`app-shell ${
-        role==="admin"
+        shellRole==="admin"
           ?"admin-shell"
-          :role==="mod"
+          :shellRole==="mod"
             ?"moderator-shell"
-            :role==="user"
+            :shellRole==="user"
               ?"user-shell"
               :""
       }`}
@@ -265,7 +259,6 @@ function AppShell(){
       {!role && ["/login", "/register", "/forgot-password", "/auth/callback"].includes(location.pathname)
         ? <PublicNavbar />
         : <Navbar />}
-        {loadingPage&&<SkeletonLoader path={pagePath}/>}
       {sessionNotice&&(
         <div className="demo-notice" role="status">
           {sessionNotice}
