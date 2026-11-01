@@ -788,3 +788,8 @@ html.dark-mode .remote-skeleton-line{background-image:linear-gradient(90deg,#263
 .email-link-retry{width:100%;text-align:center;}
 .email-link-signup-help{margin-top:16px;font-size:var(--fs-badge);line-height:1.6;color:var(--soft);text-align:center;}
 .email-link-signup-help a{color:var(--blue);text-decoration:underline;text-underline-offset:3px;}
+/* Archive filters: labelled select replaces the chip rows on narrow screens. */
+.archive-category-select{display:none;margin-bottom:20px;}
+.archive-category-select .lbl{display:block;margin-bottom:6px;}
+.archive-empty p{margin-bottom:12px;}
+@media(max-width:640px){.archive-category-select{display:block;}.community-archive .archive-chips{display:none;}}

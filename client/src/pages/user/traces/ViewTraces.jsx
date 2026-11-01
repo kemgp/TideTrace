@@ -18,6 +18,9 @@ export default function ViewTraces() {
   const [cat, setCat] = useState("All");
   const result = useRemoteData(`traces?limit=${PAGE_SIZE}&offset=${offset}${query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true });
   const traces = useMemo(() => (result.data || []).map(displayTrace), [result.data]);
+  const filtering = Boolean(query.trim()) || cat !== "All";
+  const clearFilters = () => { setQuery(""); setCat("All"); setOffset(0); };
+  const pickCategory = (value) => { const picked = categories.find((c) => String(c.id) === value); setCat(picked ? picked.id : "All"); setOffset(0); };
 
   return (
     <div className="wrap community-archive">
@@ -45,7 +48,15 @@ export default function ViewTraces() {
         </div>
       </div>
 
-      <div className="chiprow" style={{ marginBottom: 20 }}>
+      <div className="archive-category-select">
+        <label className="lbl" htmlFor="archive-category">Category</label>
+        <select id="archive-category" className="input" value={cat} onChange={(e) => pickCategory(e.target.value)}>
+          <option value="All">All categories</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+
+      <div className="chiprow archive-chips" style={{ marginBottom: 20 }}>
         <button aria-pressed={cat === "All"} className={`chip ${cat === "All" ? "on" : ""}`} onClick={() => { setCat("All"); setOffset(0); }}>All</button>
         {categories.map((c) => (
           <button key={c.id} aria-pressed={cat === c.id} className={`chip ${cat === c.id ? "on" : ""}`} onClick={() => { setCat(c.id); setOffset(0); }}>{c.name}</button>
@@ -60,9 +71,12 @@ export default function ViewTraces() {
           {traces.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} />)}
         </div>
       ) : (
-        <div className="ph" style={{ marginTop: 10 }}>{query ? "No traces match your search." : "No approved traces found."}</div>
+        <div className="ph archive-empty" style={{ marginTop: 10 }}>{filtering ? <>
+          <p>No traces match these filters. Try another search or clear filters.</p>
+          <Button type="button" variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button>
+        </> : "No approved traces found."}</div>
       ))}
-      <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
+      {!(offset === 0 && !result.loading && !result.error && traces.length === 0) && <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />}
       </>}
     </div>
   );

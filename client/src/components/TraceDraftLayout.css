@@ -12,14 +12,40 @@
   border-radius: 12px;
   background: var(--bg);
 }
+.app-shell .trace-draft-steps__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--navy);
+  font-size:var(--fs-label);
+  font-weight: 600;
+  text-align: left;
+}
+.app-shell .trace-draft-steps__toggle::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.app-shell .trace-draft-steps__toggle[aria-expanded="true"]::after { transform: rotate(-135deg); }
 .app-shell .trace-draft-steps ol {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: none;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
-  margin: 0;
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
 }
+.app-shell .trace-draft-steps.is-open ol { display: grid; }
 .app-shell .trace-draft-steps li { min-width: 0; }
 .app-shell .trace-draft-steps button {
   display: flex;
@@ -93,6 +119,7 @@
 @media (min-width: 768px) {
   .app-shell .trace-draft-layout:not(.trace-draft-layout--editing) { grid-template-columns: 220px minmax(0, 1fr); }
   .app-shell .trace-draft-steps { position: sticky; top: 100px; }
-  .app-shell .trace-draft-steps ol { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .trace-draft-steps__toggle { display: none; }
+  .app-shell .trace-draft-steps ol { display: grid; margin: 0; }
   .app-shell .trace-draft-actions > button { flex: 0 1 auto; }
 }
