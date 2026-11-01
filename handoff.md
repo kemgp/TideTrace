@@ -83,10 +83,19 @@ Branched from the CLAUDE.md commit. Edits are in the working tree; tests and bui
 - **Coordinates:** `TraceMap` now takes `showCoordinates`; raw coordinates show only when editing, in the moderator review, and in the owner's contribution view. Test in `test/maps.test.jsx` updated for this.
 - `Dashboard "Updates every 30 seconds"` sentence removed; the timestamp has no seconds and the line is hidden until data loads.
 
+### Done on branch `button-states` (step 3: button states) — UNCOMMITTED, UNTESTED
+
+Branched from `main` after PRs #3 (type scale + helper notes) and #4 (CLAUDE.md) merged; the owner confirmed `npm test` and `npm run build` passed on those.
+
+- **Hover/pressed:** `.btn.blue` hover uses new `--blue-dark #263e82`; outline and ghost hover use `--bg`; `.btn:active` shifts 1px down and darkens slightly; short transition, disabled under `prefers-reduced-motion`.
+- **Loading:** `Button.jsx` has a `loading` prop (spinner using the existing `.button-spinner`, `aria-busy`, disabled). A plain `<button className="btn …">` gets the same look with `aria-busy="true"` + `disabled`. Only 15 places use `<Button>`; the other ~70 raw `.btn` buttons were NOT converted (they already swap their label, e.g. "Hiding location…").
+- **Disabled:** unchanged look (50% opacity, not-allowed); busy buttons show 75% with a progress cursor.
+- **Teal variant retired:** `.btn.teal` rule and the doc mention removed (it had no uses). `--teal-strong` is still used for text.
+
 ## 5. What's left (planned, in order)
 
 2. **Type scale.** (DONE on `type-scale-and-helper-notes`, untested.) Define role-based sizes in `rem` as variables (page title 28–32, section 20–24, card title 16–18, body and inputs 16, labels and buttons 14–16, metadata 13–14, badges 12) and replace the ~15 scattered pixel sizes (9.5px–17px; most-used: 12px, 11px, 14px, 13px, 12.5px). Badges are 9.5px, hints 11px, chips 11.5px. Inputs are 38px tall at 13px text; 16px prevents iOS focus zoom. Files: `index.css`, `responsive.css`, `user.css`, `admin.css`, `moderator.css`, `TraceDraftLayout.css`, `home.css`.
-3. **Button sizing and states.** `.btn.sm` computes to about 37px tall and is used ~64 times; target 44px or document the exception. Raise labels to 14–16px. Add loading, pressed and disabled states. Retire the `teal` button variant (now unused except in `Button.jsx` docs).
+3. **Button sizing and states.** (DONE on `button-states`, untested.) `.btn.sm` computes to about 37px tall and is used ~64 times; target 44px or document the exception. Raise labels to 14–16px. Add loading, pressed and disabled states. Retire the `teal` button variant (now unused except in `Button.jsx` docs).
 4. **Mobile filters.** Replace the three rows of category chips in `ViewTraces.jsx` with a labelled select under about 640px.
 5. **Mobile form navigation.** Turn the five-step panel in `TraceDraftLayout` into a "Jump to section" disclosure on mobile; keep the desktop sidebar.
 6. **Empty state** (`ViewTraces.jsx` line ~63): "No traces match these filters. Try another search or clear filters." with a Clear filters button; hide pagination when empty.
