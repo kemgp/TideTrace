@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-02)
+# TideTrace — Handoff (updated 2026-11-02, UI/UX plan added)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -135,6 +135,86 @@ About 60 small helper notes (`hint`, `auth-note`, `sub`, `*-help`). Rule: keep a
 - **Meta text, not helper text:** author/date lines, review timestamps, "Member since", "Account ID", Tide slugs, draft review values. Keep the wording; give them a shared "meta" class at 13px instead of the 11px `hint` class.
 - Not covered by the audit: text passed in as props (`helper`, `AuthLayout` subtitle), placeholders, error messages, CSS-only text.
 
+## 5b. Status after 2026-11-02 and the next phase: UI/UX polish (PLANNED, NOT STARTED)
+
+All planned steps 2–9 above are merged into `main`: PR #3 (type scale + helper notes), #4 (CLAUDE.md), #5 (button states), #6 (mobile filters, empty state, form section jump), #7 (account menu, photo placeholders, form copy). The "UNCOMMITTED, UNTESTED" labels in section 4 are historical.
+
+The next phase is UI/UX polish, in this order. No code has been written for it yet.
+
+### Motion rules (apply to everything below)
+
+- Animate only `transform` and `opacity`. No layout properties.
+- Durations: 120ms (press/hover), 200ms (small UI: menus, toasts, chips), 320ms (content fade/slide), 600–800ms (landing reveals only). One easing for entrances: `cubic-bezier(.22,.61,.36,1)` (already used by the headline).
+- Every animation has a `prefers-reduced-motion` fallback (static or a plain opacity fade). The landing page already has `useReducedMotion`; the app shell already disables animations globally under reduced motion.
+- At most one attention-grabbing motion per screen. Infinite loops only for loaders and the hero waves, and they must pause when off-screen or the tab is hidden.
+- Define the durations/easing as CSS variables (`--dur-fast`, `--dur-ui`, `--dur-content`, `--ease-out`) next to the type scale in `index.css`.
+
+### Phase A — Skeleton loaders (do first; most visible problem)
+
+Findings (from the code, not yet seen in a browser):
+
+1. **Every navigation shows a full-screen overlay for a fixed 650ms.** `App.jsx` (`loadedPath` timer) renders `SkeletonLoader`, which is `position:fixed; inset:0; z-index:9999` and draws a fake navbar over the real one. This happens even when the page is ready instantly, so every click feels slow and the navbar flickers.
+2. **The same full-screen overlay appears whenever page data loads.** `RemoteState` (non-compact) renders `SkeletonLoader`, and `useRemoteData` drops its data whenever the request URL changes. So typing in the archive search, changing category, paging, or pressing Retry covers the whole screen, including the search box being typed in.
+3. **Overlays can stack** (route overlay + page overlay).
+4. **Five different loading styles:** `.psk` shimmer (1.4s ease), `.remote-skeleton-line` shimmer (1.5s linear, different colours), `.stat-placeholder` pulse, the landing `.tt-total-skeleton` (static), the map skeleton, and the new card-photo pulse.
+5. **Shapes are hand-drawn per route** (16 variants in `SkeletonLoader.jsx`, ~430 lines with inline `<style>`), so they can drift from the real layouts and cause a jump when content appears. Not yet checked at 320px.
+6. Many identical "Loading content" status regions; not specific to what is loading.
+
+Plan:
+
+- **A1. One skeleton system:** a small `Skeleton` component plus one stylesheet (`.sk`, `.sk-line`, `.sk-block`, `.sk-circle`), one shimmer keyframe, light/dark colours as tokens, static under reduced motion. Replace `.psk`, `.remote-skeleton*`, `.stat-placeholder`, `.tt-total-skeleton` and the card-photo pulse.
+- **A2. Remove the fixed 650ms route overlay.** Skeletons render in place inside the page's content area, below the real navbar. No fake navbar.
+- **A3. No flash:** show a skeleton only if loading takes longer than ~200ms; once shown, keep it at least ~300ms so it doesn't flicker.
+- **A4. Keep old results while refetching** (stale-while-revalidate in `useRemoteData`, e.g. a `previousData`/`refreshing` flag). Search, filters, paging and retry keep the current list visible, dimmed slightly with `aria-busy`, plus a small "Updating…" status. Skeletons only on the first load of a page.
+- **A5. Shape-matched skeletons** built from the real layout classes (`TraceCard` skeleton = same card, 220px photo block, title line, meta line; dashboard = real stat grid). Check 320 / 768 / 1280px for zero layout shift.
+- **A6. Content arrives with a 150–200ms opacity fade** (none under reduced motion).
+- **A7. Accessibility:** one status region per loading area with a specific label ("Loading traces…"), `aria-busy` on the region.
+- Tests: 6 assertions use `status` "Loading content" (e.g. `traces.test.jsx`); they will need updating, and new tests for "keeps results while searching" and "no skeleton under 200ms".
+
+### Phase B — Landing page
+
+What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contribute/Learn" pill (framer-motion), a stroke-drawn SVG headline, animated wave divider, scroll reveals, spotlight feature cards, community totals, a metaballs canvas in the final CTA. It is already motion-heavy; the work is mostly focus, meaning and performance, not more effects.
+
+- **B1. Calmer hero, faster first paint.** Three motions compete (waves, rotating pill, headline drawing). Keep the waves as the background motion; show the headline as real text immediately, then play the stroke effect once on top (today the SVG is hidden until fonts load, up to 2.5s, which delays the main content). Let the pill rotate a few times, then rest on "Contribute".
+- **B2. Pause the hero waves off-screen and in hidden tabs.** `GradientWaves` keeps its `requestAnimationFrame` loop running after you scroll past the hero (no IntersectionObserver or `visibilitychange`). `MetaBalls` already pauses; copy that pattern.
+- **B3. Show the product: a "Recent traces" strip** between Features and Impact, using approved, non-sensitive public Traces (photo, title, place, category). Slow horizontal drift that pauses on hover/focus; a static scrollable row under reduced motion. Needs a public read endpoint or the existing public archive query. Decision needed: OK to show real member photos on the public landing page?
+- **B4. Count-up community numbers** when the Impact section scrolls into view (0 → value over ~900ms, tabular numerals, final value in the markup for screen readers). Use the shared skeleton while loading.
+- **B5. "How it works" connector:** a line that draws from step 1 → 2 → 3 as the section scrolls in, and each step number pops in turn. Optional: a small looping phone mock-up of the submission flow (category → photo → submitted) instead of plain text.
+- **B6. Navbar on scroll:** after the hero, the bar gets a shadow and slightly reduced height; the current section's link is highlighted with a sliding underline (scroll-spy).
+- **B7. Micro-interactions:** feature card icons nudge on hover/focus (pin bounce, arrow lift, heart beat, ~300ms, once per hover); CTA buttons get a short "wave fill" or lift on hover; the anchor-scroll already respects the sticky nav.
+- **B8. Section rhythm:** reuse a static wave edge between alternating background sections so the ocean motif carries down the page; give the quote a large type treatment with a drawn wave underline.
+- **B9. Mobile:** check the hero at 320px (headline size, wave canvas cost on low-end phones; consider a static gradient image below ~480px or on `saveData`/data-saver).
+
+### Phase C — App-wide micro-interactions
+
+- **C1. Route content transition:** a 200ms fade/slide-up of the page content (View Transitions API where supported, CSS fallback). Replaces the overlay removed in A2.
+- **C2. Trace cards:** hover/focus lift (`translateY(-2px)` + soft shadow) and the photo fades in when loaded instead of popping.
+- **C3. Toasts:** slide/fade in from the bottom and out (today they appear without an exit).
+- **C4. Menus and disclosures** (account menu, Jump to section, mobile nav): 150–200ms fade + small slide; chevrons rotate.
+- **C5. Submission form progress:** mark completed steps in the step list with a check (category chosen, photo added, etc.), and show a short success animation (check draw) after "Submit for review".
+- **C6. Notifications:** badge pops when the unread count goes up.
+- **C7. Empty states:** a small wave/shell illustration and one action, consistent across archive, contributions, notifications, moderation queue.
+- **C8. Map:** pin drops in with a short bounce when placed.
+
+### Phase D — Performance (ties directly to the motion work)
+
+- `gsap` is installed but never imported: remove it.
+- `framer-motion` is used only by `RotatingText` (the hero pill): replace with a CSS version or lazy-load it.
+- No route-level code splitting: lazy-load the landing page effects (`GradientWaves`, `MetaBalls`, `RotatingText`) and the staff/admin routes. This is the fix for the ~817 kB bundle warning.
+- Rename `vite.config.js` → `vite.config.mjs` (build warning).
+
+### Phase E — Checks still open
+
+200% zoom, dark mode across the app (add dark colours for anything new), real-device Safari, the archive search box focus ring (`.search input` has `outline:none`), server tests.
+
+### Suggested PR split
+
+1. Phase A (skeletons + `useRemoteData` refresh behaviour) — one PR, biggest UX win.
+2. Phase D performance + B1/B2 (hero) — one PR, measurable.
+3. Rest of Phase B (landing additions) — one PR, after the B3 photo decision.
+4. Phase C micro-interactions — one PR.
+5. Phase E checks and fixes.
+
 ## 6. Decisions and caveats
 
 - **Primary button = blue**, not clay (blue is already the most-used variant and passes at 7.76:1). Clay is reserved for contribution actions. One clay button per screen.
@@ -144,7 +224,7 @@ About 60 small helper notes (`hint`, `auth-note`, `sub`, `*-help`). Rule: keep a
 - This session's cloud environment cannot run the project's tests: the installed `node_modules` are macOS builds. Run tests and the build on your own machine.
 - Deployed app: https://tide-trace.vercel.app (the exact deployed commit was not verified).
 
-## 7. Suggested next actions
+## 7. Suggested next actions (older; superseded by section 5b)
 
 1. Start step 2 (type scale) together with the helper-note removals and shortenings from the audit above, and the 44px minimum for `.btn.sm`. Agree the keep/remove list first.
 2. Then the mobile layouts (steps 4–5) and the account menu, which change behavior and need more testing.
