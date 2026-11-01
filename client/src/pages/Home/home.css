@@ -21,7 +21,7 @@
 
 /* ---- Landing polish (Phase B) ---- */
 /* B1: the headline is real text from the first paint; the outline version draws on top of it. */
-.tt-headline{position:relative}
+.tt-headline{position:relative;container-type:inline-size}
 .tt-headline-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity .4s ease .25s}
 .tt-headline-overlay.is-hidden{opacity:0;pointer-events:none}
 /* B4 */
@@ -84,3 +84,8 @@
 .tt-traces-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin-top:28px}
 @media(max-width:640px){.tt-trace{width:220px}.tt-trace img{height:150px}.tt-trace.sk{height:206px}}
 @media(prefers-reduced-motion:reduce){.tt-nav *{transition:none!important}.tt-btn:hover{transform:none}.tt-trace-rail .tt-trace-track{animation:none!important}}
+
+/* First-paint headline: matches the outline headline's lines, relative size and colours. */
+.tt-headline-copy{font-family:Poppins,-apple-system,Segoe UI,sans-serif;font-weight:600;font-size:calc(var(--tt-ratio,.0806)*100cqw);line-height:1.16;letter-spacing:-.02em;color:#203463;text-align:center}
+.tt-headline-copy .tt-line{display:block;white-space:nowrap}
+.tt-clay-word{color:var(--clay)}
