@@ -23,8 +23,8 @@ async function setup() {
   return view;
 }
 const press = name => fireEvent.click(screen.getByRole("button", { name }));
-const polite = () => document.querySelector("[role='status'][aria-live='polite']");
-const assertive = () => document.querySelector(".toast-stack[role='alert']");
+const polite = () => document.querySelector(".toast-stack[aria-live='polite']");
+const assertive = () => document.querySelector(".toast-stack[aria-live='assertive']");
 
 it("keeps both live regions on the page and files each message in the right one", async () => {
   await setup();

@@ -21,12 +21,13 @@ function ToastItem({ toast, dismiss, pause, resume }) {
 }
 
 // Two live regions that are always on the page: new messages are announced politely, and errors
-// assertively. Messages are never replaced silently, so every notice is read once.
+// assertively. They use aria-live without a status/alert role, so they never get mistaken for the
+// page's own status and alert messages. Messages are never replaced silently, so every notice is read once.
 export default function Toasts() {
   const { toasts = [], dismissToast = () => {}, pauseToast = () => {}, resumeToast = () => {} } = useApp();
   const render = (toast) => <ToastItem key={toast.id} toast={toast} dismiss={dismissToast} pause={pauseToast} resume={resumeToast} />;
   return <div className="toast-region">
-    <div className="toast-stack" role="alert">{toasts.filter((toast) => toast.type === "error").map(render)}</div>
-    <div className="toast-stack" role="status" aria-live="polite">{toasts.filter((toast) => toast.type !== "error").map(render)}</div>
+    <div className="toast-stack" aria-live="assertive" aria-atomic="true">{toasts.filter((toast) => toast.type === "error").map(render)}</div>
+    <div className="toast-stack" aria-live="polite">{toasts.filter((toast) => toast.type !== "error").map(render)}</div>
   </div>;
 }
