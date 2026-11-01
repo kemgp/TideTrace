@@ -15,3 +15,55 @@ export function useReveals(ref,reduced){
   return()=>{observer.disconnect();host.removeEventListener('animationend',done);nodes.forEach(n=>n.classList.remove('tt-pending','tt-revealing'));};
  },[ref,reduced]);
 }
+
+// Phones and data-saver users get the static gradient instead of the WebGL waves.
+export function useStaticBackdrop(){
+ const query='(max-width: 480px)';
+ const read=()=>Boolean(window.navigator?.connection?.saveData)||(window.matchMedia?.(query).matches??false);
+ const [value,setValue]=useState(read);
+ useEffect(()=>{
+  if(!window.matchMedia)return;
+  const mq=window.matchMedia(query);const update=()=>setValue(read());
+  mq.addEventListener?.('change',update);return()=>mq.removeEventListener?.('change',update);
+ },[]);
+ return value;
+}
+// Counts from 0 to `target` once `active` turns true. Returns the number to display.
+export function useCountUp(target,active,reduced,duration=900){
+ const [value,setValue]=useState(reduced?target:0);
+ useEffect(()=>{
+  if(reduced||!Number.isFinite(target)){setValue(target);return;}
+  if(!active){setValue(0);return;}
+  let frame=0,start=0;
+  const tick=now=>{
+   start=start||now;const t=Math.min(1,(now-start)/duration);
+   setValue(Math.round(target*(1-Math.pow(1-t,3))));
+   if(t<1)frame=requestAnimationFrame(tick);
+  };
+  frame=requestAnimationFrame(tick);
+  return()=>cancelAnimationFrame(frame);
+ },[target,active,reduced,duration]);
+ return value;
+}
+// True after the element has scrolled into view once.
+export function useInView(ref,rootMargin='0px'){
+ const [seen,setSeen]=useState(()=>!window.IntersectionObserver);
+ useEffect(()=>{
+  if(seen||!ref.current)return;
+  const io=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){setSeen(true);io.disconnect();}},{rootMargin,threshold:0.2});
+  io.observe(ref.current);return()=>io.disconnect();
+ },[ref,seen,rootMargin]);
+ return seen;
+}
+// True on narrow screens and on devices that cannot hover (phones, tablets).
+export function useCompactPointer(){
+ const query='(max-width: 768px), (hover: none)';
+ const read=()=>window.matchMedia?.(query).matches??false;
+ const [value,setValue]=useState(read);
+ useEffect(()=>{
+  if(!window.matchMedia)return;
+  const mq=window.matchMedia(query);const update=()=>setValue(read());
+  mq.addEventListener?.('change',update);return()=>mq.removeEventListener?.('change',update);
+ },[]);
+ return value;
+}

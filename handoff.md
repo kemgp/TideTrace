@@ -200,6 +200,19 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - **B8. Section rhythm:** reuse a static wave edge between alternating background sections so the ocean motif carries down the page; give the quote a large type treatment with a drawn wave underline.
 - **B9. Mobile:** check the hero at 320px (headline size, wave canvas cost on low-end phones; consider a static gradient image below ~480px or on `saveData`/data-saver).
 
+#### Phase B status — done on branch `landing-page-polish` (syntax-checked only; run `npm test`, `npm run build`, then look at it)
+
+- **B1 (done):** the headline is real text from the first paint (`StrokeText` keeps the outline SVG's space reserved, draws once on top, then fades the plain copy out; font wait cut from 2.5s to 1.2s). The pill runs through the words twice and rests on "Contribute" (`loop={false}`). Under 480px or data saver the plain headline is used and the outline effect is skipped.
+- **B2 (already true, no change):** `GradientWaves` already stops its loop when off-screen or the tab is hidden (`tick` returns on `!state.visible || document.hidden`). The earlier note was wrong.
+- **B3 (done):** `RecentTraces` between Features and Impact. Uses the existing public `GET /api/traces?limit=24` and the public signed photo URLs; no server change. `pickTiles` keeps approved, non-sensitive traces with a photo and passes on only title, category and place (no author, no coordinates). Loads when within 400px of view; drifts slowly and pauses on hover or keyboard focus (no pause button, by decision); reduced motion, screens up to 768px and devices that cannot hover (`useCompactPointer`) get a still, swipeable row with no duplicates; hidden if fewer than 4 photos, on error, with data saver, or without IntersectionObserver. Real member photos approved by the owner. Links to the archive for members, `/register` otherwise.
+- **B4 (done):** count-up (900ms, tabular numerals) when each number scrolls in; the final value stays in a screen-reader-only span; reduced motion shows plain numbers.
+- **B5 (done, mock-up skipped):** connector line draws step 1 → 2 → 3 and the numbers pop in turn (vertical on phones). The optional looping phone mock-up was not built.
+- **B6 (done, one deviation):** shadow after scrolling, scroll-spy highlight and a sliding underline (desktop). The bar does NOT shrink: it is in normal flow, so changing its height would shift the page under the reader's finger.
+- **B7 (done):** per-icon nudges (pin bounce, arrow lift, globe turn, heart beat) on hover or focus; buttons lift on hover.
+- **B8 (done):** static wave edges between sections (`.tt-edge` with an SVG data URI per colour) and a larger quote with a drawn wave underline.
+- **B9 (done):** under 480px or data saver the WebGL waves are not mounted; the CSS gradient behind them shows instead.
+- **Tests:** new `test/landingPolish.test.jsx` (tile filtering and privacy, strip drift/pause/static/hidden cases, count-up, connector, navbar shadow and scroll-spy) and one more case in `Home.test.jsx`.
+
 ### Phase C — App-wide micro-interactions
 
 - **C1. Route content transition:** a 200ms fade/slide-up of the page content (View Transitions API where supported, CSS fallback). Replaces the overlay removed in A2.
