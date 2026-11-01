@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId, useState } from "react";
 import Card from "./Card.jsx";
 import "./TraceDraftLayout.css";
 
@@ -11,10 +11,13 @@ const STEPS = [
 ];
 
 export default function TraceDraftLayout({ activeStep, onSelect, editing, children }) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
   return <div className={`trace-draft-layout${editing ? " trace-draft-layout--editing" : ""}`}>
-    {!editing && <nav className="trace-draft-steps" aria-label="New trace steps">
-      <ol>{STEPS.map((step, index) => <li key={step.key}>
-        <button type="button" aria-current={activeStep === step.key ? "step" : undefined} onClick={() => onSelect(step.key)}>
+    {!editing && <nav className={`trace-draft-steps${open ? " is-open" : ""}`} aria-label="New trace steps">
+      <button type="button" className="trace-draft-steps__toggle" aria-expanded={open} aria-controls={listId} onClick={() => setOpen((value) => !value)}>Jump to section</button>
+      <ol id={listId}>{STEPS.map((step, index) => <li key={step.key}>
+        <button type="button" aria-current={activeStep === step.key ? "step" : undefined} onClick={() => { setOpen(false); onSelect(step.key); }}>
           <span className="trace-draft-steps__number" aria-hidden="true">{index + 1}</span>
           <span className="trace-draft-steps__copy">{step.label}<small>{step.hint}</small></span>
         </button>

@@ -195,7 +195,7 @@ it("searches the full archive through the API and preserves category filtering",
   expect(screen.queryByText("Saved seagrass survey")).toBeNull();
   expect(calls.mock.calls.some(([url]) => url.includes("q=distant%20coast") && url.includes(`category_id=${category.id}`) && url.includes("offset=0"))).toBe(true);
   fireEvent.change(screen.getByRole("textbox", { name: "Search traces" }), { target: { value: "no match" } });
-  expect(await screen.findByText("No traces match your search.")).toBeTruthy();
+  expect(await screen.findByText("No traces match these filters. Try another search or clear filters.")).toBeTruthy();
   fireEvent.change(screen.getByRole("textbox", { name: "Search traces" }), { target: { value: "" } });
   expect(await screen.findByText("Saved seagrass survey")).toBeTruthy();
 });
@@ -330,4 +330,25 @@ it("filters contributions before paging and resets the page when changing status
   await screen.findByText("No contributions match this status.");
   fireEvent.click(screen.getByRole("button", { name: "All", exact: true }));
   await screen.findByText("all contribution 0");
+});
+
+it("filters by category from the select and clears filters from the empty state", async () => {
+  const calls = setup((url) => {
+    if (!url.startsWith("/api/traces?")) return;
+    const params = new URL(url, "https://example.test").searchParams;
+    return params.get("q") ? response([]) : response([trace()]);
+  });
+  open();
+  await screen.findByText("Saved seagrass survey");
+  await screen.findByRole("option", { name: "Seagrass" });
+  const select = screen.getByRole("combobox", { name: "Category" });
+  fireEvent.change(select, { target: { value: category.id } });
+  await waitFor(() => expect(calls.mock.calls.some(([url]) => url.includes(`category_id=${category.id}`))).toBe(true));
+  fireEvent.change(screen.getByRole("textbox", { name: "Search traces" }), { target: { value: "no match" } });
+  expect(await screen.findByText("No traces match these filters. Try another search or clear filters.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+  expect(await screen.findByText("Saved seagrass survey")).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Search traces" }).value).toBe("");
+  expect(screen.getByRole("combobox", { name: "Category" }).value).toBe("All");
 });

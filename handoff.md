@@ -92,13 +92,23 @@ Branched from `main` after PRs #3 (type scale + helper notes) and #4 (CLAUDE.md)
 - **Disabled:** unchanged look (50% opacity, not-allowed); busy buttons show 75% with a progress cursor.
 - **Teal variant retired:** `.btn.teal` rule and the doc mention removed (it had no uses). `--teal-strong` is still used for text.
 
+### Done on branch `mobile-filters-and-form-nav` (steps 4, 5 and 6) — UNCOMMITTED, UNTESTED
+
+Branched from `main` after PR #5 (button states) merged.
+
+- **Archive filters (`ViewTraces.jsx`):** labelled "Category" `<select>` (All categories + each category) shown at 640px and below; the chip row is hidden there (CSS only, so both are in the DOM). Desktop is unchanged.
+- **Empty state:** when a search or category is active and nothing matches: "No traces match these filters. Try another search or clear filters." plus a **Clear filters** button (resets search, category, page). With no filters it still says "No approved traces found." Pagination is hidden when page 1 is empty (still shown on a later empty page so the user can go back).
+- **Submission form nav (`TraceDraftLayout`):** below 768px the step list is behind a "Jump to section" toggle (`aria-expanded`/`aria-controls`) that closes after choosing a step. At 768px and up the sticky sidebar is unchanged and the toggle is hidden. The list is always in the DOM and hidden by CSS only.
+- **Tests:** `traces.test.jsx` updated for the new empty text and a new test for the select + Clear filters; new `user-design.test.jsx` test for the toggle.
+- **Check on a real phone:** the select's look, the toggle's open/close, and that nothing overlaps at 320px.
+
 ## 5. What's left (planned, in order)
 
 2. **Type scale.** (DONE on `type-scale-and-helper-notes`, untested.) Define role-based sizes in `rem` as variables (page title 28–32, section 20–24, card title 16–18, body and inputs 16, labels and buttons 14–16, metadata 13–14, badges 12) and replace the ~15 scattered pixel sizes (9.5px–17px; most-used: 12px, 11px, 14px, 13px, 12.5px). Badges are 9.5px, hints 11px, chips 11.5px. Inputs are 38px tall at 13px text; 16px prevents iOS focus zoom. Files: `index.css`, `responsive.css`, `user.css`, `admin.css`, `moderator.css`, `TraceDraftLayout.css`, `home.css`.
 3. **Button sizing and states.** (DONE on `button-states`, untested.) `.btn.sm` computes to about 37px tall and is used ~64 times; target 44px or document the exception. Raise labels to 14–16px. Add loading, pressed and disabled states. Retire the `teal` button variant (now unused except in `Button.jsx` docs).
-4. **Mobile filters.** Replace the three rows of category chips in `ViewTraces.jsx` with a labelled select under about 640px.
-5. **Mobile form navigation.** Turn the five-step panel in `TraceDraftLayout` into a "Jump to section" disclosure on mobile; keep the desktop sidebar.
-6. **Empty state** (`ViewTraces.jsx` line ~63): "No traces match these filters. Try another search or clear filters." with a Clear filters button; hide pagination when empty.
+4. **Mobile filters.** (DONE on `mobile-filters-and-form-nav`, untested.) Replace the three rows of category chips in `ViewTraces.jsx` with a labelled select under about 640px.
+5. **Mobile form navigation.** (DONE on same branch, untested.) Turn the five-step panel in `TraceDraftLayout` into a "Jump to section" disclosure on mobile; keep the desktop sidebar.
+6. **Empty state** (DONE on same branch, untested.) (`ViewTraces.jsx` line ~63): "No traces match these filters. Try another search or clear filters." with a Clear filters button; hide pagination when empty.
 7. **Account menu** in `Navbar.jsx`: move "Change profile" and "Log out" into an accessible dropdown.
 8. **Form copy** (`SubmitTrace.jsx`, `TraceDraftForm.jsx`, `TraceLocationPrivacy.jsx`): shorten the intro, put requirement hints beside fields, make the sensitive-location text at least 13px.
 9. **Photo placeholder** (`TraceCard.jsx` ~line 84): neutral loading state; separate states for unavailable and data-saver photos.

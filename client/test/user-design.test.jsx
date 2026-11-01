@@ -69,3 +69,15 @@ it("keeps user settings navigation and available controls functional", async () 
   fireEvent.click(screen.getByRole("button", { name: "Usage & activity" }));
   expect(screen.getByRole("heading", { name: "Usage & activity" })).toBeTruthy();
 });
+
+it("offers a Jump to section disclosure that closes after choosing a section", async () => {
+  setup("/user/traces/upload");
+  await screen.findByRole("option", { name: "Coral condition" });
+  const toggle = screen.getByRole("button", { name: "Jump to section" });
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(document.getElementById(toggle.getAttribute("aria-controls"))).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /Add description/ }));
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+});
