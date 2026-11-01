@@ -102,6 +102,16 @@ Branched from `main` after PR #5 (button states) merged.
 - **Tests:** `traces.test.jsx` updated for the new empty text and a new test for the select + Clear filters; new `user-design.test.jsx` test for the toggle.
 - **Check on a real phone:** the select's look, the toggle's open/close, and that nothing overlaps at 320px.
 
+### Done on branch `account-menu` (steps 7, 8 and 9) — UNCOMMITTED, UNTESTED
+
+Branched from `main` after PR #6 (mobile filters + form nav) merged. The branch name no longer matches its contents (it also holds the photo placeholder and form copy changes); a rename attempt failed on lock files, so keep the name.
+
+- **Account menu (`Navbar.jsx`):** at 1280px and up, "Change profile" and "Log out" sit in an "Account" dropdown (disclosure pattern: `aria-expanded`/`aria-controls`, Escape closes and returns focus to the toggle, outside click or focus leaving closes it). Below 1280px the toggle is hidden and the two buttons appear inline in the mobile panel as before (CSS `display:contents`). All roles (user, moderator, admin) now get both items; moderator/admin previously had only Log out. The avatar button still goes straight to the profile. Items are always in the DOM and hidden by CSS only, so existing tests that click "Log out" still work. CSS is at the end of `responsive.css`.
+- **Photo placeholders (`TraceCard.jsx`):** loading = neutral pulsing block (no category colour, hidden from screen readers); "No photo" and "Photo unavailable" (fetch failed or the image failed to load) are separate states with readable text on a neutral background; data saver shows "Data saver is on" above the "Load photo" button. Dark mode colours added.
+- **Form copy:** shorter intros on the draft form (new and revision), shorter photo helper ("Required to submit; optional for a draft."). The submission hint, location privacy hint and 13px `.hint` size were already done earlier. Field labels were deliberately not changed (tests find fields by label).
+- **Tests added:** Account menu behaviour for each role and signed-out (`responsive-navigation.test.jsx`); "No photo" vs "Photo unavailable" (`dataSaver.test.jsx`).
+- **Check on screen:** the dropdown at desktop width (alignment, dark mode), the inline buttons in the mobile panel, and the three card photo states.
+
 ## 5. What's left (planned, in order)
 
 2. **Type scale.** (DONE on `type-scale-and-helper-notes`, untested.) Define role-based sizes in `rem` as variables (page title 28–32, section 20–24, card title 16–18, body and inputs 16, labels and buttons 14–16, metadata 13–14, badges 12) and replace the ~15 scattered pixel sizes (9.5px–17px; most-used: 12px, 11px, 14px, 13px, 12.5px). Badges are 9.5px, hints 11px, chips 11.5px. Inputs are 38px tall at 13px text; 16px prevents iOS focus zoom. Files: `index.css`, `responsive.css`, `user.css`, `admin.css`, `moderator.css`, `TraceDraftLayout.css`, `home.css`.
@@ -109,9 +119,9 @@ Branched from `main` after PR #5 (button states) merged.
 4. **Mobile filters.** (DONE on `mobile-filters-and-form-nav`, untested.) Replace the three rows of category chips in `ViewTraces.jsx` with a labelled select under about 640px.
 5. **Mobile form navigation.** (DONE on same branch, untested.) Turn the five-step panel in `TraceDraftLayout` into a "Jump to section" disclosure on mobile; keep the desktop sidebar.
 6. **Empty state** (DONE on same branch, untested.) (`ViewTraces.jsx` line ~63): "No traces match these filters. Try another search or clear filters." with a Clear filters button; hide pagination when empty.
-7. **Account menu** in `Navbar.jsx`: move "Change profile" and "Log out" into an accessible dropdown.
-8. **Form copy** (`SubmitTrace.jsx`, `TraceDraftForm.jsx`, `TraceLocationPrivacy.jsx`): shorten the intro, put requirement hints beside fields, make the sensitive-location text at least 13px.
-9. **Photo placeholder** (`TraceCard.jsx` ~line 84): neutral loading state; separate states for unavailable and data-saver photos.
+7. **Account menu** (DONE on `account-menu`, untested.) in `Navbar.jsx`: move "Change profile" and "Log out" into an accessible dropdown.
+8. **Form copy** (DONE on `account-menu`, untested.) (`SubmitTrace.jsx`, `TraceDraftForm.jsx`, `TraceLocationPrivacy.jsx`): shorten the intro, put requirement hints beside fields, make the sensitive-location text at least 13px.
+9. **Photo placeholder** (DONE on `account-menu`, untested.) (`TraceCard.jsx` ~line 84): neutral loading state; separate states for unavailable and data-saver photos.
 
 Out of scope of the review, still unchecked: admin/moderator flows beyond the buttons above, dark mode, 200% zoom, real-device Safari, end-to-end submission, whether the search box shows focus (`.search input` sets `outline:none`; parent focus style not checked).
 

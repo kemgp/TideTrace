@@ -61,3 +61,32 @@ it("resets the disclosure after crossing the desktop breakpoint", () => {
   view.unmount();
   expect(media.removeEventListener).toHaveBeenCalledWith("change", change);
 });
+
+it.each(["user", "mod", "admin"])("keeps Change profile and Log out in an Account menu for %s that closes with Escape and outside clicks", (role) => {
+  appState.logout.mockClear();
+  open(role);
+  const toggle = screen.getByRole("button", { name: "Account" });
+  expect(toggle.getAttribute("aria-controls")).toBe("account-menu-panel");
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(document.getElementById("account-menu-panel").contains(screen.getByRole("button", { name: "Change profile" }))).toBe(true);
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(document.activeElement).toBe(toggle);
+  fireEvent.click(toggle);
+  fireEvent.pointerDown(document.body);
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(toggle);
+  fireEvent.pointerDown(screen.getByRole("button", { name: "Log out" }));
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  expect(appState.logout).toHaveBeenCalledTimes(1);
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+});
+
+it("does not show the Account menu to signed-out visitors", () => {
+  open(null);
+  expect(screen.queryByRole("button", { name: "Account" })).toBeNull();
+});
+

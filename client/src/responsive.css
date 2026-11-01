@@ -204,3 +204,27 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
   html { scroll-behavior: auto; }
   .app-shell *, .app-shell *::before, .app-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto; }
 }
+
+/* Account menu: inline buttons inside the mobile panel, a dropdown on desktop. */
+.app-shell .account-menu, .app-shell .account-menu__panel { display: contents; }
+.app-shell .account-menu__toggle { display: none; }
+@media (min-width: 1280px) {
+  .app-shell .account-menu { display: block; position: relative; }
+  .app-shell .nav-actions .account-menu__toggle { display: inline-flex; gap: 8px; padding-inline: 12px; font-size:var(--fs-label); }
+  .app-shell .account-menu__toggle::after {
+    content: ""; width: 7px; height: 7px;
+    border: solid currentColor; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translateY(-2px);
+  }
+  .app-shell .account-menu__toggle[aria-expanded="true"]::after { transform: rotate(-135deg) translate(-2px, 0); }
+  .app-shell .account-menu__panel {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 60;
+    flex-direction: column; gap: 2px; min-width: 190px; padding: 6px;
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(32, 52, 99, .14);
+  }
+  .app-shell .account-menu.is-open .account-menu__panel { display: flex; }
+  .app-shell .account-menu__panel .btn { width: 100%; justify-content: flex-start; padding: 10px 12px; font-size:var(--fs-label); text-align: left; }
+  html.dark-mode .app-shell .account-menu__panel { background: #172235; border-color: #2b3a52; }
+}
+
