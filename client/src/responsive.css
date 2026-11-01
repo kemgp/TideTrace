@@ -228,3 +228,8 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
   html.dark-mode .app-shell .account-menu__panel { background: #172235; border-color: #2b3a52; }
 }
 
+@media (min-width: 1280px) {
+  .app-shell .nav.nav-restoring .nav-links { display: flex; }
+  .app-shell .nav-restoring .nav-sk-menu { display: none; }
+}
+

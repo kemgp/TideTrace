@@ -62,7 +62,7 @@ it("restores a protected deep link on reload without redirecting to login", asyn
   const pending = new Promise((resolve) => { finish = resolve; });
   const calls = api((url) => url === "/api/auth/me" ? pending : undefined);
   const view = open();
-  expect(screen.getByText("Restoring your session…").getAttribute("role")).toBe("status");
+  expect(screen.getByRole("status", { name: "Restoring your session" }).textContent).toContain("Restoring your session…");
   expect(screen.getByTestId("route").textContent).toBe("/user/contributions");
   await act(async () => finish(response(profile())));
   await expectRestoredMember();

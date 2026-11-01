@@ -110,7 +110,7 @@ function AccountAudit({ id }) {
   const [offset, setOffset] = useState(0);
   const result = useRemoteData(`admin/audit-logs?target_user_id=${encodeURIComponent(id)}&limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const rows = result.data || [];
-  return <section aria-label="Account change history" style={{ marginTop: 24 }}><h3>Account change history</h3><RemoteState {...result} />
+  return <section aria-label="Account change history" style={{ marginTop: 24 }}><h3>Account change history</h3><RemoteState compact {...result} />
     {rows.map((row) => <div className="lrow" key={row.id}><div><b>{row.actor?.display_name || "Admin"}</b> · {new Date(row.created_at).toLocaleString()}<p>{row.old_values?.role} / {row.old_values?.status} → {row.new_values?.role} / {row.new_values?.status}</p><p>{row.reason}</p></div></div>)}
     {result.data && !rows.length && <p>No saved account changes on this page.</p>}
     <Pagination offset={offset} count={rows.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />

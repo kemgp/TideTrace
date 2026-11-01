@@ -121,15 +121,6 @@ export default function TraceCard({trace,to}){
           flex-direction:column;
           gap:10px;
         }
-        .trace-card-photo-loading{
-          animation:trace-photo-pulse 1.4s ease-in-out infinite;
-        }
-        @keyframes trace-photo-pulse{
-          50%{opacity:.55}
-        }
-        @media(prefers-reduced-motion:reduce){
-          .trace-card-photo-loading{animation:none}
-        }
         html.dark-mode .trace-card-photo{
           background:#101827;
         }

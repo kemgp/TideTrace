@@ -23,3 +23,9 @@ it("keeps nested loading sections compact instead of repeating a whole page", ()
   render(<MemoryRouter initialEntries={["/user/traces/trace-id"]}><RemoteState compact loading /></MemoryRouter>);
   expect(screen.getByRole("status", { name: "Loading content" }).className).toBe("remote-skeleton");
 });
+it("renders in place without a duplicate navbar or fixed overlay", () => {
+  const { container } = render(<MemoryRouter initialEntries={["/user/traces"]}><RemoteState loading /></MemoryRouter>);
+  expect(container.querySelector(".ps-shell-nav")).toBeNull();
+  expect(container.querySelector("section.page-transition-skeleton")).toBeTruthy();
+});
+

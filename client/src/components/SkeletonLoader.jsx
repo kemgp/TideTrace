@@ -322,18 +322,13 @@ export default function SkeletonLoader({path=""}){
   const type=getType(path);
   return <section className="page-transition-skeleton" role="status" aria-label="Loading content" aria-busy="true" data-skeleton-type={type}>
     <style>{`
-      @keyframes pskShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-      .page-transition-skeleton{position:fixed;inset:0;z-index:9999;width:100%;height:100dvh;min-height:100vh;max-width:none;margin:0;padding:0 0 36px;overflow-y:auto;box-sizing:border-box;background:#fff}
-      .ps-shell-nav{height:84px;display:flex;align-items:center;gap:20px;padding:0 max(24px,calc((100% - 1320px)/2));border-bottom:1px solid #e5edf6;background:#fff}
-      .ps-shell-brand{width:165px;height:24px;flex:none}
-      .ps-shell-links{display:flex;gap:12px;justify-content:center;flex:1}
-      .ps-shell-links .psk{height:38px;width:110px}
-      .ps-shell-avatar{width:42px;height:42px;border-radius:50%;flex:none}
-      .page-transition-skeleton>.ps-page{width:min(1320px,calc(100% - 48px));margin:52px auto 0}
-      html.dark-mode .page-transition-skeleton,html.dark-mode .ps-shell-nav{background:#101827}
-      html.dark-mode .ps-shell-nav{border-color:#26354b}
+      .page-transition-skeleton{display:block;width:100%;margin:0;padding:0 0 12px;animation:sk-in .2s ease 150ms both}
+      .page-transition-skeleton>.ps-page{width:100%;margin:0}
+      /* The page already shows its own heading, search and filters; only the content area is a placeholder. */
+      .page-transition-skeleton .ps-head,.page-transition-skeleton .ps-headrow,.page-transition-skeleton .ps-history-headrow,.page-transition-skeleton .ps-search,.page-transition-skeleton .ps-banner,.page-transition-skeleton .ps-history-chips,.page-transition-skeleton .ps-history-tools{display:none}
+      .page-transition-skeleton .ps-page>.ps-chips,.page-transition-skeleton .ps-page>.ps-content-tabs,.page-transition-skeleton .ps-page>.ps-button,.page-transition-skeleton .ps-page>.ps-note,.page-transition-skeleton .ps-page>.ps-report-tools{display:none}
+      @media(prefers-reduced-motion:reduce){.page-transition-skeleton{animation-duration:.01s}}
       .ps-page{display:block}.ps-page.narrow{max-width:760px;margin:0 auto}
-      .psk{display:block;background:linear-gradient(90deg,#e5eaf1 25%,#f7f9fc 50%,#e5eaf1 75%);background-size:200% 100%;animation:pskShimmer 1.4s ease-in-out infinite;border-radius:8px}
       .ps-banner{height:112px;border-radius:14px;margin-bottom:24px}
       .ps-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:24px}.ps-stat{height:105px;border:1px solid #d5e2ef;border-radius:12px}
       .ps-heading{width:210px;height:22px;margin:24px 0 16px}.ps-heading.short{width:170px}
@@ -421,18 +416,11 @@ export default function SkeletonLoader({path=""}){
       .ps-details{width:180px;height:18px;margin:14px 0}
       html.dark-mode .ps-comment-card,html.dark-mode .ps-report-card{background:#172235;border-color:#34445d}
       html.dark-mode .ps-reason{background:#101827}
-      html.dark-mode .psk{background:linear-gradient(90deg,#1d293b 25%,#2a384e 50%,#1d293b 75%);background-size:200% 100%}
       html.dark-mode .ps-card,html.dark-mode .ps-list,html.dark-mode .ps-detail-card,html.dark-mode .ps-form,html.dark-mode .ps-settings-body,html.dark-mode .ps-side{background:#172235;border-color:#34445d}
       html.dark-mode .ps-list-row,html.dark-mode .ps-setting-row{border-color:#26354b}
       @media(max-width:900px){.ps-admin-profile-grid{grid-template-columns:1fr}.ps-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ps-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ps-settings{grid-template-columns:1fr}.ps-chart-grid{grid-template-columns:1fr}}
-      @media(max-width:640px){.ps-history-headrow{display:block}.ps-history-actions{margin-top:18px}.ps-history-row{align-items:flex-start;padding:18px}.ps-history-row-actions{min-width:0;flex-direction:column;align-items:flex-end}.ps-headrow{display:block}.ps-notification-actions{margin-bottom:16px}.ps-card-grid,.ps-stats,.ps-actions{grid-template-columns:1fr}.ps-photo{height:220px}.ps-search{width:100%}.page-transition-skeleton>.ps-page{width:calc(100% - 32px);margin-top:28px}.ps-shell-nav{height:68px;padding:0 16px}.ps-shell-brand{width:120px}.ps-shell-links .psk{width:42px}}
-      @media(prefers-reduced-motion:reduce){.psk{animation:none}}
+      @media(max-width:640px){.ps-history-headrow{display:block}.ps-history-actions{margin-top:18px}.ps-history-row{align-items:flex-start;padding:18px}.ps-history-row-actions{min-width:0;flex-direction:column;align-items:flex-end}.ps-headrow{display:block}.ps-notification-actions{margin-bottom:16px}.ps-card-grid,.ps-stats,.ps-actions{grid-template-columns:1fr}.ps-photo{height:220px}.ps-search{width:100%}}
     `}</style>
-    <div className="ps-shell-nav" aria-hidden="true">
-      <S className="ps-shell-brand"/>
-      <div className="ps-shell-links"><S/><S/><S/><S/></div>
-      <S className="ps-shell-avatar"/>
-    </div>
     {type==="dashboard"&&<DashboardSkeleton/>}
     {type==="review"&&<ReviewQueueSkeleton/>}
     {type==="cards"&&<CardsSkeleton/>}

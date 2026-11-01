@@ -352,3 +352,22 @@ it("filters by category from the select and clears filters from the empty state"
   expect(screen.getByRole("textbox", { name: "Search traces" }).value).toBe("");
   expect(screen.getByRole("combobox", { name: "Category" }).value).toBe("All");
 });
+
+it("keeps the archive results visible while a new search is loading", async () => {
+  let finish;
+  const pending = new Promise((resolve) => { finish = resolve; });
+  setup((url) => {
+    if (!url.startsWith("/api/traces?")) return;
+    return new URL(url, "https://example.test").searchParams.get("q") === "reef" ? pending : response([trace()]);
+  });
+  open();
+  await screen.findByText("Saved seagrass survey");
+  fireEvent.change(screen.getByRole("textbox", { name: "Search traces" }), { target: { value: "reef" } });
+  expect(await screen.findByText("Updating traces…")).toBeTruthy();
+  expect(screen.getByText("Saved seagrass survey")).toBeTruthy();
+  expect(screen.queryByRole("status", { name: "Loading content" })).toBeNull();
+  await act(async () => finish(response([trace({ title: "Reef cleanup" })])));
+  expect(await screen.findByText("Reef cleanup")).toBeTruthy();
+  expect(screen.queryByText("Updating traces…")).toBeNull();
+});
+
