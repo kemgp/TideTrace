@@ -131,7 +131,7 @@ function LeaveDialog({ onKeep, onDiscard, initiator, pendingRequest }) {
         {pendingRequest && <p>A request is in progress. It may still save on the server. Check the saved record before trying again.</p>}</div>
       <div className="leave-dialog-actions">
         <button ref={keep} className="btn outline" type="button" onClick={onKeep}>Keep editing</button>
-        <button className="btn clay" type="button" onClick={onDiscard}>Discard changes</button>
+        <button className="btn danger" type="button" onClick={onDiscard}>Discard changes</button>
       </div>
     </section>
   </div>, document.body);

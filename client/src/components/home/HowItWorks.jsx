@@ -2,7 +2,7 @@ export default function HowItWorks(){return (
       <section className="tt-hsec" id="home-how">
         <div className="tt-wrap">
           <div className="tt-sh">
-            <span className="tt-tagline" style={{color:"var(--clay)"}}>Getting started</span>
+            <span className="tt-tagline" style={{color:"var(--clay-strong)"}}>Getting started</span>
             <h2>Three steps to your first trace</h2>
           </div>
           <div className="tt-sgrid3">

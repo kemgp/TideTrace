@@ -96,8 +96,8 @@ function Editor({ initial }) {
           <label className="lbl" htmlFor="tide-body" style={{ marginTop: 16 }}>Lesson content</label><textarea className="input" rows={16} maxLength={100000} {...fieldProps("body")} />{fieldError("body")}<p className="hint">Plain text with line breaks. HTML is displayed as text. Saving changes to a published lesson updates what members read.</p>
           <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 16 }}>
             <button type="button" className="btn outline" onClick={() => setPreview((value) => !value)}>{preview ? "Hide preview" : "Preview"}</button>
-            <button type="submit" className="btn blue">{saved?.status === "published" ? "Save published changes" : saved?.status === "archived" ? "Save archived changes" : "Save draft"}</button>
-            {saved?.status !== "published" && <button type="button" className="btn clay" onClick={() => run("published")}>Publish</button>}
+            <button type="submit" className={saved?.status === "published" ? "btn blue" : "btn outline"}>{saved?.status === "published" ? "Save published changes" : saved?.status === "archived" ? "Save archived changes" : "Save draft"}</button>
+            {saved?.status !== "published" && <button type="button" className="btn blue" onClick={() => run("published")}>Publish</button>}
             {saved && saved.status !== "draft" && <button type="button" className="btn outline" onClick={() => run("draft")}>Return to draft</button>}
             {saved && saved.status !== "archived" && <button type="button" className="btn outline" onClick={() => run("archived")}>Archive</button>}
           </div>
