@@ -3,6 +3,7 @@ import {ApiError,authRequest} from "../api/auth.js";
 import {createSessionManager} from "../api/session.js";
 import {getData,requestData} from "../api/data.js";
 import useNotifications from "../hooks/useNotifications.js";
+import useToastQueue from "../hooks/useToastQueue.js";
 import {
   users as seedUsers,
   moderators as seedModerators,
@@ -36,9 +37,7 @@ export function AppProvider({children}){
     typeof window!=="undefined"&&localStorage.getItem("tidetrace-dark-mode")==="true"
   );
 
-  const [toast,setToast]=useState("");
-  const toastTimer=useRef(null);
-  useEffect(()=>()=>window.clearTimeout(toastTimer.current),[]);
+  const {toasts,showToast,dismissToast,pauseToast,resumeToast}=useToastQueue();
 
   useEffect(()=>{
     const shouldUseDarkMode=darkMode&&!!role;
@@ -58,11 +57,6 @@ export function AppProvider({children}){
   const [users,setUsers]=useState(seedUsers);
   const [moderators,setModerators]=useState(seedModerators);
 
-  const showToast=useCallback((msg)=>{
-    setToast(msg);
-    window.clearTimeout(toastTimer.current);
-    toastTimer.current=window.setTimeout(()=>setToast(""),2600);
-  },[]);
 
   const login=useCallback((email,password)=>authenticate(async()=>{
     const data=await authRequest("login",{body:{email:email.trim(),password}});
@@ -89,7 +83,7 @@ export function AppProvider({children}){
       await sessions.logout();
     }catch(error){
       if(error.status!==401){
-        showToast("Signed out here. The server could not confirm sign-out; your session will expire automatically.");
+        showToast({message:"Signed out here. The server could not confirm sign-out; your session will expire automatically.",type:"info",duration:8000});
       }
     }
   },[sessions,showToast]);
@@ -337,8 +331,11 @@ export function AppProvider({children}){
       resendConfirmation,
       logout,
 
-      toast,
+      toasts,
       showToast,
+      dismissToast,
+      pauseToast,
+      resumeToast,
 
       traces,
       addTrace,
@@ -386,8 +383,11 @@ export function AppProvider({children}){
       clearSession,
       resendConfirmation,
       logout,
-      toast,
+      toasts,
       showToast,
+      dismissToast,
+      pauseToast,
+      resumeToast,
       traces,
       tides,
       reports,

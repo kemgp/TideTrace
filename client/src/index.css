@@ -367,8 +367,24 @@ main{min-height:70vh;flex:1;}
 .mcard h3{font-size:var(--fs-body);margin-bottom:8px;}
 .mcard p{font-size:var(--fs-meta);color:var(--soft);margin-bottom:20px;line-height:1.65;}
 .mrow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
-.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--navy);color:#fff;padding:11px 18px;border-radius:10px;font-size:var(--fs-meta);font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:120;box-shadow:0 12px 30px -12px rgba(32,52,99,.5);max-width:90vw;text-align:center;}
-.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+.toast-region{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;align-items:center;width:max-content;max-width:calc(100vw - 32px);pointer-events:none;}
+.toast-stack{display:flex;flex-direction:column-reverse;align-items:center;}
+.toast-item{pointer-events:auto;display:flex;align-items:center;gap:10px;max-width:min(440px,calc(100vw - 32px));margin-bottom:8px;padding:8px 8px 8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.22);background:#203463;color:#fff;box-shadow:0 12px 30px -12px rgba(32,52,99,.5);animation:toast-in .22s ease both;}
+.toast-item.toast-success{background:#1f6b4f;}
+.toast-item.toast-error{background:#a32a2a;}
+.toast-icon{flex:none;}
+.toast-item .toast-message{margin:0;max-width:none;color:inherit;flex:1;min-width:0;font-size:var(--fs-meta);font-weight:600;line-height:1.45;overflow-wrap:anywhere;}
+.toast-action,.toast-close{flex:none;background:transparent;border:0;color:inherit;font:inherit;cursor:pointer;border-radius:6px;}
+.toast-action{padding:2px 8px;font-size:var(--fs-meta);font-weight:700;text-decoration:underline;text-underline-offset:3px;}
+.toast-close{display:grid;place-items:center;width:28px;height:28px;opacity:.85;}
+.toast-action:hover,.toast-close:hover{background:rgba(255,255,255,.16);opacity:1;}
+.toast-action:focus-visible,.toast-close:focus-visible{outline:2px solid #fff;outline-offset:1px;}
+.toast-region .toast-item .toast-close,.toast-region .toast-item .toast-action{min-height:0;min-width:0;}
+.toast-region .toast-item .toast-close{width:32px;height:32px;}
+.toast-region .toast-item .toast-action{padding:4px 8px;}
+.toast-icon{align-self:center;margin-top:0;}
+@keyframes toast-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@media(prefers-reduced-motion:reduce){.toast-item{animation:none;}}
 footer{background:var(--navy);color:#a9bade;padding:25px 0 24px;}
 .foot-in{display:grid;grid-template-columns:1.4fr 1fr auto;align-items:center;gap:24px;font-size:var(--fs-badge);}
 .foot-main{display:flex;align-items:center;gap:18px;min-width:0;}
@@ -807,3 +823,14 @@ html.dark-mode{--sk-base:#1d293b;--sk-shine:#2a384e;}
 .nav-restoring .role-tag{border-radius:12px;}
 .session-restoring .remote-skeleton{padding-top:28px;}
 
+
+/* Outcome shown on the page after a staff decision is saved. It stays; it is not a toast. */
+.decision-outcome{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-left:5px solid var(--navy);border-radius:10px;background:#fff;}
+.decision-outcome p{margin:0;font-size:var(--fs-label);line-height:1.55;}
+.decision-outcome.is-approved{border-left-color:#1f6b4f;background:#f1f9f5;}
+.decision-outcome.is-revision_requested{border-left-color:var(--clay-strong);background:#fff6ef;}
+.decision-outcome.is-rejected{border-left-color:#a32a2a;background:#fdf3f3;}
+html.dark-mode .decision-outcome{background:#172235;border-color:#2b3a52;color:#e7eef7;}
+html.dark-mode .decision-outcome.is-approved{background:#14302a;}
+html.dark-mode .decision-outcome.is-revision_requested{background:#2e2218;}
+html.dark-mode .decision-outcome.is-rejected{background:#32191c;}

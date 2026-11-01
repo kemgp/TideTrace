@@ -4,12 +4,14 @@ import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState from "./RemoteState.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { ApiError } from "../api/auth.js";
+import useToast from "../hooks/useToast.js";
 
 const editable = (trace, owner) => trace.author_id === owner && ["draft", "revision_requested"].includes(trace.status) && !trace.is_hidden && !trace.deleted_at;
 
 
 export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelectedPhoto = false, preparePhoto, operationLock, onLockedChange, onPendingChange, onValidation }) {
   const { readData, writeData, profile } = useApp();
+  const toast = useToast();
   const categories = useRemoteData("categories", { collection: true });
   const [attempted, setAttempted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -87,6 +89,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
       if (controller.signal.aborted) return;
       if (saved?.id !== trace.id || saved.status !== "pending" || !Number.isInteger(saved.version) || saved.version <= latest.version) throw new ApiError("Submission response could not be verified.", "INVALID_RESPONSE");
       onChange({ ...latest, ...saved });
+      toast.success(revision ? "Trace resubmitted for review." : "Trace submitted for review.");
     } catch (failure) {
       if (controller.signal.aborted || failure.code === "CANCELLED") return;
       if (failure.code === "PHOTO_UPLOAD_FAILED") return;

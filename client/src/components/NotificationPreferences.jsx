@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
+import useToast from "../hooks/useToast.js";
 
 const preferences = [
   ["submission_updates", "Submission updates", "When your Trace is approved, rejected, or needs revision."],
@@ -20,11 +21,11 @@ function Preferences() {
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const request = useRef(null);
   useEffect(() => {
     const controller = new AbortController();
-    setSaved(null); setError(""); setNotice("");
+    setSaved(null); setError("");
     readData("notification-preferences", { signal: controller.signal }).then(value => {
       if (!controller.signal.aborted) setSaved(validate(value));
     }).catch(failure => { if (!controller.signal.aborted) setError(failure.message); });
@@ -34,14 +35,14 @@ function Preferences() {
   async function toggle(key) {
     if (!saved || request.current) return;
     const controller = new AbortController();
-    request.current = controller; setBusy(true); setNotice(""); setError("");
+    request.current = controller; setBusy(true); setError("");
     try {
       const value = validate(await writeData("notification-preferences", {
         method: "PATCH", body: { key, enabled: !saved[key] }, signal: controller.signal,
       }));
       if (!controller.signal.aborted) {
         if (value[key] !== !saved[key]) throw new Error("Could not confirm the saved preference.");
-        setSaved(value); setNotice("Preference saved.");
+        setSaved(value); toast.success("Preference saved.");
       }
     } catch (failure) {
       if (!controller.signal.aborted) {
@@ -63,7 +64,7 @@ function Preferences() {
         aria-checked={saved?.[key] ?? false} disabled={!saved || busy} onClick={() => toggle(key)} />
     </div>)}
     <p className="hint">Account, moderation and report notices always stay on.</p>
-    <span className="sr-only" role="status" aria-atomic="true">{busy ? "Saving preference…" : notice}</span>
+    <span className="sr-only" role="status" aria-atomic="true">{busy ? "Saving preference…" : ""}</span>
     {error && <div><p role="alert">{error}</p><button type="button" className="btn outline sm" onClick={() => setAttempt(n => n + 1)}>Reload preferences</button></div>}
   </section>;
 }
