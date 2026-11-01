@@ -89,7 +89,7 @@ export default function Profile() {
 
                 <div><strong>
                   {profile?.display_name}
-                </strong><p className="hint">Your community account</p></div>
+                </strong></div>
 
               </div>
 

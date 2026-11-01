@@ -145,7 +145,7 @@ function PhotoPicker() {
           onError={() => { setSelection(null); setDimensions(null); setError("This photo could not be opened. Choose another JPEG, PNG or WebP image."); }} />
       </div>
       <p className="hint" id={`${zoomId}-help`}>Drag to reposition, or focus the preview and use arrow keys.</p>
-      {!selection.local && <p className="hint">Editing your saved crop. Choose the original photo to include more of the image.</p>}
+      {!selection.local && <p className="hint">Choose the original photo to include more of the image.</p>}
       <label htmlFor={zoomId}>Zoom</label>
       <input id={zoomId} type="range" min="1" max="3" step="0.01" value={zoom} disabled={busy || blocked || !crop} onChange={(event) => setZoom(Number(event.target.value))} />
     </div> : <div className="profile-photo-dropdown" ref={photoActions}
@@ -183,7 +183,7 @@ function PhotoPicker() {
         <button className="btn blue" type="button" disabled={busy || blocked || !crop} onClick={() => save()}>{busy ? "Saving photo…" : "Save photo"}</button>
         <button className="btn ghost" type="button" disabled={busy || blocked} onClick={() => { setSelection(null); setDimensions(null); setError(""); }}>Cancel</button>
     </div>}
-    <p className="hint">JPEG, PNG or WebP · Up to 5 MB. Your saved photo appears everywhere.</p>
+    <p className="hint">JPEG, PNG or WebP · Up to 5 MB.</p>
     {busy && !selection && <p role="status">Updating photo…</p>}
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}

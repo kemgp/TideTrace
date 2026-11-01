@@ -10,16 +10,16 @@
   margin-bottom: 20px;
   border-bottom: 1px solid var(--line);
 }
-.user-settings__panel-heading h3 { font-size: 18px; line-height: 1.4; }
+.user-settings__panel-heading h3 { font-size:var(--fs-card); line-height: 1.4; }
 .user-settings__panel-heading p,
-.user-settings .settings-section-title p { margin-top: 8px; max-width: 65ch; font-size: 14px; line-height: 1.7; color: var(--soft); }
+.user-settings .settings-section-title p { margin-top: 8px; max-width: 65ch; font-size:var(--fs-label); line-height: 1.7; color: var(--soft); }
 .user-settings .user-account-header { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
-.user-settings .user-account-header strong { font-size: 16px; overflow-wrap: anywhere; }
+.user-settings .user-account-header strong { font-size:var(--fs-body); overflow-wrap: anywhere; }
 .app-shell.user-shell .user-settings .setrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
 .app-shell.user-shell .user-settings .setrow:last-child { border-bottom: 0; padding-bottom: 0; }
-.app-shell.user-shell .user-settings .setrow .l { font-size: 14px; font-weight: 600; }
-.app-shell.user-shell .user-settings .setrow .s { font-size: 13px; line-height: 1.6; font-weight: 400; margin-top: 5px; }
-.user-settings__notice { padding: 14px 16px; margin-bottom: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; line-height: 1.7; color: var(--soft); }
+.app-shell.user-shell .user-settings .setrow .l { font-size:var(--fs-label); font-weight: 600; }
+.app-shell.user-shell .user-settings .setrow .s { font-size:var(--fs-meta); line-height: 1.6; font-weight: 400; margin-top: 5px; }
+.user-settings__notice { padding: 14px 16px; margin-bottom: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size:var(--fs-meta); line-height: 1.7; color: var(--soft); }
 .app-shell .user-settings .security-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; max-width: none; margin: 0; }
 .user-settings .security-card h2 { padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .user-settings .security-card p { margin: 0; }
@@ -27,7 +27,7 @@
 .user-settings .settings-form-grid { margin-bottom: 16px; }
 .user-settings .settings-field label { display: block; margin-bottom: 8px; }
 .user-settings .settings-save { margin-top: 20px; }
-.user-settings form > :is([role=status], [role=alert]) { margin-top: 16px; font-size: 14px; }
+.user-settings form > :is([role=status], [role=alert]) { margin-top: 16px; font-size:var(--fs-label); }
 .app-shell .user-settings__usage > .card { padding: 0; border: 0; box-shadow: none; background: transparent; }
 html.dark-mode .user-settings :is(.user-settings__panel-heading, .settings-section-title, .user-account-header, .security-card h2, .user-settings__notice) { border-color: #34445d; }
 html.dark-mode .user-settings__notice { background: #101827; color: #9eafc6; }

@@ -92,8 +92,8 @@ function Editor({ initial }) {
         <fieldset disabled={busy || blocked} style={{ border: 0, padding: 0, minWidth: 0 }}>
           {!saved && <button type="button" className="btn outline sm" onClick={() => { setFields({ ...sampleTide }); setCustomSlug(true); setErrors({}); }}>Use sample lesson</button>}
           <label className="lbl" htmlFor="tide-title" style={{ marginTop: 16 }}>Lesson title</label><input className="input" maxLength={200} {...fieldProps("title")} />{fieldError("title")}
-          <label className="lbl" htmlFor="tide-slug" style={{ marginTop: 16 }}>Slug</label><input className="input" maxLength={200} {...fieldProps("slug")} />{fieldError("slug")}<p className="hint">A unique lesson name using lowercase letters, numbers and hyphens. Suggested from the title until you edit it.</p>
-          <label className="lbl" htmlFor="tide-body" style={{ marginTop: 16 }}>Lesson content</label><textarea className="input" rows={16} maxLength={100000} {...fieldProps("body")} />{fieldError("body")}<p className="hint">Plain text with line breaks. HTML is displayed as text. Saving changes to a published lesson updates what members read.</p>
+          <label className="lbl" htmlFor="tide-slug" style={{ marginTop: 16 }}>Slug</label><input className="input" maxLength={200} {...fieldProps("slug")} />{fieldError("slug")}<p className="hint">Lowercase letters, numbers and hyphens. Suggested from the title until you edit it.</p>
+          <label className="lbl" htmlFor="tide-body" style={{ marginTop: 16 }}>Lesson content</label><textarea className="input" rows={16} maxLength={100000} {...fieldProps("body")} />{fieldError("body")}<p className="hint">Plain text; HTML shows as text. Saving a published lesson updates what members read.</p>
           <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 16 }}>
             <button type="button" className="btn outline" onClick={() => setPreview((value) => !value)}>{preview ? "Hide preview" : "Preview"}</button>
             <button type="submit" className={saved?.status === "published" ? "btn blue" : "btn outline"}>{saved?.status === "published" ? "Save published changes" : saved?.status === "archived" ? "Save archived changes" : "Save draft"}</button>
@@ -103,7 +103,7 @@ function Editor({ initial }) {
           </div>
         </fieldset>
       </form>
-      <p className="hint">{dirty ? "You have unsaved changes. Save before leaving this page." : "Changes are saved only when you choose a save or publication action."}</p>
+      {dirty && <p className="hint">You have unsaved changes. Save before leaving this page.</p>}
       {busy && <p role="status">Saving or checking lesson…</p>}
       {error && <p role="alert">{error}</p>}
       {blocked && saved && <button className="btn outline" disabled={busy} onClick={() => run(null, true)}>Discard local changes and reload saved lesson</button>}

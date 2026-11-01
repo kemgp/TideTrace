@@ -65,7 +65,7 @@ export default function ResetPassword({ session, onRestart }) {
   }
 
   if (done) return <AuthLayout title="Password updated">
-    <p className="sub" role="status">Your password has been changed. Sign in with your new password; your account and role are unchanged.</p>
+    <p className="sub" role="status">Your password has been changed. Sign in with your new password.</p>
     <Link className="btn blue" to="/login">Back to log in</Link>
   </AuthLayout>;
 

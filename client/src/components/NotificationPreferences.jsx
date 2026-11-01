@@ -55,14 +55,14 @@ function Preferences() {
   }
   return <section aria-label="Notification preferences">
     <h3>Notifications</h3>
-    <p className="hint">Choose your in-app alerts. Saved across your devices. Existing notifications stay in your inbox.</p>
+    <p className="hint">Choose your in-app alerts. Saved across your devices.</p>
     {!saved && !error && <p role="status">Loading notification preferences…</p>}
     {preferences.map(([key, label, description]) => <div className="setrow" key={key}>
       <div><div className="l">{label}</div><div className="s">{description}</div></div>
       <button type="button" className={`tgl ${saved?.[key] ? "" : "off"}`} role="switch" aria-label={label}
         aria-checked={saved?.[key] ?? false} disabled={!saved || busy} onClick={() => toggle(key)} />
     </div>)}
-    <p className="hint">Submission status and feedback remain in My contributions. Account, moderation, and report notices remain enabled.</p>
+    <p className="hint">Account, moderation and report notices always stay on.</p>
     <span className="sr-only" role="status" aria-atomic="true">{busy ? "Saving preference…" : notice}</span>
     {error && <div><p role="alert">{error}</p><button type="button" className="btn outline sm" onClick={() => setAttempt(n => n + 1)}>Reload preferences</button></div>}
   </section>;
