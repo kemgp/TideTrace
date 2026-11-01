@@ -5,11 +5,13 @@ import useRemoteData from "../../../hooks/useRemoteData.js";
 import { displayTrace } from "../../../api/data.js";
 import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
 import TraceCard from "../../../components/TraceCard.jsx";
+import CommunityMap from "../../../components/CommunityMap.jsx";
 import Button from "../../../components/Button.jsx";
 
 export default function ViewTraces() {
   const categoriesResult = useRemoteData("categories", { collection: true });
   const categories = categoriesResult.data || [];
+  const [view, setView] = useState("list");
   const [offset, setOffset] = useState(0);
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -18,7 +20,7 @@ export default function ViewTraces() {
   const traces = useMemo(() => (result.data || []).map(displayTrace), [result.data]);
 
   return (
-    <div className="wrap">
+    <div className="wrap community-archive">
       <div className="vhead">
         <div className="headrow">
           <div>
@@ -26,7 +28,7 @@ export default function ViewTraces() {
             <h2>Community archive</h2>
             <p>Sightings, clean-ups, and stories from coastal communities — searchable and filterable.</p>
           </div>
-          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>New Trace</Button>
+          <Button variant={view === "map" ? "outline" : "clay"} size="sm" onClick={() => navigate("/user/traces/upload")}>New Trace</Button>
         </div>
       </div>
 
@@ -37,16 +39,21 @@ export default function ViewTraces() {
           </svg>
           <input aria-label="Search traces" maxLength={200} placeholder="Search all traces, people, places…" value={query} onChange={(e) => { setQuery(e.target.value); setOffset(0); }} />
         </div>
+        <div className="archive-view-switch" role="group" aria-label="Archive view">
+          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "list"} onClick={() => setView("list")}>List</Button>
+          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "map"} onClick={() => setView("map")}>Map</Button>
+        </div>
       </div>
 
       <div className="chiprow" style={{ marginBottom: 20 }}>
-        <button className={`chip ${cat === "All" ? "on" : ""}`} onClick={() => { setCat("All"); setOffset(0); }}>All</button>
+        <button aria-pressed={cat === "All"} className={`chip ${cat === "All" ? "on" : ""}`} onClick={() => { setCat("All"); setOffset(0); }}>All</button>
         {categories.map((c) => (
-          <button key={c.id} className={`chip ${cat === c.id ? "on" : ""}`} onClick={() => { setCat(c.id); setOffset(0); }}>{c.name}</button>
+          <button key={c.id} aria-pressed={cat === c.id} className={`chip ${cat === c.id ? "on" : ""}`} onClick={() => { setCat(c.id); setOffset(0); }}>{c.name}</button>
         ))}
       </div>
 
       <RemoteState compact {...categoriesResult} loading={categoriesResult.loading && !result.loading} />
+      {view === "map" ? <CommunityMap query={query} category={cat} onList={() => setView("list")} /> : <>
       <RemoteState {...result} />
       {!result.loading && !result.error && (traces.length > 0 ? (
         <div className="g3">
@@ -56,6 +63,7 @@ export default function ViewTraces() {
         <div className="ph" style={{ marginTop: 10 }}>{query ? "No traces match your search." : "No approved traces found."}</div>
       ))}
       <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
+      </>}
     </div>
   );
 }

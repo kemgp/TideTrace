@@ -35,7 +35,7 @@ This policy provides notice; reading it or accepting the Terms and Conditions is
 
 ## 3. What other people can see
 
-Approved, visible Traces can be viewed by the public, including visitors without accounts. Public content may include your display name, profile photo, contribution text, uploaded evidence, location name, and any saved coordinates. Visible comments may also show your display name and profile photo.
+Approved, visible Traces can be viewed by the public, including visitors without accounts. Public content may include your display name, profile photo, contribution text, uploaded evidence, location name, and saved coordinates unless the Trace is marked as a sensitive location. Sensitive exact coordinates are restricted to the active author and active moderators/admins; the Trace’s location name, text and media remain public. The setting does not remove locations disclosed in text, photos, embedded media metadata, or previously published copies. Visible comments may also show your display name and profile photo.
 
 Drafts and non-public submissions are subject to access controls. Authorized moderators and administrators may access information needed for review, account administration, security, or complaint handling. Email addresses, authentication credentials, reports, and private account records are not intended for public display.
 

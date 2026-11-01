@@ -15,15 +15,15 @@ import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { PHOTO_TYPES, photoError } from "../api/photos.js";
 import { useUnsavedChanges } from "./NavigationGuard.jsx";
 
-const draftFields = (trace) => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null });
+const draftFields = (trace) => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", is_sensitive: trace?.is_sensitive ?? false, latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null });
 
-export default function TraceDraftForm({ trace = null, onReload }) {
+export default function TraceDraftForm({ trace = null, onReload, initialLocation = null }) {
   const { readData, writeData, showToast, profile } = useApp();
   const navigate = useNavigate();
   const revision = trace?.status === "revision_requested";
   const saveLabel = revision ? "Save changes" : "Save draft";
   const categories = useRemoteData("categories", { collection: true });
-  const [fields, setFields] = useState(() => draftFields(trace));
+  const [fields, setFields] = useState(() => ({ ...draftFields(trace), ...(!trace && initialLocation ? initialLocation : {}) }));
   const [savedFields, setSavedFields] = useState(() => draftFields(trace));
   const [activeStep, setActiveStep] = useState("category");
   const jumpToStep = (step) => {
@@ -157,7 +157,7 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           if (!["draft", "revision_requested"].includes(latest.status) || latest.is_hidden || latest.deleted_at) throw new Error("This Trace is no longer available for submission.");
           const missing = traceValidation(latest, activeCategories, { hasPhoto: hasAttachedPhoto(latest) });
           if (Object.keys(missing).length) throw new Error(Object.values(missing).join(" "));
-          if (["title", "description", "location_name", "category_id", "latitude", "longitude"].some((name) => (latest[name] ?? null) !== (saved[name] ?? null))) throw new Error("The saved details changed. Review the Trace before submitting again.");
+          if (["title", "description", "location_name", "category_id", "latitude", "longitude", "is_sensitive"].some((name) => (latest[name] ?? null) !== (saved[name] ?? null))) throw new Error("The saved details changed. Review the Trace before submitting again.");
           submitting = true;
           const submitted = await writeData(`traces/${encodeURIComponent(saved.id)}/submit`, { method: "POST", body: { version: latest.version }, signal: controller.signal });
           if (controller.signal.aborted) return;
@@ -221,8 +221,11 @@ export default function TraceDraftForm({ trace = null, onReload }) {
           </TraceDraftSection>
           <TraceDraftSection step="location" onActivate={setActiveStep}>
           <label className="lbl" htmlFor="draft-location" style={{ marginTop: 16 }}>Location</label>
+          <p className="hint">This location name is public. Use a broad area for sensitive locations.</p>
           <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
           {fieldError("location_name")}
+          <label className="row" style={{ gap: 8, marginTop: 12 }}><input type="checkbox" checked={fields.is_sensitive} onChange={(event) => setFields((current) => ({ ...current, is_sensitive: event.target.checked }))} /> Sensitive location</label>
+          <p className="hint">{fields.is_sensitive ? "Your exact pin is restricted to you and active staff. It will not appear on the community map." : "Your pin becomes public when this Trace is approved."} This setting does not remove locations from text, photos, media metadata, or previously published copies.</p>
           <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => setFields((current) => ({ ...current, ...point }))} />
           </TraceDraftSection>
           <TraceDraftSection step="description" onActivate={setActiveStep}>

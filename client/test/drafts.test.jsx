@@ -50,7 +50,7 @@ it("saves an unfinished draft, reopens it from contributions, and persists an ed
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
   await screen.findByRole("heading", { name: "Untitled draft" });
   const create = calls.mock.calls.find(([url, options]) => url === "/api/traces" && options.method === "POST")[1];
-  expect(JSON.parse(create.body)).toEqual({ category_id: category.id, title: "", location_name: "", description: "", latitude: null, longitude: null });
+  expect(JSON.parse(create.body)).toEqual({ category_id: category.id, title: "", location_name: "", description: "", latitude: null, longitude: null, is_sensitive: false });
   expect(create.headers.Authorization).toBe("Bearer live-access");
   fireEvent.click(screen.getByRole("link", { name: /Back to My Contributions/ }));
   fireEvent.click(await screen.findByText("Untitled draft"));
@@ -64,7 +64,7 @@ it("saves an unfinished draft, reopens it from contributions, and persists an ed
   expect(screen.getByText("More seagrass observed")).toBeTruthy();
   const writes = calls.mock.calls.filter(([, options]) => ["POST", "PUT"].includes(options.method));
   expect(writes).toHaveLength(2);
-  expect(JSON.parse(writes[1][1].body)).toEqual({ category_id: category.id, title: "Return visit", location_name: "Lawis shoreline", description: "More seagrass observed", latitude: null, longitude: null, version: 1 });
+  expect(JSON.parse(writes[1][1].body)).toEqual({ category_id: category.id, title: "Return visit", location_name: "Lawis shoreline", description: "More seagrass observed", latitude: null, longitude: null, version: 1, is_sensitive: false });
 });
 
 it("preserves saved coordinates on an edit and sends the loaded version", async () => {

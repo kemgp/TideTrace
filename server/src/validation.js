@@ -15,7 +15,7 @@ const coordinates = {
 };
 export const draft = z.object({
   title: z.string().trim().max(200), description: z.string().trim().max(20000),
-  category_id: uuid, location_name: z.string().trim().max(300), ...coordinates,
+  category_id: uuid, location_name: z.string().trim().max(300), is_sensitive: z.boolean().optional(), ...coordinates,
 }).strict();
 export const coordinatePair = (input) => (input.latitude === null) === (input.longitude === null);
 export const decision = z.object({

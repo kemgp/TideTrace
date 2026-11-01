@@ -4,6 +4,7 @@ import { authenticate } from "../middleware.js";
 import { first, result, upstreamError } from "../errors.js";
 import { coordinatePair, draft, page, paginate, report, text, uuid, version } from "../validation.js";
 import { withAuthorPhotos } from "../profilePhotos.js";
+import { withPrivateLocation } from "../traceLocations.js";
 
 export const reviewSelect = "id,from_state,to_state,reason,created_at";
 export const traceSelect = "*,category:categories(id,name),author:profiles!traces_author_id_fkey(id,display_name,avatar_path),trace_media(*)";
@@ -30,6 +31,21 @@ export function contentRoutes(gateway) {
       .order("published_at", { ascending: false }).order("id");
     if (query.category_id) feed = feed.eq("category_id", query.category_id);
     send(res, await withAuthorPhotos(req.db, await result(paginate(feed, query))));
+  });
+  router.get("/traces/map", async (req, res) => {
+    const number = (min, max) => z.string().trim().min(1).pipe(z.coerce.number().min(min).max(max));
+    const query = z.object({ south: number(-90, 90), north: number(-90, 90), west: number(-180, 180), east: number(-180, 180),
+      q: z.string().trim().max(200).optional(), category_id: uuid.optional(),
+    }).strict().refine((value) => value.south <= value.north, { message: "South must not exceed north" }).parse(req.query);
+    const fields = "id,title,category_id,category:categories(id,name),location_name,latitude,longitude";
+    let feed = (query.q ? req.db.rpc("search_public_traces", { p_query: query.q }) : req.db.from("traces"))
+      .select(fields).eq("status", "approved").eq("is_hidden", false).is("deleted_at", null).eq("is_sensitive", false)
+      .not("latitude", "is", null).not("longitude", "is", null).gte("latitude", query.south).lte("latitude", query.north);
+    feed = query.west <= query.east ? feed.gte("longitude", query.west).lte("longitude", query.east)
+      : feed.or(`longitude.gte.${query.west},longitude.lte.${query.east}`);
+    if (query.category_id) feed = feed.eq("category_id", query.category_id);
+    const rows = await result(feed.order("published_at", { ascending: false }).order("id").limit(501));
+    send(res, { pins: rows.slice(0, 500), truncated: rows.length > 500 });
   });
   router.get("/traces/:id", async (req, res) => {
     // Always a public detail; private submissions have a separate member route.
@@ -87,7 +103,7 @@ export function contentRoutes(gateway) {
   });
   router.get("/contributions/:id", member, async (req, res) => {
     const row = first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).eq("id", uuid.parse(req.params.id)).limit(1)));
-    send(res, (await withAuthorPhotos(req.db, [row]))[0]);
+    send(res, await withPrivateLocation(req.db, (await withAuthorPhotos(req.db, [row]))[0]));
   });
   router.get("/contributions/:id/reviews", member, async (req, res) => {
     const id = uuid.parse(req.params.id);
@@ -98,17 +114,25 @@ export function contentRoutes(gateway) {
   async function saveDraft(req, res, creating) {
     const schema = creating ? draft : draft.extend({ version });
     const input = schema.refine(coordinatePair, { message: "Provide both coordinates or neither" }).parse(req.body);
-    send(res, await result(req.db.rpc("save_trace_draft", {
+    const saved = await result(req.db.rpc("save_trace_draft", {
       p_id: creating ? null : uuid.parse(req.params.id), p_version: creating ? null : input.version,
       p_title: input.title, p_description: input.description, p_category_id: input.category_id,
       p_location_name: input.location_name, p_latitude: input.latitude, p_longitude: input.longitude,
-    })), creating ? 201 : 200);
+      ...(input.is_sensitive === undefined ? {} : { p_is_sensitive: input.is_sensitive }),
+    }));
+    send(res, await withPrivateLocation(req.db, saved), creating ? 201 : 200);
   }
   router.post("/traces", member, (req, res) => saveDraft(req, res, true));
   router.put("/traces/:id", member, (req, res) => saveDraft(req, res, false));
+  router.post("/traces/:id/hide-location", member, async (req, res) => {
+    const input = z.object({ version }).strict().parse(req.body);
+    const saved = await result(req.db.rpc("hide_trace_location", { p_id: uuid.parse(req.params.id), p_version: input.version }));
+    send(res, await withPrivateLocation(req.db, saved));
+  });
   router.post("/traces/:id/submit", member, async (req, res) => {
     const input = z.object({ version }).strict().parse(req.body);
-    send(res, await result(req.db.rpc("submit_trace", { p_id: uuid.parse(req.params.id), p_version: input.version })));
+    const saved = await result(req.db.rpc("submit_trace", { p_id: uuid.parse(req.params.id), p_version: input.version }));
+    send(res, await withPrivateLocation(req.db, saved));
   });
   router.post("/traces/:id/comments", member, async (req, res) => {
     const input = z.object({ body: text(5000) }).strict().parse(req.body);

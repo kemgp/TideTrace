@@ -1187,3 +1187,56 @@ test("data saver is an active-account preference with a strict boolean payload",
   state.status = "suspended";
   await bearer(request(app).patch("/api/profile/data-saver")).send({ data_saver: false }).expect(403);
 });
+
+test("map bounds are validated and public filtering precedes the 500 pin cap", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json(Array.from({ length: 501 }, (_, id) => ({ id }))) : undefined });
+  for (const bounds of ["south=&north=20&west=120&east=130", "south=30&north=20&west=120&east=130", "south=0&north=91&west=120&east=130", "south=0&north=20&west=120&east=181"]) {
+    await request(app).get(`/api/traces/map?${bounds}`).expect(400);
+  }
+  assert.equal(calls.length, 0);
+  const response = await request(app).get(`/api/traces/map?south=0&north=20&west=170&east=-170&category_id=${categoryId}`).expect(200);
+  assert.equal(response.body.data.pins.length, 500);
+  assert.equal(response.body.data.truncated, true);
+  const params = calls[0].url.searchParams;
+  assert.equal(params.get("is_sensitive"), "eq.false");
+  assert.equal(params.get("status"), "eq.approved");
+  assert.equal(params.get("is_hidden"), "eq.false");
+  assert.equal(params.get("deleted_at"), "is.null");
+  assert.equal(params.get("or"), "(longitude.gte.170,longitude.lte.-170)");
+  assert.equal(params.get("category_id"), `eq.${categoryId}`);
+  assert.equal(params.get("limit"), "501");
+});
+
+test("map search keeps the same visibility and ordinary viewport filters", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/search_public_traces" ? json([]) : undefined });
+  const response = await request(app).get("/api/traces/map?south=0&north=20&west=120&east=130&q=reef").expect(200);
+  assert.deepEqual(response.body.data, { pins: [], truncated: false });
+  assert.equal(calls[0].body.p_query, "reef");
+  assert.equal(calls[0].url.searchParams.get("is_sensitive"), "eq.false");
+  assert.deepEqual(calls[0].url.searchParams.getAll("longitude"), ["not.is.null", "gte.120", "lte.130"]);
+});
+
+test("private coordinates are merged into authorized details and never public reads", async () => {
+  const record = { id: traceId, author_id: userId, is_sensitive: true, latitude: null, longitude: null };
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([record]);
+    if (url.pathname === "/rest/v1/rpc/get_trace_private_location") return json([{ latitude: 10, longitude: 124 }]);
+  } });
+  const publicResponse = await request(app).get(`/api/traces/${traceId}`).expect(200);
+  assert.equal(publicResponse.body.data.latitude, null);
+  assert.equal(calls.some(({ url }) => url.pathname.includes("get_trace_private_location")), false);
+  const owned = await bearer(request(app).get(`/api/contributions/${traceId}`)).expect(200);
+  assert.equal(owned.body.data.latitude, 10);
+  assert.equal(owned.body.data.longitude, 124);
+});
+
+test("hide-location accepts only a version and returns verified private coordinates", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname.endsWith("hide_trace_location")) return json({ id: traceId, is_sensitive: true, version: 3 });
+    if (url.pathname.endsWith("get_trace_private_location")) return json([{ latitude: 10, longitude: 124 }]);
+  } });
+  await bearer(request(app).post(`/api/traces/${traceId}/hide-location`)).send({ version: 2, is_sensitive: false }).expect(400);
+  const response = await bearer(request(app).post(`/api/traces/${traceId}/hide-location`)).send({ version: 2 }).expect(200);
+  assert.equal(response.body.data.latitude, 10);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_id: traceId, p_version: 2 });
+});

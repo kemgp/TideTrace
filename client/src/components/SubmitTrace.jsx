@@ -61,7 +61,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
         return;
       }
       // Do not silently submit another tab's text edits that the member has not seen.
-      if (latest.status !== trace.status || ["title", "description", "location_name", "category_id", "latitude", "longitude"].some((field) => latest[field] !== trace[field])) {
+      if (latest.status !== trace.status || ["title", "description", "location_name", "category_id", "latitude", "longitude", "is_sensitive"].some((field) => latest[field] !== trace[field])) {
         onChange(latest);
         setError("The saved details changed. Review the updated Trace, then submit again.");
         return;
@@ -72,7 +72,7 @@ export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelecte
         if (controller.signal.aborted) return;
         if (refreshed?.id !== trace.id || refreshed.author_id !== profile.id || !Number.isInteger(refreshed.version) || refreshed.version < latest.version || !Array.isArray(refreshed.trace_media)) throw new ApiError("Unable to verify the Trace after uploading. Reload it before submitting.", "INVALID_RESPONSE");
         onChange(refreshed);
-        if (!editable(refreshed, profile.id) || refreshed.status !== latest.status || ["title", "description", "location_name", "category_id", "latitude", "longitude"].some((field) => refreshed[field] !== latest[field])) {
+        if (!editable(refreshed, profile.id) || refreshed.status !== latest.status || ["title", "description", "location_name", "category_id", "latitude", "longitude", "is_sensitive"].some((field) => refreshed[field] !== latest[field])) {
           setError("The saved details changed during upload. Review the updated Trace before submitting again.");
           return;
         }

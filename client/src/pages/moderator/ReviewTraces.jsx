@@ -8,6 +8,7 @@ import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
 import TraceStatusBadge from "../../components/TraceStatusBadge.jsx";
 import TraceFeedback from "../../components/TraceFeedback.jsx";
+import TraceLocationPrivacy from "../../components/TraceLocationPrivacy.jsx";
 import TraceMap from "../../components/TraceMap.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
 import {PHOTO_TYPES} from "../../api/photos.js";
@@ -219,6 +220,7 @@ function Decision({initialTrace,onReload}){
     <p className="hint">Submitted by {trace.author}</p>
     <div className="chiprow"><span className="chip">{trace.category}</span><span className="chip">{trace.location}</span></div>
     <TraceMap latitude={current.latitude} longitude={current.longitude} />
+    <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={busy || blocked} />
     <h3>Description</h3><p style={{ whiteSpace: "pre-wrap" }}>{trace.description}</p>
     {role !== "mod" && <TracePhotos trace={current} />}
     <TraceFeedback key={`${current.id}:${current.version}`} id={current.id} staff />

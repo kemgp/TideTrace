@@ -1,0 +1,36 @@
+.community-archive .archive-view-switch { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.community-archive .archive-view-switch .btn { min-width: 68px; color: var(--navy); border-radius: 8px; }
+.community-archive .archive-view-switch [aria-pressed="true"] { background: var(--white); font-weight: 700; box-shadow: inset 0 -3px var(--blue); }
+.community-map { color: var(--navy); border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); overflow: clip; container-type: inline-size; }
+.community-map-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px; border-bottom: 1px solid var(--line); }
+.community-map h3 { margin: 0; font-size: 1rem; line-height: 1.3; font-weight: 600; }
+.community-map h4 { margin: 0 0 8px; font-size: .9375rem; line-height: 1.4; }
+.community-map p { margin: 6px 0 0; font-size: .875rem; line-height: 1.5; }
+.community-map-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); }
+.community-map-stage { min-width: 0; }
+.community-map-frame { position: relative; height: clamp(380px, 58vh, 580px); background: var(--bg); }
+.community-map-loading, .community-map-unavailable { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; background: var(--bg); }
+.community-map .community-map-note { margin: 0; padding: 12px 16px; font-size: .8125rem; }
+.community-map-results { display: flex; flex-direction: column; min-width: 0; border-inline-start: 1px solid var(--line); }
+.community-map-results-heading { padding: 20px 16px 16px; }
+.community-map-count, .community-map-coordinates { font-variant-numeric: tabular-nums; }
+.community-map-list { list-style: none; padding: 0 16px; margin: 0; max-height: 400px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.community-map-list li { padding-block: 12px; border-top: 1px solid var(--line); }
+.community-map-result { display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 44px; padding: 12px; text-align: start; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font: inherit; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
+.community-map-result[aria-pressed="true"] { background: var(--bg); border-color: var(--blue); }
+.community-map-meta { display: block; font-size: .8125rem; font-weight: 500; }
+.community-map .community-map-link { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 12px; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; font-size: .875rem; font-weight: 600; }
+.community-map-preview, .community-map-report, .community-map-message { padding: 16px; margin: 0 16px 16px; border: 1px solid var(--line); border-radius: 8px; overflow-wrap: anywhere; }
+.community-map-report, .community-map-preview { background: var(--bg); }
+.community-map-report .btn, .community-map-message .btn { margin-top: 12px; }
+.community-map-preview .community-map-meta { margin-bottom: 6px; }
+.community-map :is(button, a):focus-visible, .community-archive .archive-view-switch button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+@media (hover: hover) { .community-map-result:hover { background: var(--bg); } }
+@container (max-width: 680px) {
+  .community-map-layout { grid-template-columns: 1fr; }
+  .community-map-frame { height: clamp(280px, 48svh, 400px); }
+  .community-map-results { border-inline-start: 0; border-top: 1px solid var(--line); }
+  .community-map-list { max-height: none; }
+  .community-map-header { padding: 16px; }
+}
+@media (forced-colors: active) { .community-archive .archive-view-switch [aria-pressed="true"] { outline: 2px solid CanvasText; } }

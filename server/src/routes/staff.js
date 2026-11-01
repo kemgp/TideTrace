@@ -4,6 +4,7 @@ import { authenticate } from "../middleware.js";
 import { first, result, HttpError } from "../errors.js";
 import { category, decision, page, paginate, text, tide, uuid } from "../validation.js";
 import { reviewSelect, traceSelect } from "./content.js";
+import { withPrivateLocation } from "../traceLocations.js";
 
 const reportSelect = "*,reporter:profiles!reports_reporter_id_fkey(id,display_name),resolver:profiles!reports_resolved_by_fkey(id,display_name),trace:traces(id,title,description,is_hidden,deleted_at,author:profiles!traces_author_id_fkey(id,display_name),trace_media(*)),comment:comments(id,body,trace_id,status,author:profiles!comments_author_id_fkey(id,display_name),trace:traces(id,title))";
 
@@ -19,7 +20,8 @@ export function staffRoutes(gateway) {
     res.json({ data: await result(paginate(req.db.from("traces").select(traceSelect).eq("status", input.status).eq("is_hidden", false).is("deleted_at", null).order("submitted_at").order("id"), input)) });
   });
   router.get("/traces/:id", async (req, res) => {
-    res.json({ data: first(await result(req.db.from("traces").select(traceSelect).eq("id", uuid.parse(req.params.id)).eq("is_hidden", false).is("deleted_at", null).limit(1))) });
+    const row = first(await result(req.db.from("traces").select(traceSelect).eq("id", uuid.parse(req.params.id)).eq("is_hidden", false).is("deleted_at", null).limit(1)));
+    res.json({ data: await withPrivateLocation(req.db, row) });
   });
   router.get("/traces/:id/reviews", async (req, res) => {
     const id = uuid.parse(req.params.id);
@@ -29,7 +31,8 @@ export function staffRoutes(gateway) {
   });
   router.post("/traces/:id/decision", async (req, res) => {
     const input = decision.parse(req.body);
-    res.json({ data: await result(req.db.rpc("moderate_trace", { p_id: uuid.parse(req.params.id), p_version: input.version, p_decision: input.decision, p_reason: input.reason })) });
+    const saved = await result(req.db.rpc("moderate_trace", { p_id: uuid.parse(req.params.id), p_version: input.version, p_decision: input.decision, p_reason: input.reason }));
+    res.json({ data: await withPrivateLocation(req.db, saved) });
   });
   router.get("/reports", async (req, res) => {
     const input = page.extend({ status: z.enum(["open", "resolved", "dismissed"]).default("open"), type: z.enum(["comment", "trace"]).optional() }).parse(req.query);

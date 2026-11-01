@@ -199,3 +199,13 @@ Contribution filters: `GET /api/contributions?status=revision_requested&limit=6&
 Notification preferences: authenticated active accounts read `GET /api/notification-preferences` and save one setting with `PATCH /api/notification-preferences` and `{ "key": "new_tides", "enabled": false }`. Supported keys are `submission_updates`, `trace_comments`, and `new_tides`. Defaults are true, values persist per account, and partial writes do not overwrite other settings. The UI confirms saves, disables duplicate submissions and offers a reload after an unconfirmed response. Apply `20261015000300_notification_preferences.sql` before deploying this feature.
 
 Data saver: `PATCH /api/profile/data-saver` accepts `{ "data_saver": true }` for the active account. `auth/me` returns the saved `data_saver` field through the private account projection. Apply `20261015000400_data_saver.sql` first. The preference defaults to off and persists across sign-ins/devices; the client refreshes its session profile after saving.
+
+### Community map and location privacy
+
+Apply `20261029000100_sensitive_trace_locations.sql` before this API release.
+
+- `GET /api/traces/map?south=…&north=…&west=…&east=…`: required finite numeric bounds (latitude ±90, longitude ±180, south ≤ north). A west greater than east crosses the date line. Optional `q` and `category_id` match archive filters. Returns `{data:{pins:[{id,title,category_id,category,location_name,latitude,longitude}],truncated:boolean}}`, with a maximum of 500 pins. Only approved, visible, undeleted, nonsensitive records with coordinates qualify.
+- Draft POST/PUT accept optional boolean `is_sensitive`. Omission on updates preserves the setting. Paired coordinates go to private storage when sensitive; public reads receive null coordinates. Owner details, staff details, and authorized mutation responses restore the private pin through a guarded RPC.
+- `POST /api/traces/:id/hide-location` accepts `{version}`. Active authors/staff can hide existing pins, including approved pins; stale versions return 409. This action only increases privacy and cannot expose coordinates. Inspect/reload after an uncertain response before retrying.
+
+Sensitive mode does not redact public text, media, metadata, or previously distributed content. Public routes never merge private coordinates, even for an author/staff token.
