@@ -86,7 +86,7 @@ describe("backend authentication", () => {
     await waitFor(() => expect(screen.getByTestId("route").textContent).toBe(path));
     expect(JSON.parse(calls.mock.calls[0][1].body)).toEqual({ email, password });
     expect(calls.mock.calls[1][1].headers.Authorization).toBe("Bearer test-access-token");
-    expect(screen.getByRole("button", { name: "Profile settings" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Account menu" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Log out" })).toBeTruthy();
     expect(screen.getByText(/\bTest Member\b/)).toBeTruthy();
     expect(Object.keys(window.localStorage).filter((key) => key !== "tidetrace-dark-mode")).toEqual([]);

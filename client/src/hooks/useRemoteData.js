@@ -23,6 +23,6 @@ export default function useRemoteData(path, { collection = false, keepPrevious =
   }, [key, path, readData, collection, object]);
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
   const current = result?.key === key;
-  const reuse = !current && keepPrevious && last.current?.profileId === profile?.id;
+  const reuse = !current && keepPrevious && Boolean(last.current) && last.current.profileId === profile?.id;
   return { data: current ? result.data : reuse ? last.current.data : null, error: current ? result.error : "", loading: Boolean(path) && !current && !reuse, refreshing: Boolean(path) && reuse, retry };
 }

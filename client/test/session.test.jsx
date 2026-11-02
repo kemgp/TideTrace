@@ -51,7 +51,8 @@ async function expectRestoredMember() {
 }
 
 async function expectAccountIdentity() {
-  fireEvent.click(screen.getByRole("button", { name: "Profile settings" }));
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  fireEvent.click(document.querySelector(".nav-profile"));
   expect((await screen.findByRole("textbox", { name: "Full name" })).value).toBe(profile().display_name);
   expect(screen.getByRole("textbox", { name: "Email address" }).value).toBe(profile().email);
 }

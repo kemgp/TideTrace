@@ -49,7 +49,7 @@ it.each(["user", "moderator", "admin"])("persists the %s display name and reload
   fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "  Updated Name  " } });
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await screen.findByText("Display name saved.");
-  await waitFor(() => expect(screen.getByRole("button", { name: "Profile settings" }).textContent).toBe("U"));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Account menu" }).textContent).toBe("U"));
   const writes = calls.mock.calls.filter(([url]) => url === "/api/profile");
   expect(writes).toHaveLength(1);
   expect(JSON.parse(writes[0][1].body)).toEqual({ display_name: "Updated Name" });
@@ -144,7 +144,7 @@ it.each(["user", "moderator", "admin"])("saves and restores the %s profile photo
   await previewAndSave();
   await screen.findByText("Profile photo saved.");
   expect(screen.getAllByAltText("Profile photo")).toHaveLength(2);
-  expect(screen.getByRole("button", { name: "Profile settings" }).querySelector("img").src).toBe("https://example.test/new-photo.png");
+  expect(screen.getByRole("button", { name: "Account menu" }).querySelector("img").src).toBe("https://example.test/new-photo.png");
   const writes = calls.mock.calls.filter(([url]) => url === "/api/profile/photo");
   expect(writes).toHaveLength(1);
   expect(writes[0][1].body).not.toBe(file);
@@ -247,7 +247,7 @@ it("previews without uploading, adjusts the crop, and cancels without changing s
   expect(image.style.width).toBe(`${800 / 300 * 100}%`);
   expect(image.style.left).toBe("-87.5%");
   expect(calls.mock.calls.some(([url]) => url === "/api/profile/photo")).toBe(false);
-  expect(screen.getByRole("button", { name: "Profile settings" }).querySelector("img").src).toBe(account.avatar_url);
+  expect(screen.getByRole("button", { name: "Account menu" }).querySelector("img").src).toBe(account.avatar_url);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByAltText("Selected photo preview")).toBeNull();
   expect(screen.getAllByAltText("Profile photo").every((img) => img.src === account.avatar_url)).toBe(true);
@@ -319,7 +319,7 @@ it.each(["user", "moderator", "admin"])("removes the %s saved photo and clears t
   fireEvent.click(await screen.findByRole("button", { name: "Remove photo" }));
   await screen.findByText("Profile photo removed.");
   expect(screen.queryAllByAltText("Profile photo")).toHaveLength(0);
-  expect(screen.getByRole("button", { name: "Profile settings" }).textContent).toBe("O");
+  expect(screen.getByRole("button", { name: "Account menu" }).textContent).toBe("O");
   expect(screen.queryByRole("button", { name: "Remove photo" })).toBeNull();
   expect(calls.mock.calls.filter(([url, options]) => url === "/api/profile/photo" && options.method === "DELETE")).toHaveLength(1);
 });

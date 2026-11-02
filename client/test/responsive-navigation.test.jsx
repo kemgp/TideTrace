@@ -32,10 +32,10 @@ it("closes the panel after navigating and preserves the account actions", () => 
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.getByRole("link", { name: "Traces" }).getAttribute("aria-current")).toBe("page");
   fireEvent.click(toggle);
-  fireEvent.click(screen.getByRole("button", { name: "Change profile" }));
+  fireEvent.click(screen.getByRole("button", { name: "Settings" }));
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.getByRole("button", { name: "Log out" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Profile settings" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Account menu" })).toBeTruthy();
 });
 
 it("closes when clicking outside, but leaves clicks within the panel alone", () => {
@@ -62,13 +62,13 @@ it("resets the disclosure after crossing the desktop breakpoint", () => {
   expect(media.removeEventListener).toHaveBeenCalledWith("change", change);
 });
 
-it.each(["user", "mod", "admin"])("keeps Change profile and Log out in an Account menu for %s that closes with Escape and outside clicks", (role) => {
+it.each(["user", "mod", "admin"])("keeps the profile action and Log out in an Account menu for %s that closes with Escape and outside clicks", (role) => {
   appState.logout.mockClear();
   open(role);
-  const toggle = screen.getByRole("button", { name: "Account" });
+  const toggle = screen.getByRole("button", { name: "Account menu" });
   expect(toggle.getAttribute("aria-controls")).toBe("account-menu-panel");
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
-  expect(document.getElementById("account-menu-panel").contains(screen.getByRole("button", { name: "Change profile" }))).toBe(true);
+  expect(document.getElementById("account-menu-panel").contains(screen.getByRole("button", { name: role === "user" ? "Settings" : "Change profile" }))).toBe(true);
   fireEvent.click(toggle);
   expect(toggle.getAttribute("aria-expanded")).toBe("true");
   fireEvent.keyDown(document, { key: "Escape" });
@@ -87,7 +87,7 @@ it.each(["user", "mod", "admin"])("keeps Change profile and Log out in an Accoun
 
 it("does not show the Account menu to signed-out visitors", () => {
   open(null);
-  expect(screen.queryByRole("button", { name: "Account" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Account menu" })).toBeNull();
 });
 
 it("shows a placeholder navbar, not the signed-out links, while the saved session is being restored", () => {
@@ -101,4 +101,12 @@ it("shows a placeholder navbar, not the signed-out links, while the saved sessio
     expect(container.querySelector("nav").getAttribute("aria-busy")).toBe("true");
     expect(container.querySelectorAll(".nav-sk").length).toBeGreaterThan(0);
   } finally { delete appState.sessionReady; }
+});
+
+it("moves Notifications and Settings out of the member links: a bell menu, and Settings in the Account menu", () => {
+  open("user");
+  const links = [...document.querySelectorAll(".nav-links a")].map((link) => link.textContent.trim());
+  expect(links).toEqual(["Dashboard", "Traces", "Tides", "Contributions"]);
+  expect(screen.getByRole("button", { name: /^Notifications/ }).getAttribute("aria-haspopup")).toBe("true");
+  expect(document.getElementById("account-menu-panel").contains(screen.getByRole("button", { name: "Settings" }))).toBe(true);
 });
