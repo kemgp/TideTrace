@@ -293,3 +293,11 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Card is 820px wide on desktop; title uses the title scale; description at body size.
 - **Public trace detail redesign (same branch):** two columns on desktop (story left: photo hero, title block, description, comments; sticky details panel right: location map, "About this trace", Delete or Report). One column on phones with the map right after the description. Photo hero uses a fixed 16:10 shape with a blurred backdrop, extra photos become a thumbnail row, and an expand button opens a native `<dialog>` viewer (`.photo-viewer`). Dates read "3 days ago" with the full date on hover (`api/relativeTime.js`, `components/RelativeTime.jsx`). Comments are a thread with the signed-in avatar beside the box; per-comment Report appears on hover/focus (always visible on touch). Withheld locations and no-photo states have their own panels. The contribution (owner) view keeps its single-column order with Edit/Delete in the header.
 - Not built: thumbnail switching between photos, "show earlier comments" (pagination stays), a sticky comment box on phones.
+
+## Trace detail phase 1 (branch `trace-detail-phase-1`)
+- Photos: thumbnails switch the main photo (`is-active`); the viewer has previous/next buttons, arrow keys and an "N of M" counter; hero photos get a loading shimmer and the alt text "<title>, photo N" (non-hero alt text unchanged because tests and uploads rely on "Trace photo N").
+- Loading: `TraceDetailSkeleton` mirrors the two-column page for `/user/traces/:id` (still `data-skeleton-type="detail"`).
+- Details panel: "Open in Maps" (only with a public pin), "Copy link" (button text is the confirmation, no toast), photo count in the facts.
+- Report is a modal dialog (`ReportDialog`); falls back to the `open` attribute where `showModal` is missing (jsdom).
+- Comments accumulate into one thread with "Show more comments" (heading shows `(N+)` while more remain), a characters-left counter in the last 500, and a comment box that sticks to the bottom on phones.
+- Tests: `traceDetailActions.test.jsx`, plus a skeleton case in `loadingSkeletons.test.jsx`.

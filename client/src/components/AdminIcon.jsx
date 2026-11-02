@@ -15,6 +15,9 @@ const paths = {
   chart: "M4 20V10 M10 20V4 M16 20v-8 M22 20H2",
   log: "M5 3h14v18H5z M8 7h8 M8 11h8 M8 15h5",
   tag: "M3 3h8l10 10-8 8L3 11z M7 7h.01",
+  link: "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1 M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",
+  trash: "M3 6h18 M8 6V4h8v2 M6 6l1 15h10l1-15 M10 11v6 M14 11v6",
+  check: "M5 12l5 5L20 7",
   key: "M14 3a7 7 0 1 1-4 13l-6 6-3-3 6-6a7 7 0 0 1 7-10 M16 7h.01",
 };
 export default function AdminIcon({ name, size = 18 }) {

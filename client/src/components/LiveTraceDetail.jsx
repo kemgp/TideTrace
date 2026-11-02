@@ -16,6 +16,8 @@ import TraceComments from "./TraceComments.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 import DeleteTrace from "./DeleteTrace.jsx";
 import RelativeTime from "./RelativeTime.jsx";
+import { OpenInMaps } from "./TraceShareActions.jsx";
+import TraceMenu from "./TraceMenu.jsx";
 import { fullDate } from "../api/relativeTime.js";
 import "./trace-detail.css";
 
@@ -38,16 +40,19 @@ function TraceContent({ initialTrace, contribution }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const fieldError = (name) => fieldErrors[name] ? <p id={name === "photo" ? "trace-photo-validation" : undefined} role="alert" style={{ color: "var(--clay)" }}>{fieldErrors[name]}</p> : null;
   const [submissionLocked, setSubmissionLocked] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const operationLock = useRef(null);
   const trace = displayTrace(current);
   const mine = current.author_id === profile?.id;
   const editable = contribution && current.author_id === profile?.id && ["draft", "revision_requested"].includes(current.status) && !current.is_hidden && !current.deleted_at;
   const editLink = editable && !submissionLocked && <Link className="btn outline sm" to={`/user/contributions/${encodeURIComponent(trace.id)}/edit`}>{current.status === "revision_requested" ? "Edit requested revision" : "Edit draft"}</Link>;
   const map = !contribution && current.is_sensitive ? <p className="hint">Location withheld</p> : <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates={Boolean(contribution)} />;
-  const deleteButton = <DeleteTrace trace={current} disabled={submissionLocked} onDeleted={() => {
+  const onDeleted = () => {
     // Clear the selected-photo navigation guard before the confirmed deletion redirects.
     flushSync(() => setCurrent((saved) => ({ ...saved, deleted_at: new Date().toISOString() })));
-  }} />;
+  };
+  const deleteButton = <DeleteTrace trace={current} disabled={submissionLocked} onDeleted={onDeleted} />;
   if (!contribution) {
     const posted = current.published_at || current.created_at;
     return (
@@ -56,12 +61,19 @@ function TraceContent({ initialTrace, contribution }) {
           <div className="trace-detail__main">
             <TracePhotos trace={current} hero />
             <div className="trace-detail__headline">
-              <h2 className="trace-detail__title">{trace.title || "Untitled draft"}</h2>
+              <div className="trace-detail__titlerow">
+                <h2 className="trace-detail__title">{trace.title || "Untitled draft"}</h2>
+                <TraceMenu canReport={!mine} canDelete={mine && !current.deleted_at} deleteDisabled={submissionLocked}
+                  onReport={() => setReportOpen(true)} onDelete={() => setDeleteOpen(true)} />
+              </div>
               <div className="trace-detail__meta">
                 <div className="trace-detail__author"><AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} /><p className="hint"><span className="trace-detail__author-name">{trace.author}</span>{posted && <> · <RelativeTime value={posted} /></>}</p></div>
                 {trace.status === "approved" ? <span className="badge approved">Approved · Published</span> : <TraceStatusBadge status={trace.status} />}
               </div>
               <div className="chiprow trace-detail__tags"><span className="chip on">{trace.category}</span><span className="chip"><span aria-hidden="true">📍 </span>{trace.location}</span></div>
+              {mine
+                ? <DeleteTrace trace={current} open={deleteOpen} onOpenChange={setDeleteOpen} onDeleted={onDeleted} />
+                : <ReportContent targetId={current.id} type="trace" open={reportOpen} onOpenChange={setReportOpen} />}
             </div>
             <span className="lbl sr-only">Description</span>
             <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
@@ -72,18 +84,19 @@ function TraceContent({ initialTrace, contribution }) {
               <h3 className="trace-detail__panel-title">Location</h3>
               {current.is_sensitive
                 ? <p className="trace-detail__locked"><span aria-hidden="true">🔒 </span>Location withheld<small>Hidden to protect this site.</small></p>
-                : <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates={false} />}
+                : <>
+                  <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates={false} />
+                  <OpenInMaps latitude={current.latitude} longitude={current.longitude} />
+                </>}
             </section>
             <section className="trace-detail__panel trace-detail__panel--facts">
               <h3 className="trace-detail__panel-title">About this trace</h3>
               <dl className="trace-detail__facts">
                 <div><dt>Category</dt><dd>{trace.category}</dd></div>
                 {posted && <div><dt>Posted</dt><dd>{fullDate(posted)}</dd></div>}
+                {trace.trace_media?.length > 0 && <div><dt>Photos</dt><dd>{trace.trace_media.length}</dd></div>}
               </dl>
             </section>
-            <div className="trace-detail__panel trace-detail__actions-panel">
-              {mine ? deleteButton : <ReportContent targetId={current.id} type="trace" />}
-            </div>
           </aside>
         </div>
       </Card>

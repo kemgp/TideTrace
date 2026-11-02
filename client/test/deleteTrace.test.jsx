@@ -156,7 +156,9 @@ it("deletes from contributions without nesting the button in a link and refreshe
 
 it("offers Delete on the owner's public detail", async () => {
   setup(); open(`/user/traces/${trace.id}`);
-  expect(await screen.findByRole("button", { name: "Delete", exact: true })).toBeTruthy();
+  fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Delete trace" }));
+  expect(screen.getByRole("dialog", { name: "Delete this trace?" })).toBeTruthy();
 });
 
 it("does not ask to discard a selected photo after deletion was already confirmed", async () => {
@@ -175,5 +177,6 @@ it("does not ask to discard a selected photo after deletion was already confirme
 it("never offers Delete on someone else's detail", async () => {
   setup({ saved: { ...trace, author_id: "other-member" } }); open(`/user/traces/${trace.id}`);
   await screen.findByRole("heading", { name: trace.title });
-  expect(screen.queryByRole("button", { name: "Delete", exact: true })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+  expect(screen.queryByRole("menuitem", { name: "Delete trace" })).toBeNull();
 });

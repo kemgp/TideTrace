@@ -896,3 +896,11 @@ html.dark-mode .trace-detail__card--public .trace-detail__media-item,html.dark-m
 html.dark-mode .trace-detail__comment-list .comment{border-left-color:var(--d-border);}
 html.dark-mode .trace-detail__actions-panel .btn.danger{color:#f2a29b;border-color:#f2a29b;}
 html.dark-mode .trace-detail__actions-panel .btn.danger:hover:not(:disabled){background:#3b1f1f;}
+html.dark-mode .trace-detail__link{color:#a9b8ff;}
+html.dark-mode .trace-detail__link:hover{color:var(--d-text);}
+@media(max-width:900px){html.dark-mode .trace-detail__comment-form{background:var(--d-surface);border-top-color:var(--d-border);}}
+html.dark-mode .trace-menu__list{background:var(--d-surface-2);border-color:var(--d-border-strong);}
+html.dark-mode .app-shell .trace-menu__btn,html.dark-mode .app-shell .trace-menu__item{color:var(--d-text);}
+html.dark-mode .app-shell .trace-menu__item:hover:not(:disabled),html.dark-mode .app-shell .trace-menu__item:focus-visible{background:#ffffff14;}
+html.dark-mode .app-shell .trace-menu__item--danger{color:#f2a29b;}
+

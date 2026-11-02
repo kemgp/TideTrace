@@ -1,9 +1,9 @@
 import { PAGE_SIZE } from "../api/pagination.js";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import ReportContent from "./ReportContent.jsx";
-import RemoteState, { Pagination } from "./RemoteState.jsx";
+import RemoteState from "./RemoteState.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 import EmptyState from "./EmptyState.jsx";
 import RelativeTime from "./RelativeTime.jsx";
@@ -12,6 +12,10 @@ export default function TraceComments({ traceId }) {
   const { writeData, profile } = useApp();
   const [offset, setOffset] = useState(0);
   const result = useRemoteData(`traces/${encodeURIComponent(traceId)}/comments?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
+  // Pages accumulate into one thread; "Show more comments" asks for the next page.
+  const [pages, setPages] = useState({});
+  useEffect(() => { if (result.data) setPages((saved) => saved[offset] === result.data ? saved : { ...saved, [offset]: result.data }); }, [result.data, offset]);
+  const counter = useId();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +37,8 @@ export default function TraceComments({ traceId }) {
       if (!saved?.id || saved.trace_id !== traceId) throw Object.assign(new Error("Unable to confirm the comment."), { code: "INVALID_RESPONSE" });
       setText("");
       setNotice("Comment sent.");
-      result.retry();
+      setPages({});
+      if (offset === 0) result.retry(); else setOffset(0);
     } catch (failure) {
       if (controller.signal.aborted) return;
       const unknown = failure.code === "NETWORK_ERROR" || failure.code === "INVALID_RESPONSE" || failure.status >= 500;
@@ -44,10 +49,15 @@ export default function TraceComments({ traceId }) {
       if (!controller.signal.aborted) setBusy(false);
     }
   };
-  const comments = result.data || [];
+  const offsets = Object.keys(pages).map(Number).sort((a, b) => a - b);
+  const comments = offsets.flatMap((key) => pages[key]);
+  const lastLoaded = offsets.at(-1);
+  const hasMore = lastLoaded === undefined ? false : lastLoaded === offset ? pages[lastLoaded].length === PAGE_SIZE : true;
+  const loadingMore = offset > 0 && result.loading;
+  const remaining = 5000 - text.length;
   return <section className="trace-detail__comments" aria-label="Trace comments">
-    <h3 className="trace-detail__comments-title">Comments{result.data && offset === 0 && comments.length < 25 ? ` (${comments.length})` : ""}</h3>
-    <RemoteState compact {...result} />
+    <h3 className="trace-detail__comments-title">Comments{offsets.length ? ` (${comments.length}${hasMore ? "+" : ""})` : ""}</h3>
+    {(!comments.length || result.error) && <RemoteState compact {...result} />}
     <div className="trace-detail__comment-list">
       {comments.map((comment) => <div className="comment" key={comment.id}>
         <AuthorAvatar authorId={comment.author_id || comment.author?.id} name={comment.author_id === profile?.id ? profile.display_name : comment.author?.display_name || "Community member"} url={comment.author?.avatar_url} />
@@ -57,15 +67,16 @@ export default function TraceComments({ traceId }) {
           {comment.author_id !== profile?.id && <ReportContent targetId={comment.id} type="comment" />}
         </div>
       </div>)}
-      {result.data && !comments.length && <EmptyState className="empty-state--compact" title={offset ? "No more comments." : "No comments yet — be the first to say something."} />}
+      {offsets.length > 0 && !comments.length && <EmptyState className="empty-state--compact" title="No comments yet — be the first to say something." />}
     </div>
-    {(offset > 0 || comments.length === PAGE_SIZE) && <Pagination offset={offset} count={comments.length} size={PAGE_SIZE} loading={result.loading} onChange={setOffset} />}
+    {hasMore && !result.error && <button type="button" className="btn outline sm trace-detail__more" disabled={loadingMore} aria-busy={loadingMore || undefined} onClick={() => setOffset(lastLoaded + PAGE_SIZE)}>{loadingMore ? "Loading…" : "Show more comments"}</button>}
     {error && <p role="alert">{error}</p>}
     {notice && <p className="hint" role="status">{notice}</p>}
     <form className="trace-detail__comment-form" onSubmit={send}>
       <AuthorAvatar authorId={profile?.id} name={profile?.display_name} url={profile?.avatar_url} />
-      <input className="input" aria-label="Add a comment" placeholder="Add a comment…" value={text} maxLength={5000} disabled={busy || uncertain} onChange={(event) => setText(event.target.value)} />
+      <input className="input" aria-label="Add a comment" placeholder="Add a comment…" value={text} maxLength={5000} aria-describedby={remaining <= 500 ? counter : undefined} disabled={busy || uncertain} onChange={(event) => setText(event.target.value)} />
       <button className="btn blue sm" type="submit" disabled={busy || uncertain || !text.trim()}>{busy ? "Sending…" : "Send"}</button>
     </form>
+    {remaining <= 500 && <p id={counter} className="hint trace-detail__counter">{remaining} characters left</p>}
   </section>;
 }
