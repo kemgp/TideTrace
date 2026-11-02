@@ -2,6 +2,23 @@
 
 Current state of the project, what was changed in the latest session, and what is left.
 
+### Trace detail polish 2 — `trace-detail-polish-2` (2026-11-02, uncommitted)
+
+- `ScrollManager` (App.jsx): new pages start at the top, browser Back/Forward restores position, in-place URL replaces never move the page. "Back to Traces" restores the list position via `state.restoreScroll` + `archive-scroll:<search>` in sessionStorage.
+- Neighbours are fetched once in `LiveTraceDetail` and shared: `TraceStepper` (Newer/Older buttons beside Back, placeholders while loading, icon-only under 480px) and `TraceNeighbors` cards (arrows, two-line titles) after the comments.
+- `RelatedTraces` renders nothing until it has data; heading is "More in {category}".
+- Comment Delete is a quiet text button (danger on hover/focus); its dialog quotes the comment (140 chars).
+- Archive shows "Showing results for … in …" with "Clear all filters" when filtering.
+
+### Logo variants — `client/public/brand/` (2026-11-02, uncommitted, on `main`)
+
+- New folder with 17 SVGs plus `png/` exports and `preview.html`/`preview.png` (open the HTML to see every variant on light and dark). Nothing in the app imports them yet; `tidetrace-logo.svg` is unchanged.
+- Variants: `mark-{dark,black,white,teal,clay}`, `mark-dark-tile`, `badge-round[-dark]`, `app-icon[-dark|-maskable]`, `badge-trace` (teal-strong pill, two-wave mark), `badge-tide` (navy pill, single-wave mark), `lockup-horizontal[-dark]`, `lockup-stacked[-dark]`. Colors come from the existing tokens (`--navy`, `--teal-strong`, `--d-text`, `--d-bg`).
+- Wordmark text is outlined from Poppins Bold (700). The app uses weight 600, which was not available when generating, so the wordmark is slightly heavier than the navbar.
+- The Trace badge is teal-strong, not clay, so it never competes with the one-clay-per-screen rule.
+- Not done: wiring into `index.html` (favicon/manifest), the navbar, or `social-preview.svg`. Below 24 px use `mark-*`; the wave inside badges and icons is too fine at 16 px. Create a branch before committing.
+- Delete the leftover `_to_delete/` folder in the project root (temporary zip, safe to remove).
+
 ### Own-Trace deletion — `delete-own-traces` (2026-11-02, uncommitted)
 
 - Branched from updated `main`; no commit or push. Apply `supabase/migrations/20261102000100_delete_own_trace.sql` before deploying the API/client changes.

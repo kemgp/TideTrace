@@ -2,6 +2,7 @@ import Home from "./pages/Home/index.jsx";
 import NavigationGuard from "./components/NavigationGuard.jsx";
 import LegalPage from "./pages/legal/LegalPage.jsx";
 import PageMetadata from "./components/PageMetadata.jsx";
+import ScrollManager from "./components/ScrollManager.jsx";
 import React,{useEffect,useRef} from "react";
 import {Link,Navigate,Route,Routes,useLocation} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
@@ -279,6 +280,7 @@ function AppShell(){
           </button>
         </div>
       )}
+      <ScrollManager />
       <main ref={mainRef}>
           <Routes>
             <Route path="/terms-of-service" element={<LegalPage document="terms" />} />
