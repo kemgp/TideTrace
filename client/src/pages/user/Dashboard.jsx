@@ -5,18 +5,18 @@ import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState from "../../components/RemoteState.jsx";
 import { displayTrace } from "../../api/data.js";
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import TraceCard from "../../components/TraceCard.jsx";
-import Card from "../../components/Card.jsx";
-import UserShortcuts from "../../components/UserShortcuts.jsx";
-import Button from "../../components/Button.jsx";
+import NeedsAttention from "../../components/NeedsAttention.jsx";
+import NextLesson from "../../components/NextLesson.jsx";
+import WhatsNew from "../../components/WhatsNew.jsx";
+import { attentionLine, STAT_LINKS } from "../../api/dashboardText.js";
+import "./dashboard.css";
 
 export default function Dashboard() {
   throw new Error("test crash");
   const { profile } = useApp();
-  const navigate = useNavigate();
-
   const totals = useDashboard();
   const recentResult = useRemoteData("traces?limit=3&offset=0", {
     collection: true,
@@ -27,72 +27,45 @@ export default function Dashboard() {
     <div className="wrap">
       <div className="banner">
         <div>
-          <b>Kumusta, {profile?.display_name}</b>
-          <div className="s">
-            Your activity: saved contributions and learning, all time
+          <h1 className="banner-title">Kumusta, {profile?.display_name}</h1>
+          <div className="s">{attentionLine(totals.data)}</div>
+        </div>
+        <Link className="banner-action" to="/user/traces/upload">Upload trace</Link>
+      </div>
+
+      <div className="dash-grid">
+        <div className="dash-main">
+          {totals.data && <NeedsAttention key={`${totals.data.needs_revision}:${totals.data.drafts}`} revisions={totals.data.needs_revision} drafts={totals.data.drafts} />}
+          <div className="dash-learning">
+            <div className="dash-head"><h2 className="sec-t">Continue learning</h2></div>
+            <NextLesson />
           </div>
         </div>
-
-        <svg
-          width={34}
-          height={34}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#fff"
-          strokeWidth="1.8"
-        >
-          <path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0" />
-          <path d="M2 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0" />
-        </svg>
-      </div>
-
-      <DashboardStats
-        result={totals}
-        items={[
-          ["traces", "Your Traces"],
-          ["approved", "Approved"],
-          ["pending", "In review"],
-        ]}
-      />
-
-      <div className="g2" style={{ marginTop: 16 }}>
-        <Button
-          variant="clay"
-          onClick={() => navigate("/user/traces/upload")}
-        >
-          ＋ Upload Trace
-        </Button>
-
-        <Button
-          variant="outline"
-          onClick={() => navigate("/user/traces")}
-        >
-          Explore Traces
-        </Button>
-      </div>
-
-      <h3 className="sec-t">Continue learning</h3>
-
-      <Card className="user-learning-callout">
-        <div>
-          <span className="lbl">Explore Tides</span>
-          <p>
-            Coastal lessons from your community. Open Tides to see your saved
-            completions.
-          </p>
+        <div className="dash-side">
+          <div className="dash-activity">
+            <div className="dash-head">
+              <h2 className="sec-t">Your activity</h2>
+              {totals.data && <span className="dash-meta">Updated {new Date(totals.data.as_of).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>}
+            </div>
+            <DashboardStats
+              flush
+              showMeta={false}
+              result={totals}
+              items={[
+                ["traces", "Your Traces", STAT_LINKS.traces],
+                ["approved", "Approved", STAT_LINKS.approved],
+                ["pending", "In review", STAT_LINKS.pending],
+              ]}
+            />
+          </div>
+          <WhatsNew />
         </div>
+      </div>
 
-        <Button
-          variant="blue"
-          onClick={() => navigate("/user/tides")}
-        >
-          Browse lessons →
-        </Button>
-      </Card>
-
-      <UserShortcuts />
-
-      <h3 className="sec-t">Recent from the community</h3>
+      <div className="sec-row">
+        <h2 className="sec-t">Recent from the community</h2>
+        <Link className="sec-link" to="/user/traces">See all traces</Link>
+      </div>
 
       <RemoteState compact {...recentResult} />
 

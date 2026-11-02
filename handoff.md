@@ -354,3 +354,13 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - `components/RouteError.jsx` is the router's `errorElement` (set in `main.jsx`). A page that crashes while rendering now shows "Something went wrong" with Reload page and Go to home, instead of React Router's developer screen. A 404 route response shows "Page not found".
 - It uses a plain `<a href="/">` and `window.location.reload()` and no app providers, because the crash may be inside `AppProvider`. The error text is shown only in development builds.
 - Errors thrown outside the router (in `main.jsx`) and in event handlers or async code are not caught by this.
+## Dashboard polish (branch `dashboard-polish`)
+- Banner second line is built from the dashboard counts (`api/dashboardText.js`): revision requests and drafts first, "You're all caught up." or "Share your first trace." otherwise.
+- "Needs your attention" (`components/NeedsAttention.jsx`): up to three traces, revision requests first, then drafts. Revision rows open the trace page, draft rows open the editor. Hidden when there is nothing to do; a "See all" link appears when more than three.
+- Stat tiles are links to My Contributions (all, approved, pending) through an optional third item in `DashboardStats`.
+- "Continue learning" (`components/NextLesson.jsx`): first unfinished lesson on the first page of Tides, with fallbacks for all finished, none, or a load error.
+- No server changes. New tests: `client/test/dashboardPolish.test.jsx`.
+- Layout pass: greeting is the page `h1`; "Upload trace" lives in the banner; the "Refresh totals" button, the Explore button and the "Go to" shortcuts block are gone from the user dashboard (totals still refresh on focus and every 30s). Desktop uses two columns (attention left, totals and learning right); with nothing to act on, totals and learning share one row. The attention list holds its space with placeholder rows while loading. "Recent from the community" has a "See all traces" link.
+- Fixed: the revision list asked the server for `status=revision`; the API only accepts `revision_requested`.
+- "What's new" (`components/WhatsNew.jsx`): up to three unread notifications under "Needs your attention", each linking to the Notifications page. Notifications have no trace id (only `action_id` into `moderation_actions`), so rows cannot deep-link to a trace yet; that needs the join to be exposed (check RLS on `moderation_actions` first).
+- `useNotifications` now keeps the last known unread count for the same account while a refresh runs (tab focus, 60s poll), so the nav badge and "What's new" no longer vanish and return. The list itself still shows its loading state on refresh.

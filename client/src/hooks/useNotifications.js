@@ -61,9 +61,14 @@ export default function useNotifications(owner, readData, writeData) {
     }
   }, [owner, key, writeData]);
   const visible = owner && result?.key === key ? result : null;
+  // While a refresh runs (for example when the tab regains focus) there is no current result.
+  // Keep showing the last known count for the same account so the nav badge does not vanish and return.
+  const lastCount = useRef({ owner: null, count: null });
+  if (Number.isInteger(visible?.count)) lastCount.current = { owner, count: visible.count };
+  const unreadCount = visible?.count ?? (owner && lastCount.current.owner === owner ? lastCount.current.count : null);
   return {
     notifications: (visible?.rows || []).map(row => ({ ...row, unread: !row.read_at, text: row.message, when: new Date(row.created_at).toLocaleString() })),
-    unreadNotificationCount: visible?.count ?? null,
+    unreadNotificationCount: unreadCount,
     notificationsLoading: Boolean(owner) && !visible,
     notificationsError: visible?.error || "",
     notificationAction: owner && action?.owner === owner ? action : null,

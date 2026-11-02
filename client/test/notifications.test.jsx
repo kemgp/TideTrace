@@ -106,3 +106,23 @@ it("ignores delayed results from a previous account and clears on sign-out", asy
   rerender({ owner: null });
   expect(result.current.unreadNotificationCount).toBeNull();
 });
+
+it("keeps the last unread count while a refresh is running, then updates it", async () => {
+  let count = 2;
+  let release;
+  let hold = false;
+  const read = vi.fn(path => {
+    if (!path.endsWith("unread-count")) return Promise.resolve([]);
+    return hold ? new Promise(resolve => { release = () => resolve({ count }); }) : Promise.resolve({ count });
+  });
+  const { result } = renderHook(() => useNotifications("member", read, vi.fn()));
+  await waitFor(() => expect(result.current.unreadNotificationCount).toBe(2));
+  hold = true;
+  count = 3;
+  act(() => result.current.refreshNotifications());
+  // No current result yet, but the badge keeps its last known number.
+  expect(result.current.notificationsLoading).toBe(true);
+  expect(result.current.unreadNotificationCount).toBe(2);
+  await act(async () => release());
+  await waitFor(() => expect(result.current.unreadNotificationCount).toBe(3));
+});
