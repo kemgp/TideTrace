@@ -2,6 +2,7 @@ import { PAGE_SIZE } from "../../../api/pagination.js";
 import React, { useEffect, useRef, useState } from "react";
 import useRemoteData from "../../../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
+import Button from "../../../components/Button.jsx";
 import TideCard from "../../../components/TideCard.jsx";
 import TidesProgress from "../../../components/TidesProgress.jsx";
 import "../../../components/TideFilters.css";
@@ -40,18 +41,20 @@ export default function Tides() {
     <div className="vhead"><span className="eyebrow">Tides</span><h2>Learn the sea in your own language</h2><p>Explore published lessons and learn about your coastal community.</p></div>
     <TidesProgress />
     <div className="tide-filters">
-      <div className="tide-filter-bar">
-        <div className="tide-search">
-          <label className="sr-only" htmlFor="tide-search">Search lessons</label>
-          <input id="tide-search" type="search" className="input" placeholder="Search lessons" maxLength={80} value={typed} onChange={(event) => setTyped(event.target.value)} />
+      <div className="toolbar">
+        <div className="search">
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#6b7f9e" strokeWidth={2} aria-hidden="true">
+            <circle cx={11} cy={11} r={7} /><path d="m21 21-4-4" />
+          </svg>
+          <input id="tide-search" aria-label="Search lessons" maxLength={80} placeholder="Search lessons…" value={typed} onChange={(event) => setTyped(event.target.value)} />
         </div>
-        <div className="tide-chips tide-segment" role="group" aria-label="Filter by progress">
-          {PROGRESS.map(([value, label]) => <button type="button" key={value || "all"} className="tide-chip" aria-pressed={progress === value} onClick={() => choose(setProgress)(value)}>{label}</button>)}
+        <div className="archive-view-switch" role="group" aria-label="Filter by progress">
+          {PROGRESS.map(([value, label]) => <Button key={value || "all"} type="button" variant="ghost" size="sm" aria-pressed={progress === value} onClick={() => choose(setProgress)(value)}>{label}</Button>)}
         </div>
       </div>
-      {topics.data?.length > 0 && <div className="tide-chips tide-topics" role="group" aria-label="Filter by topic">
-        <button type="button" className="tide-chip" aria-pressed={!topic} onClick={() => choose(setTopic)("")}>All topics</button>
-        {topics.data.map((item) => <button type="button" key={item.id} className="tide-chip" aria-pressed={topic === item.id} onClick={() => choose(setTopic)(item.id)}>{item.name}</button>)}
+      {topics.data?.length > 0 && <div className="chiprow archive-chips" role="group" aria-label="Filter by topic">
+        <button type="button" className={`chip${!topic ? " on" : ""}`} aria-pressed={!topic} onClick={() => choose(setTopic)("")}>All topics</button>
+        {topics.data.map((item) => <button type="button" key={item.id} className={`chip${topic === item.id ? " on" : ""}`} aria-pressed={topic === item.id} onClick={() => choose(setTopic)(item.id)}>{item.name}</button>)}
       </div>}
     </div>
     <RemoteState {...result} />

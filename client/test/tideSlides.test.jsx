@@ -115,7 +115,7 @@ it("filters the library by topic, search and progress, and goes back to page one
   await waitFor(() => expect(urls.at(-1)).toBe(`/api/tides?limit=6&offset=0&category_id=${topic}`));
   fireEvent.click(screen.getByRole("button", { name: "Completed" }));
   await waitFor(() => expect(urls.at(-1)).toContain("progress=completed"));
-  fireEvent.change(screen.getByRole("searchbox", { name: "Search lessons" }), { target: { value: "  tide pool " } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Search lessons" }), { target: { value: "  tide pool " } });
   await waitFor(() => expect(urls.at(-1)).toContain("q=tide+pool"), { timeout: 2000 });
   expect(urls.at(-1)).toContain("offset=0");
 });

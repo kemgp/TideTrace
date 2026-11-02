@@ -1,36 +1,18 @@
-.tide-filters { display: grid; gap: 12px; margin: 20px 0; }
-.tide-filter-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.tide-search { flex: 1 1 260px; max-width: 360px; }
-.app-shell .tide-search .input { width: 100%; max-width: none; }
-.tide-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-/* Progress filter: one joined control. Topics: small pills that scroll sideways on phones. */
-.tide-segment { gap: 0; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: #fff; }
-.app-shell .tide-chip { min-height: 0; height: 34px; padding: 0 14px; border: 1px solid var(--line); background: #fff; color: var(--navy); border-radius: 999px; font: inherit; font-size: var(--fs-label); font-weight: 500; line-height: 1; cursor: pointer; box-shadow: none; }
-.app-shell .tide-segment .tide-chip { border-color: transparent; background: transparent; }
-.app-shell .tide-chip:hover { background: rgba(49, 78, 157, .08); }
-.app-shell .tide-chip[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
-.app-shell .tide-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* The topic and progress filters reuse the shared .chip style so they match the Archive filters. */
+.tide-filters { display: grid; gap: 14px; margin: 20px 0; }
+.tide-filters .chip { transition: background-color .18s ease, color .18s ease, border-color .18s ease; cursor: pointer; }
 .tide-empty { padding: 24px 0; display: grid; gap: 12px; justify-items: start; }
-html.dark-mode .tide-segment { background: var(--d-surface); border-color: var(--d-border); }
-html.dark-mode .app-shell .tide-chip { background: var(--d-surface); border-color: var(--d-border-strong); color: var(--d-text); }
-html.dark-mode .app-shell .tide-segment .tide-chip { background: transparent; border-color: transparent; }
-html.dark-mode .app-shell .tide-chip:hover { background: rgba(255, 255, 255, .08); }
-html.dark-mode .app-shell .tide-chip[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
 @media (max-width: 640px) {
-  .tide-search { max-width: none; flex-basis: 100%; }
-  .tide-segment { width: 100%; justify-content: space-between; }
-  .tide-segment .tide-chip { flex: 1; }
-  .tide-topics { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
-  .tide-topics .tide-chip { flex: none; }
+  .tide-filters .chiprow { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+  .tide-filters .chip { flex: none; white-space: nowrap; }
 }
 
-/* Smooth filter changes: chips fade between states, the list dims while it reloads, and new cards fade in. */
-.app-shell .tide-chip { transition: background-color .18s ease, color .18s ease, border-color .18s ease; }
+/* Smooth filter changes: the list dims while it reloads and new cards fade in. */
 .tide-results { transition: opacity .18s ease; min-height: 320px; }
 .tide-results[aria-busy="true"] { opacity: .45; pointer-events: none; }
 .tide-results .tcard { animation: tide-card-in .28s ease both; }
 @keyframes tide-card-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .app-shell .tide-chip, .tide-results { transition: none; }
+  .tide-filters .chip, .tide-results { transition: none; }
   .tide-results .tcard { animation: none; }
 }
