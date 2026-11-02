@@ -15,6 +15,7 @@ import { attentionLine, STAT_LINKS } from "../../api/dashboardText.js";
 import "./dashboard.css";
 
 export default function Dashboard() {
+  throw new Error("test crash");
   const { profile } = useApp();
   const totals = useDashboard();
   const recentResult = useRemoteData("traces?limit=3&offset=0", {

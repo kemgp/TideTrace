@@ -350,6 +350,10 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Chrome fixture checks passed: dialog Cancel/Escape and focus return, submitted failure stays inline, deletion removes the only comment with one toast and focuses Comments, archive page/filter return, neighbor navigation, related counts 0/1/5; light/dark at 320px and 1280px with no horizontal scroll. Screenshots caught and corrected mobile neighbor ordering. Hosted API/database integration and real-device Safari were not checked.
 - Manual release checklist: apply the migration; run `psql -v ON_ERROR_STOP=1 -f supabase/tests/trace-phase-two.sql` against a disposable Supabase database; verify deletion/network-off recovery with a real account; check newest/middle/oldest neighbor links; check related categories with 0/1/4+ others; check filtered page 2 → detail → Back, browser Back/Forward and reload; keyboard-only, light/dark, 320px/desktop on the hosted app.
 
+## Route error page (branch `error-page`)
+- `components/RouteError.jsx` is the router's `errorElement` (set in `main.jsx`). A page that crashes while rendering now shows "Something went wrong" with Reload page and Go to home, instead of React Router's developer screen. A 404 route response shows "Page not found".
+- It uses a plain `<a href="/">` and `window.location.reload()` and no app providers, because the crash may be inside `AppProvider`. The error text is shown only in development builds.
+- Errors thrown outside the router (in `main.jsx`) and in event handlers or async code are not caught by this.
 ## Dashboard polish (branch `dashboard-polish`)
 - Banner second line is built from the dashboard counts (`api/dashboardText.js`): revision requests and drafts first, "You're all caught up." or "Share your first trace." otherwise.
 - "Needs your attention" (`components/NeedsAttention.jsx`): up to three traces, revision requests first, then drafts. Revision rows open the trace page, draft rows open the editor. Hidden when there is nothing to do; a "See all" link appears when more than three.

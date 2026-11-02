@@ -1,0 +1,18 @@
+.route-error{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--bg);}
+.route-error-card{width:100%;max-width:480px;padding:32px 28px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-md);}
+.route-error-mark{margin:0 auto 14px;color:var(--blue);}
+.route-error-card h1{font-size:var(--fs-title);line-height:1.2;color:var(--navy);}
+.route-error-card h1:focus{outline:none;}
+.route-error-card p{margin-top:10px;color:var(--soft);line-height:1.6;}
+.route-error-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:24px;}
+.route-error-actions .btn{min-height:44px;}
+.route-error-details{margin-top:20px;text-align:left;font-size:var(--fs-badge);color:var(--soft);}
+.route-error-details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;}
+.route-error-details pre{max-height:200px;overflow:auto;padding:10px 12px;border-radius:var(--r-sm);background:var(--bg);white-space:pre-wrap;overflow-wrap:anywhere;}
+html.dark-mode .route-error{background:var(--d-bg);}
+html.dark-mode .route-error-card{background:var(--d-surface);border-color:var(--d-border);box-shadow:none;}
+html.dark-mode .route-error-mark{color:#a9b8ff;}
+html.dark-mode .route-error-card h1{color:var(--d-text);}
+html.dark-mode .route-error-card p,html.dark-mode .route-error-details{color:var(--d-muted);}
+html.dark-mode .route-error-details pre{background:var(--d-bg);}
+html.dark-mode .route-error-actions .btn.outline{color:var(--d-text);border-color:var(--d-border-strong);}
