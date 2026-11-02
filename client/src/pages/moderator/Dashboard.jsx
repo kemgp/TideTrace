@@ -1,4 +1,5 @@
 import useDashboard from "../../hooks/useDashboard.js";
+import EmptyState from "../../components/EmptyState.jsx";
 import DashboardStats from "../../components/DashboardStats.jsx";
 import React,{useEffect,useState} from "react";
 import StaffIcon from "../../components/AdminIcon.jsx";
@@ -362,9 +363,7 @@ export default function Dashboard() {
             })}
           </div>
         ) : (
-          <p className="hint">
-            Queue clear — nothing pending right now.
-          </p>
+          <EmptyState title="Queue clear — nothing pending right now." />
         )
       )}
     </div>

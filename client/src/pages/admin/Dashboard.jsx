@@ -1,4 +1,5 @@
 
+import EmptyState from "../../components/EmptyState.jsx";
 import useDashboard from "../../hooks/useDashboard.js";
 import DashboardStats from "../../components/DashboardStats.jsx";
 import useRemoteData from "../../hooks/useRemoteData.js";
@@ -40,7 +41,7 @@ export default function Dashboard() {
 
       <h3 className="sec-t">Recent account administration</h3>
       <RemoteState compact {...activity} />
-      {activity.data && !logs.length && <p>No account administration activity yet.</p>}
+      {activity.data && !logs.length && <EmptyState title="No account administration activity yet." />}
       <div className="card">
         {logs.map((l) => (
           <div className="lrow" key={l.id}>

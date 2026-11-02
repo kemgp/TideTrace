@@ -9,7 +9,7 @@
   min-width: 0;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: var(--bg);
 }
 .app-shell .trace-draft-steps__toggle {
@@ -20,7 +20,7 @@
   min-height: 44px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: #fff;
   color: var(--navy);
   font-size:var(--fs-label);
@@ -55,7 +55,7 @@
   height: 100%;
   padding: 10px 8px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--soft);
   text-align: left;
@@ -73,7 +73,7 @@
   flex: 0 0 24px;
   height: 24px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: #fff;
 }
 .trace-draft-steps__copy { min-width: 0; font-weight: 600; }

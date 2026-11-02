@@ -1,4 +1,5 @@
 import { PAGE_SIZE } from "../../../api/pagination.js";
+import EmptyState from "../../../components/EmptyState.jsx";
 import React from "react";
 import { useApp } from "../../../context/AppContext.jsx";
 import AdminIcon from "../../../components/AdminIcon.jsx";
@@ -25,7 +26,7 @@ export default function Notifications() {
       {notificationAction?.error && <p role="alert">{notificationAction.error}</p>}
       <span className="notification-announcement" role="status">{notificationAction?.message || ""}</span>
       {!notificationsLoading && !notificationsError && <>
-        {!notifications.length && <p>{notificationsOffset ? "No more notifications." : "You're all caught up. No notifications yet."}</p>}
+        {!notifications.length && <EmptyState title={notificationsOffset ? "No more notifications." : "You're all caught up. No notifications yet."} hint={notificationsOffset ? undefined : "Updates about your traces will show up here."} />}
         {notifications.map(n => (
           <div className={`nitem notification-item${n.unread ? " is-unread" : ""}`} key={n.id}>
             <div className="nico" aria-hidden="true"><AdminIcon name="bell" /></div>

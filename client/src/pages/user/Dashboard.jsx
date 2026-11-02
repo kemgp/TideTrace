@@ -1,4 +1,5 @@
 import useDashboard from "../../hooks/useDashboard.js";
+import EmptyState from "../../components/EmptyState.jsx";
 import DashboardStats from "../../components/DashboardStats.jsx";
 import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState from "../../components/RemoteState.jsx";
@@ -95,7 +96,7 @@ export default function Dashboard() {
       <RemoteState compact {...recentResult} />
 
       {recentResult.data && !recent.length && (
-        <p>No published Traces yet.</p>
+        <EmptyState title="No published Traces yet." hint="Approved traces from the community will appear here." action={{ to: "/user/traces/upload", label: "Submit a trace" }} />
       )}
 
       <div className="g3">

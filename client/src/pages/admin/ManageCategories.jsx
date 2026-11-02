@@ -1,4 +1,5 @@
 import { PAGE_SIZE } from "../../api/pagination.js";
+import EmptyState from "../../components/EmptyState.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import useRemoteData from "../../hooks/useRemoteData.js";
@@ -28,7 +29,7 @@ function CategoryList() {
         <div className="category-list__row"><div className="category-list__copy"><h4>{category.name}</h4><p>{category.description || "No description provided."}</p></div><span className={`badge ${category.is_active ? "active" : "removed"}`}>{category.is_active ? "Active" : "Inactive"}</span><button type="button" className="btn outline sm" aria-label={`${editing === category.id ? "Close" : "Edit"} category ${category.name}`} aria-expanded={editing === category.id} aria-controls={`category-${category.id}`} onClick={() => setEditing(editing === category.id ? null : category.id)}>{editing === category.id ? "Close" : "Edit"}</button></div>
         {editing === category.id && <div id={`category-${category.id}`}><CategoryForm key={`${category.id}:${category.updated_at}:${revision}`} category={category} onSaved={() => { setNotice("Category saved."); refresh(); }} /></div>}
       </div>)}</div>}
-      {!result.data?.length && <p>No categories on this page.</p>}
+      {!result.data?.length && <EmptyState title="No categories on this page." />}
     </>}
     <Pagination offset={offset} count={result.data?.length || 0} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </section>;

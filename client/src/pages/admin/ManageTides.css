@@ -12,7 +12,7 @@
 .admin-lesson-list .mini { display: inline-flex; align-items: center; justify-content: center; }
 .admin-lessons > .pagination { justify-content: flex-start; gap: 12px; }
 .admin-lessons__empty { color: var(--soft); }
-html.dark-mode .admin-lesson-list .lrow:not(:last-child) { border-bottom-color: #34445d; }
+html.dark-mode .admin-lesson-list .lrow:not(:last-child) { border-bottom-color: var(--d-border-strong); }
 @media (max-width: 600px) {
   .admin-lessons__heading > .btn { width: 100%; }
   .admin-lessons__toolbar { align-items: stretch; }

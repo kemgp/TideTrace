@@ -27,7 +27,7 @@
   min-height: 44px;
   height: 44px;
   margin: 0;
-  border-radius: 9px;
+  border-radius: var(--r-sm);
 }
 
 .app-shell .account-filters .btn {

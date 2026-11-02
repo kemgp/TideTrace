@@ -266,3 +266,11 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 2. Then the mobile layouts (steps 4–5) and the account menu, which change behavior and need more testing.
 3. Optional housekeeping: rename `vite.config.js` to `vite.config.mjs`; split the large JS bundle.
 4. Commit conventions: no Claude co-author trailer in commit messages on this project (owner's preference).
+
+## UI/UX polish status (branch `ux-polish`)
+- Contrast: teal text -> `--teal-strong`; placeholders use `--placeholder`; Rejected/Removed badges use the danger palette; every badge has a decorative status mark (CSS `::before`).
+- Focus: archive search shows a ring on `:focus-within`; settings, auth and moderator select rings strengthened.
+- Tokens: `--d-*` dark surface/border/text tokens replace duplicated hex in dark rules; `--r-sm` (8px) / `--r-md` (12px) radii and `--shadow-sm|md|lg` (landing `home.css` keeps its own values).
+- Dark mode added for status badges, trace detail, trace map and the draft editor.
+- `components/EmptyState.jsx` replaces plain "No ... yet" lines (wording unchanged). Main content fades in on route change (opacity only).
+- Not done: specific loading labels (tests rely on the "Loading content" accessible name), real-device Safari checks.
