@@ -73,3 +73,12 @@ it("keeps Show more working after deleting from a full page", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Show more comments" }));
   expect(await screen.findByText(`Observation ${PAGE_SIZE}`)).toBeTruthy();
 });
+
+it("shows which comment is being deleted, shortened when long", async () => {
+  setup({ rows: [{ ...comment(), body: "x".repeat(200) }] });
+  const modal = await open();
+  const quote = modal.querySelector(".comment-delete-preview");
+  expect(quote.textContent.startsWith("“xxxx")).toBe(true);
+  expect(quote.textContent.endsWith("…”")).toBe(true);
+  expect(quote.textContent.length).toBeLessThan(150);
+});

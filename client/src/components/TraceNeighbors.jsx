@@ -1,15 +1,39 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import useRemoteData from "../hooks/useRemoteData.js";
 
-export default function TraceNeighbors({ traceId, archiveSearch }) {
-  const { data, loading, error } = useRemoteData(`traces/${encodeURIComponent(traceId)}/neighbors`, { object: true });
-  if (loading || error || (!data?.newer && !data?.older)) return null;
+const LABEL = { newer: "Newer", older: "Older" };
+const hasNeighbors = (neighbors) => Boolean(neighbors?.data?.newer || neighbors?.data?.older);
+
+// Compact buttons beside "Back to Traces". Placeholders keep the row the same size while loading
+// and when only one neighbour exists. Failed or empty results show nothing.
+export function TraceStepper({ neighbors, archiveSearch }) {
+  if (neighbors?.error || (!neighbors?.loading && !hasNeighbors(neighbors))) return null;
+  return <nav className="trace-stepper" aria-label="Browse traces" aria-busy={neighbors?.loading || undefined}>
+    {["newer", "older"].map((direction) => {
+      const target = neighbors?.data?.[direction];
+      const arrow = <span aria-hidden="true" className="trace-stepper__arrow">{direction === "newer" ? "‹" : "›"}</span>;
+      const content = direction === "newer"
+        ? <>{arrow}<span className="trace-stepper__label">{LABEL[direction]}</span></>
+        : <><span className="trace-stepper__label">{LABEL[direction]}</span>{arrow}</>;
+      return target
+        ? <Link key={direction} className="btn ghost sm trace-stepper__btn" to={`/user/traces/${target.id}`} state={{ archiveSearch }}
+          title={target.title} aria-label={`${LABEL[direction]} trace: ${target.title}`}>{content}</Link>
+        : <span key={direction} className="btn ghost sm trace-stepper__btn is-disabled" aria-hidden="true">{content}</span>;
+    })}
+  </nav>;
+}
+
+// Larger cards for the end of the page, after reading the comments.
+export default function TraceNeighbors({ neighbors, archiveSearch }) {
+  if (!neighbors || neighbors.loading || neighbors.error || !hasNeighbors(neighbors)) return null;
   return <nav className="trace-neighbors" aria-label="More traces">
-    {["newer", "older"].map((direction) => data[direction] && <Link key={direction} className={`trace-neighbors__link trace-neighbors__link--${direction}`}
-      to={`/user/traces/${data[direction].id}`} state={{ archiveSearch }}>
-      <small>{direction === "newer" ? "Newer trace" : "Older trace"}</small>{" "}
-      <span title={data[direction].title}>{data[direction].title}</span>
+    {["newer", "older"].map((direction) => neighbors.data[direction] && <Link key={direction} className={`trace-neighbors__link trace-neighbors__link--${direction}`}
+      to={`/user/traces/${neighbors.data[direction].id}`} state={{ archiveSearch }}>
+      <span aria-hidden="true" className="trace-neighbors__arrow">{direction === "newer" ? "←" : "→"}</span>
+      <span className="trace-neighbors__text">
+        <small>{direction === "newer" ? "Newer trace" : "Older trace"}</small>{" "}
+        <span className="trace-neighbors__title" title={neighbors.data[direction].title}>{neighbors.data[direction].title}</span>
+      </span>
     </Link>)}
   </nav>;
 }

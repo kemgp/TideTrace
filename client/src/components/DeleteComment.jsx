@@ -14,6 +14,8 @@ export default function DeleteComment({ comment, onDeleted }) {
   </>;
 }
 
+const preview = (body) => { const flat = String(body).trim().replace(/\s+/g, " "); return flat.length > 140 ? `${flat.slice(0, 140).trimEnd()}…` : flat; };
+
 function DeleteCommentDialog({ comment, onCancel, onDeleted }) {
   const { writeData } = useApp();
   const toast = useToast();
@@ -61,7 +63,9 @@ function DeleteCommentDialog({ comment, onCancel, onDeleted }) {
   return <dialog ref={dialog} className="leave-dialog" aria-labelledby={title} aria-describedby={description}
     onCancel={(event) => { event.preventDefault(); if (!busy) onCancel(); }}>
     <h2 id={title}>Delete this comment?</h2>
-    <div id={description}><p>This can't be undone.</p>
+    <div id={description}>
+      {comment.body && <blockquote className="comment-delete-preview">“{preview(comment.body)}”</blockquote>}
+      <p>This can't be undone.</p>
     </div>
     {error && <p role="alert" className="comment-delete-error">{error}</p>}
     <div className="leave-dialog-actions">

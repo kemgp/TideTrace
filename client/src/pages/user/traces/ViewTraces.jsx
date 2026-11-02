@@ -1,6 +1,7 @@
 import { PAGE_SIZE } from "../../../api/pagination.js";
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { scrollToWhenReady } from "../../../components/ScrollManager.jsx";
 import { readArchiveParams, writeArchiveParams, archiveSearch, pageToOffset, offsetToPage } from "../../../api/archiveParams.js";
 import useRemoteData from "../../../hooks/useRemoteData.js";
 import { displayTrace } from "../../../api/data.js";
@@ -13,6 +14,8 @@ export default function ViewTraces() {
   const categoriesResult = useRemoteData("categories", { collection: true });
   const categories = categoriesResult.data || [];
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  const restoreScroll = useRef(Boolean(location.state?.restoreScroll));
   const state = readArchiveParams(params);
   const { query, page, view } = state;
   const cat = categories.some((category) => category.id === state.category) ? state.category : "All";
@@ -28,6 +31,17 @@ export default function ViewTraces() {
   const result = useRemoteData(state.category !== "All" && categoriesResult.loading ? null : `traces?limit=${PAGE_SIZE}&offset=${offset}${query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true, keepPrevious: true });
   const traces = useMemo(() => (result.data || []).map(displayTrace), [result.data]);
   const filtering = Boolean(query.trim()) || cat !== "All";
+  const scrollKey = `archive-scroll:${archiveSearch(state)}`;
+  // Remember how far down the list the person was when they opened a trace, and return there after "Back to Traces".
+  const rememberScroll = () => { try { sessionStorage.setItem(scrollKey, String((document.scrollingElement || document.documentElement).scrollTop || 0)); } catch { /* storage unavailable */ } };
+  useEffect(() => {
+    if (!restoreScroll.current || result.loading || !result.data) return;
+    restoreScroll.current = false;
+    let saved = 0;
+    try { saved = Number(sessionStorage.getItem(scrollKey)) || 0; sessionStorage.removeItem(scrollKey); } catch { /* storage unavailable */ }
+    if (saved > 0) scrollToWhenReady(saved);
+  }, [result.loading, result.data, scrollKey]);
+  const categoryName = categories.find((c) => c.id === cat)?.name;
   const clearFilters = () => { setDraft(""); update({ query: "", category: "All", page: 1 }); };
   const pickCategory = (value) => update({ category: categories.some((c) => c.id === value) ? value : "All" });
   useEffect(() => {
@@ -81,9 +95,15 @@ export default function ViewTraces() {
       <RemoteState {...result} />
       {result.refreshing && <p className="sr-only" role="status">Updating traces…</p>}
       {!result.loading && !result.error && (traces.length > 0 ? (
-        <div className={`g3${result.refreshing ? " is-refreshing" : ""}`} aria-busy={result.refreshing || undefined}>
+        <>
+        {filtering && <div className="archive-active">
+          <p>Showing results{query.trim() && <> for “{query.trim()}”</>}{categoryName && <> in {categoryName}</>}</p>
+          <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>Clear all filters</Button>
+        </div>}
+        <div className={`g3${result.refreshing ? " is-refreshing" : ""}`} aria-busy={result.refreshing || undefined} onClickCapture={rememberScroll}>
           {traces.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} linkState={{ archiveSearch: archiveSearch(state) }} />)}
         </div>
+        </>
       ) : (
         <div className="ph archive-empty" style={{ marginTop: 10 }}>{filtering ? <>
           <p>No traces match these filters. Try another search or clear filters.</p>

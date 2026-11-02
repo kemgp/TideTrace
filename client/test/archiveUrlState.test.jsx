@@ -68,3 +68,15 @@ it("clears filters and replaces an out-of-range page", async () => {
   const clear = await screen.findByRole("button", { name: "Clear filters" }); await waitFor(() => expect(url()).not.toContain("page="));
   fireEvent.click(screen.getByRole("button", { name: "Clear filters" })); expect(url()).toBe("/user/traces");
 });
+it("says which filters are active and clears them from the results", async () => {
+  setup(`?q=reef&category=${category}`); await screen.findByRole("link", { name: /Reef survey/ });
+  expect(screen.getByText(/Showing results for “reef” in Reefs/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Clear all filters" }));
+  expect(url()).toBe("/user/traces");
+  expect(screen.queryByText(/Showing results/)).toBeNull();
+});
+it("does not show the active-filter line when nothing is filtered", async () => {
+  setup(); await screen.findByRole("link", { name: /Reef survey/ });
+  expect(screen.queryByText(/Showing results/)).toBeNull();
+});
+

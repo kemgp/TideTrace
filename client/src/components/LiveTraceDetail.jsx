@@ -13,7 +13,7 @@ import TraceFeedback from "./TraceFeedback.jsx";
 import Card from "./Card.jsx";
 import ReportContent from "./ReportContent.jsx";
 import { safeArchiveSearch } from "../api/archiveParams.js";
-import TraceNeighbors from "./TraceNeighbors.jsx";
+import TraceNeighbors, { TraceStepper } from "./TraceNeighbors.jsx";
 import RelatedTraces from "./RelatedTraces.jsx";
 import TraceComments from "./TraceComments.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
@@ -30,15 +30,20 @@ export default function LiveTraceDetail({ contribution = false }) {
   const { profile } = useApp();
   const base = contribution ? "contributions" : "traces";
   const result = useRemoteData(`${base}/${encodeURIComponent(id)}`);
+  // One request feeds both the buttons beside "Back" and the cards after the comments.
+  const neighbors = useRemoteData(contribution ? null : `traces/${encodeURIComponent(id)}/neighbors`, { object: true });
 
   return <div className={contribution ? "wrap" : "wrap trace-detail"} style={contribution ? { maxWidth: 760 } : undefined}>
-    <Link className="btn ghost sm" style={{ marginBottom: 14 }} to={`/user/${base}${contribution ? "" : archiveSearch}`}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
+    <div className="trace-detail__topbar">
+      <Link className="btn ghost sm" to={`/user/${base}${contribution ? "" : archiveSearch}`} state={contribution ? undefined : { restoreScroll: true }}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
+      {!contribution && <TraceStepper neighbors={neighbors} archiveSearch={archiveSearch} />}
+    </div>
     <RemoteState {...result} />
-    {result.data && <TraceContent key={`${profile?.id}:${result.data.id}`} initialTrace={result.data} contribution={contribution} archiveSearch={archiveSearch} />}
+    {result.data && <TraceContent key={`${profile?.id}:${result.data.id}`} initialTrace={result.data} contribution={contribution} archiveSearch={archiveSearch} neighbors={neighbors} />}
   </div>;
 }
 
-function TraceContent({ initialTrace, contribution, archiveSearch }) {
+function TraceContent({ initialTrace, contribution, archiveSearch, neighbors }) {
   const { profile } = useApp();
   const [current, setCurrent] = useState(initialTrace);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -82,7 +87,7 @@ function TraceContent({ initialTrace, contribution, archiveSearch }) {
             <span className="lbl sr-only">Description</span>
             <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
             <TraceComments traceId={current.id} />
-            <TraceNeighbors key={current.id} traceId={current.id} archiveSearch={archiveSearch} />
+            <TraceNeighbors neighbors={neighbors} archiveSearch={archiveSearch} />
           </div>
           <aside className="trace-detail__aside" aria-label="Trace details">
             <section className="trace-detail__panel trace-detail__panel--location">
@@ -104,7 +109,7 @@ function TraceContent({ initialTrace, contribution, archiveSearch }) {
             </section>
           </aside>
         </div>
-        <RelatedTraces key={current.id} traceId={current.id} archiveSearch={archiveSearch} />
+        <RelatedTraces key={current.id} traceId={current.id} category={trace.category} archiveSearch={archiveSearch} />
       </Card>
     );
   }
