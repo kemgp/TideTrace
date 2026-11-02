@@ -1,0 +1,13 @@
+.slides { display: grid; gap: 12px; margin-bottom: 20px; }
+.slides:focus-visible { outline: 2px solid var(--blue, #1f6feb); outline-offset: 4px; border-radius: 12px; }
+.slides-stage { width: 100%; background: #f3f5f7; border: 1px solid rgba(0, 0, 0, .1); border-radius: 12px; overflow: hidden; min-height: 160px; display: grid; place-items: center; }
+.slides-canvas { width: 100%; height: auto; display: block; }
+.slides-wait { margin: 0; padding: 40px 16px; opacity: .7; }
+.slides-bar { height: 4px; border-radius: 4px; background: rgba(0, 0, 0, .1); overflow: hidden; }
+.slides-bar span { display: block; height: 100%; background: var(--blue, #1f6feb); transition: width .2s ease; }
+.slides-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.slides-count { font-variant-numeric: tabular-nums; font-weight: 600; }
+.lesson-text-version > summary { cursor: pointer; font-weight: 600; margin: 8px 0 16px; }
+html.dark-mode .slides-stage { background: var(--d-surface-2, #1b2733); border-color: rgba(255, 255, 255, .14); }
+html.dark-mode .slides-bar { background: rgba(255, 255, 255, .16); }
+@media (prefers-reduced-motion: reduce) { .slides-bar span { transition: none; } }

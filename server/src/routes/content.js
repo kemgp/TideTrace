@@ -10,6 +10,18 @@ export const reviewSelect = "id,from_state,to_state,reason,created_at";
 export const traceSelect = "*,category:categories(id,name),author:profiles!traces_author_id_fkey(id,display_name,avatar_path),trace_media(*)";
 const publicTraces = (db) => db.from("traces").select(traceSelect).eq("status", "approved").eq("is_hidden", false).is("deleted_at", null);
 
+// Cards show the cover image, so sign all covers of a page in one storage call. A failure only drops the images.
+async function withCoverUrls(db, rows) {
+  const paths = [...new Set(rows.map((row) => row.cover_path).filter(Boolean))];
+  if (!paths.length) return rows;
+  let urls = new Map();
+  try {
+    const { data, error } = await db.storage.from("tide-assets").createSignedUrls(paths, 3600);
+    if (!error) urls = new Map((data || []).filter((item) => !item.error && item.signedUrl).map((item) => [item.path, item.signedUrl]));
+  } catch { /* fall back to the colour block */ }
+  return rows.map((row) => ({ ...row, image_url: urls.get(row.cover_path) || null }));
+}
+
 export function contentRoutes(gateway) {
   const router = Router();
   const member = authenticate(gateway);
@@ -76,10 +88,42 @@ export function contentRoutes(gateway) {
     send(res, await withAuthorPhotos(req.db, rows));
   });
   router.get("/tides", async (req, res) => {
-    send(res, await result(paginate(req.db.from("tides").select("*").eq("status", "published").order("published_at", { ascending: false }).order("id"), page.parse(req.query))));
+    const query = page.extend({
+      category_id: uuid.optional(),
+      q: z.string().trim().max(80).optional(),
+      progress: z.enum(["completed", "not_started"]).optional(),
+    }).parse(req.query);
+    let tides = req.db.from("tides").select("*,category:categories(id,name)").eq("status", "published");
+    if (query.category_id) tides = tides.eq("category_id", query.category_id);
+    // Strip characters that have a meaning in PostgREST filter syntax or LIKE patterns.
+    const term = (query.q || "").replace(/[%_,()"\\*]/g, " ").replace(/\s+/g, " ").trim();
+    if (term) tides = tides.or(`title.ilike.*${term}*,summary.ilike.*${term}*`);
+    if (query.progress) {
+      await member(req, res, () => {}); // throws 401 for signed-out callers
+      const user = req.user;
+      const done = (await result(req.db.from("tide_completions").select("tide_id").eq("user_id", user.id).limit(1000))).map((row) => row.tide_id);
+      if (query.progress === "completed") tides = done.length ? tides.in("id", done) : tides.in("id", ["00000000-0000-0000-0000-000000000000"]);
+      else if (done.length) tides = tides.not("id", "in", `(${done.join(",")})`);
+    }
+    const rows = await result(paginate(tides.order("published_at", { ascending: false }).order("id"), query));
+    send(res, await withCoverUrls(req.db, rows));
   });
   router.get("/tides/:id", async (req, res) => {
     send(res, first(await result(req.db.from("tides").select("*").eq("status", "published").eq("id", uuid.parse(req.params.id)).limit(1))));
+  });
+  // The lesson before and after this one, in library order (newest published first, then id).
+  router.get("/tides/:id/neighbors", async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    const id = uuid.parse(req.params.id);
+    const current = first(await result(req.db.from("tides").select("id,published_at").eq("status", "published").eq("id", id).limit(1)));
+    if (!current.published_at) return send(res, { id, previous: null, next: null });
+    const at = current.published_at;
+    const published = () => req.db.from("tides").select("id,title").eq("status", "published");
+    const [following, preceding] = await Promise.all([
+      result(published().or(`published_at.lt.${at},and(published_at.eq.${at},id.gt.${id})`).order("published_at", { ascending: false }).order("id").limit(1)),
+      result(published().or(`published_at.gt.${at},and(published_at.eq.${at},id.lt.${id})`).order("published_at", { ascending: true }).order("id", { ascending: false }).limit(1)),
+    ]);
+    send(res, { id, previous: preceding[0] || null, next: following[0] || null });
   });
   router.get("/tide-completions", member, async (req, res) => {
     const query = page.extend({ tide_ids: z.string().transform((value) => value.split(",")).pipe(z.array(uuid).min(1).max(25)).optional() }).parse(req.query);

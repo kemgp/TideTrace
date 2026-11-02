@@ -1427,3 +1427,161 @@ for (const rows of [[], [{ id: mediaId, title: "Related", is_sensitive: true, la
     assert.deepEqual(response.body.data, rows);
   });
 }
+
+const olderTideId = "50000000-0000-4000-8000-000000000002";
+const newerTideId = "50000000-0000-4000-8000-000000000003";
+const publishedAt = "2026-10-01T00:00:00+00:00";
+
+test("a lesson's neighbours follow library order and only look at published lessons", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname !== "/rest/v1/tides") return;
+    const or = url.searchParams.get("or");
+    if (!or) return json([{ id: tideId, published_at: publishedAt }]);
+    return or.includes("published_at.lt.") ? json([{ id: olderTideId, title: "Older lesson" }]) : json([{ id: newerTideId, title: "Newer lesson" }]);
+  } });
+  const response = await request(app).get(`/api/tides/${tideId}/neighbors`).expect(200);
+  assert.deepEqual(response.body.data, { id: tideId, previous: { id: newerTideId, title: "Newer lesson" }, next: { id: olderTideId, title: "Older lesson" } });
+  const lookups = businessCalls(calls).filter((call) => call.url.searchParams.has("or"));
+  assert.equal(lookups.length, 2);
+  for (const call of businessCalls(calls)) assert.equal(call.url.searchParams.get("status"), "eq.published");
+  const next = lookups.find((call) => call.url.searchParams.get("or").includes("published_at.lt."));
+  assert.match(next.url.searchParams.get("or"), new RegExp(`and\\(published_at\\.eq\\.${publishedAt.replace(/[+]/g, "\\+")},id\\.gt\\.${tideId}\\)`));
+  assert.equal(next.url.searchParams.get("order"), "published_at.desc,id.asc");
+});
+
+test("a lone lesson has no neighbours, and an unpublished lesson has no neighbours route", async () => {
+  const lone = fixture({ handler: ({ url }) => {
+    if (url.pathname !== "/rest/v1/tides") return;
+    return url.searchParams.has("or") ? json([]) : json([{ id: tideId, published_at: publishedAt }]);
+  } });
+  assert.deepEqual((await request(lone.app).get(`/api/tides/${tideId}/neighbors`).expect(200)).body.data, { id: tideId, previous: null, next: null });
+  const hidden = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([]) : undefined });
+  await request(hidden.app).get(`/api/tides/${tideId}/neighbors`).expect(404);
+  await request(hidden.app).get("/api/tides/not-a-uuid/neighbors").expect(400);
+});
+
+const pdfFile = Buffer.concat([Buffer.from("%PDF-1.7\n"), Buffer.alloc(32)]);
+const pngFile = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
+
+test("admins upload PDF slides, the page count is saved, and the replaced file is removed", async () => {
+  const previous = `${tideId}/slides-old.pdf`;
+  const { app, calls } = fixture({ role: "admin", handler: ({ url, body }) => {
+    if (url.pathname.startsWith("/storage/v1/object/tide-assets/")) return json({ Key: "uploaded" });
+    if (url.pathname === "/storage/v1/object/tide-assets") return json([{ name: previous }]);
+    if (url.pathname === "/rest/v1/tides") return json([{ id: tideId }]);
+    if (url.pathname === "/rest/v1/rpc/set_tide_asset") return json({ tide: { id: tideId, slides_path: body.p_object_path, slides_pages: body.p_pages }, previous_path: previous });
+  } });
+  const response = await bearer(request(app).post(`/api/tides/${tideId}/slides?pages=12`)).set("Content-Type", "application/pdf").send(pdfFile).expect(201);
+  assert.equal(response.body.data.slides_pages, 12);
+  const upload = calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/tide-assets/"));
+  assert.match(upload.url.pathname, new RegExp(`/tide-assets/${tideId}/slides-[0-9a-f-]{36}\\.pdf$`));
+  const rpc = calls.find(({ url }) => url.pathname === "/rest/v1/rpc/set_tide_asset");
+  assert.equal(rpc.body.p_kind, "slides");
+  assert.equal(rpc.body.p_pages, 12);
+  const removal = calls.find(({ url, method }) => url.pathname === "/storage/v1/object/tide-assets" && method === "DELETE");
+  assert.deepEqual(removal.body.prefixes, [previous]);
+});
+
+test("a cover image upload stores the image under the lesson folder", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url, body }) => {
+    if (url.pathname.startsWith("/storage/v1/object/tide-assets/")) return json({ Key: "uploaded" });
+    if (url.pathname === "/rest/v1/tides") return json([{ id: tideId }]);
+    if (url.pathname === "/rest/v1/rpc/set_tide_asset") return json({ tide: { id: tideId, cover_path: body.p_object_path }, previous_path: null });
+  } });
+  const response = await bearer(request(app).post(`/api/tides/${tideId}/cover`)).set("Content-Type", "image/png").send(pngFile).expect(201);
+  assert.match(response.body.data.cover_path, new RegExp(`^${tideId}/cover-[0-9a-f-]{36}\\.png$`));
+  assert.equal(calls.some(({ method, url }) => method === "DELETE" && url.pathname === "/storage/v1/object/tide-assets"), false);
+});
+
+test("lesson uploads are admin only and reject the wrong file before touching storage", async () => {
+  const { app, calls } = fixture({ role: "admin" });
+  await request(app).post(`/api/tides/${tideId}/cover`).set("Content-Type", "image/png").send(pngFile).expect(401);
+  const member = fixture({ role: "user" });
+  await bearer(request(member.app).post(`/api/tides/${tideId}/cover`)).set("Content-Type", "image/png").send(pngFile).expect(403);
+  await bearer(request(member.app).delete(`/api/tides/${tideId}/slides`)).expect(403);
+  await bearer(request(app).post(`/api/tides/${tideId}/slides?pages=3`)).set("Content-Type", "image/png").send(pngFile).expect(415);
+  await bearer(request(app).post(`/api/tides/${tideId}/cover`)).set("Content-Type", "application/pdf").send(pdfFile).expect(415);
+  await bearer(request(app).post(`/api/tides/${tideId}/slides?pages=3`)).set("Content-Type", "application/pdf").send(Buffer.alloc(32)).expect(400);
+  await bearer(request(app).post(`/api/tides/${tideId}/slides`)).set("Content-Type", "application/pdf").send(pdfFile).expect(400);
+  await bearer(request(app).post(`/api/tides/${tideId}/slides?pages=501`)).set("Content-Type", "application/pdf").send(pdfFile).expect(400);
+  await bearer(request(app).post(`/api/tides/${tideId}/slides?pages=3`)).set("Content-Type", "application/pdf").send(Buffer.concat([pdfFile, Buffer.alloc(25 * 1024 * 1024)])).expect(413);
+  assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+  assert.equal(member.calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+});
+
+test("a failed attach removes the new upload and reports the error", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => {
+    if (url.pathname.startsWith("/storage/v1/object/tide-assets/")) return json({ Key: "uploaded" });
+    if (url.pathname === "/storage/v1/object/tide-assets") return json([]);
+    if (url.pathname === "/rest/v1/tides") return json([{ id: tideId }]);
+    if (url.pathname === "/rest/v1/rpc/set_tide_asset") return json({ code: "P0001", message: "The uploaded file was not found" }, 400);
+  } });
+  await bearer(request(app).post(`/api/tides/${tideId}/cover`)).set("Content-Type", "image/png").send(pngFile).expect(res => assert.ok(res.status >= 400));
+  assert.ok(calls.some(({ method, url }) => method === "DELETE" && url.pathname === "/storage/v1/object/tide-assets"));
+});
+
+test("admins can remove a lesson's slides and the file is deleted", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url, body }) => {
+    if (url.pathname === "/storage/v1/object/tide-assets") return json([]);
+    if (url.pathname === "/rest/v1/rpc/clear_tide_asset") return json({ tide: { id: tideId, slides_path: null, slides_pages: null }, previous_path: `${tideId}/slides-old.pdf` });
+  } });
+  const response = await bearer(request(app).delete(`/api/tides/${tideId}/slides`)).expect(200);
+  assert.equal(response.body.data.slides_path, null);
+  assert.equal(calls.find(({ url }) => url.pathname === "/rest/v1/rpc/clear_tide_asset").body.p_kind, "slides");
+  assert.deepEqual(calls.find(({ method, url }) => method === "DELETE" && url.pathname === "/storage/v1/object/tide-assets").body.prefixes, [`${tideId}/slides-old.pdf`]);
+});
+
+test("lesson file links are short lived signed URLs, with the page count for slides", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/tides") return json([{ slides_path: `${tideId}/slides-a.pdf`, slides_pages: 9, cover_path: `${tideId}/cover-a.png` }]);
+    if (url.pathname.startsWith("/storage/v1/object/sign/")) return json({ signedURL: "/object/sign/tide-assets/file?token=signed" });
+  } });
+  const slides = await request(app).get(`/api/tides/${tideId}/slides`).expect(200);
+  assert.equal(slides.body.data.pages, 9);
+  assert.equal(slides.body.data.expires_in, 600);
+  const cover = await request(app).get(`/api/tides/${tideId}/cover`).expect(200);
+  assert.equal("pages" in cover.body.data, false);
+  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).every(({ body }) => body.expiresIn === 600), true);
+  const none = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([{ slides_path: null, slides_pages: null }]) : undefined });
+  await request(none.app).get(`/api/tides/${tideId}/slides`).expect(404);
+});
+
+test("the library filters by topic and search, with search characters made safe", async () => {
+  const topic = "60000000-0000-4000-8000-000000000001";
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([]) : undefined });
+  await request(app).get(`/api/tides?category_id=${topic}&q=${encodeURIComponent('tide,%_(pool)*"')}`).expect(200);
+  const query = businessCalls(calls)[0].url.searchParams;
+  assert.equal(query.get("category_id"), `eq.${topic}`);
+  assert.equal(query.get("status"), "eq.published");
+  assert.equal(query.get("or"), "(title.ilike.*tide pool*,summary.ilike.*tide pool*)");
+  assert.match(query.get("select"), /category:categories\(id,name\)/);
+  await request(app).get("/api/tides?category_id=nope").expect(400);
+  await request(app).get("/api/tides?progress=started").expect(400);
+});
+
+test("progress filters need a signed-in member and use their own completions", async () => {
+  const other = "50000000-0000-4000-8000-000000000009";
+  await request(fixture().app).get("/api/tides?progress=completed").expect(401);
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/tide_completions") return json([{ tide_id: tideId }, { tide_id: other }]);
+    if (url.pathname === "/rest/v1/tides") return json([]);
+  } });
+  await bearer(request(app).get("/api/tides?progress=completed")).expect(200);
+  await bearer(request(app).get("/api/tides?progress=not_started")).expect(200);
+  const lists = businessCalls(calls).filter(({ url }) => url.pathname === "/rest/v1/tides");
+  assert.equal(lists[0].url.searchParams.get("id"), `in.(${tideId},${other})`);
+  assert.equal(lists[1].url.searchParams.get("id"), `not.in.(${tideId},${other})`);
+  assert.equal(businessCalls(calls).find(({ url }) => url.pathname === "/rest/v1/tide_completions").url.searchParams.get("user_id"), `eq.${userId}`);
+});
+
+test("library cards get signed cover image links in one storage call", async () => {
+  const withCover = { id: tideId, cover_path: `${tideId}/cover-a.png` };
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/tides") return json([withCover, { id: olderTideId, cover_path: null }]);
+    if (url.pathname === "/storage/v1/object/sign/tide-assets") return json([{ path: withCover.cover_path, signedURL: "/object/sign/tide-assets/a?token=t", error: null }]);
+  } });
+  const response = await request(app).get("/api/tides").expect(200);
+  assert.match(response.body.data[0].image_url, /^https?:\/\/.*token=t/);
+  assert.equal(response.body.data[1].image_url, null);
+  assert.equal(calls.filter(({ url }) => url.pathname === "/storage/v1/object/sign/tide-assets").length, 1);
+});

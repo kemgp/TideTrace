@@ -29,3 +29,4 @@ html.dark-mode .tides-progress-row b{color:var(--d-text);}
 html.dark-mode .tides-progress-row{color:var(--d-muted);}
 html.dark-mode .tides-progress-bar{background:var(--d-border);}
 html.dark-mode .tides-progress-bar span{background:#5aa2a8;}
+.tide-topic { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }

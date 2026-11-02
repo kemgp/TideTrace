@@ -28,6 +28,7 @@ export const category = z.object({ name: text(100), description: z.string().max(
 export const tide = z.object({
   title: text(200), slug: text(200).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
   body: z.string().max(100000), status: z.enum(["draft", "published", "archived"]),
+  summary: z.string().trim().max(300).optional(), category_id: uuid.nullable().optional(),
 }).strict().refine((input) => input.status !== "published" || input.body.trim().length > 0, { message: "Published Tides need content" });
 export function paginate(query, input) {
   return query.range(input.offset, input.offset + input.limit - 1);

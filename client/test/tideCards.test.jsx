@@ -53,7 +53,7 @@ it("shows a preview, reading time and overall progress, with one heading block",
   setup({ lessons: [lesson("l1", "Seagrass basics", words(450)), lesson("l2", "Reading the tide", "Short lesson.")], completions: [{ tide_id: "l1", completed_at: "2026-11-01T00:00:00Z" }] });
   const card = (await screen.findByRole("link", { name: /Seagrass basics/ }));
   expect(within(card).getByText("3 min read")).toBeTruthy();
-  expect(within(card).getByText("Completed")).toBeTruthy();
+  expect(await within(card).findByText("Completed")).toBeTruthy();
   expect(card.querySelector(".tide-excerpt").textContent).toMatch(/^word0 word1/);
   const other = screen.getByRole("link", { name: /Reading the tide/ });
   expect(within(other).getByText("1 min read")).toBeTruthy();

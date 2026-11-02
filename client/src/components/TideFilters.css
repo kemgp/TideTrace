@@ -1,0 +1,10 @@
+.tide-filters { display: grid; gap: 12px; margin: 20px 0; }
+.tide-search .input { width: 100%; max-width: 420px; }
+.tide-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.tide-chip { border: 1px solid rgba(0, 0, 0, .18); background: transparent; color: inherit; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+.tide-chip:hover { background: rgba(0, 0, 0, .05); }
+.tide-chip[aria-pressed="true"] { background: var(--blue, #1f6feb); border-color: var(--blue, #1f6feb); color: #fff; }
+.tide-chip:focus-visible { outline: 2px solid var(--blue, #1f6feb); outline-offset: 2px; }
+.tide-empty { padding: 24px 0; display: grid; gap: 12px; justify-items: start; }
+html.dark-mode .tide-chip { border-color: rgba(255, 255, 255, .24); }
+html.dark-mode .tide-chip:hover { background: rgba(255, 255, 255, .08); }
