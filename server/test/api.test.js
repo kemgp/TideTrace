@@ -37,6 +37,126 @@ function fixture({ role = "user", status = "active", handler = () => undefined }
 const bearer = (req, token = "member-token") => req.set("Authorization", `Bearer ${token}`);
 const businessCalls = (calls) => calls.filter((call) => !["/auth/v1/user", "/rest/v1/rpc/get_my_profile"].includes(call.url.pathname));
 
+for (const status of ["draft", "pending", "revision_requested", "rejected", "approved"]) {
+  test(`author can delete a ${status} Trace and its stored photos`, async () => {
+    let deleted = false;
+    const paths = [`${userId}/${traceId}/attached.jpg`, `${userId}/${traceId}/detached.jpg`];
+    const { app, calls } = fixture({ handler: ({ url, body, method, headers }) => {
+      if (url.pathname === "/rest/v1/rpc/delete_own_trace") {
+        assert.deepEqual(body, { p_trace_id: traceId });
+        assert.equal(headers.get("authorization"), "Bearer member-token");
+        deleted = true;
+        return json(paths.map((object_path) => ({ object_path })));
+      }
+      if (url.pathname === "/storage/v1/object/trace-media" && method === "DELETE") {
+        assert.equal(deleted, true);
+        assert.deepEqual(body.prefixes, paths);
+        return json(paths.map((name) => ({ name })));
+      }
+      if (url.pathname === "/rest/v1/rpc/deleted_trace_media") return json([]);
+    } });
+    await bearer(request(app).delete(`/api/traces/${traceId}`)).expect(204);
+    assert.equal(businessCalls(calls).length, 3);
+  });
+}
+
+test("deleting a Trace requires an active member and a valid UUID", async () => {
+  const { app, calls, state } = fixture();
+  await request(app).delete(`/api/traces/${traceId}`).expect(401);
+  await bearer(request(app).delete("/api/traces/not-a-uuid")).expect(400);
+  state.status = "suspended";
+  await bearer(request(app).delete(`/api/traces/${traceId}`)).expect(403);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+for (const reason of ["non-author", "missing", "already-deleted"]) {
+  test(`${reason} Trace deletion returns the same 404 without touching storage`, async () => {
+    const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/delete_own_trace"
+      ? json({ code: "PT404", message: "Record not found." }, 404) : undefined });
+    const response = await bearer(request(app).delete(`/api/traces/${traceId}`)).expect(404);
+    assert.equal(response.body.error.code, "NOT_FOUND");
+    assert.equal(response.body.error.message, "Record not found.");
+    assert.equal(businessCalls(calls).length, 1);
+  });
+}
+
+test("a Trace without photos deletes without a storage request", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/delete_own_trace" ? json([]) : undefined });
+  await bearer(request(app).delete(`/api/traces/${traceId}`)).expect(204);
+  assert.equal(businessCalls(calls).length, 1);
+});
+
+test("storage failure stays retryable without repeating the soft delete", async () => {
+  let fail = true;
+  let removed = false;
+  const paths = [{ object_path: `${userId}/${traceId}/photo.jpg` }];
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/rpc/delete_own_trace") return json(paths);
+    if (url.pathname === "/rest/v1/rpc/deleted_trace_media") return json(removed ? [] : paths);
+    if (url.pathname === "/storage/v1/object/trace-media") {
+      if (fail) return json({ message: "Storage unavailable" }, 503);
+      removed = true; return json([{ name: paths[0].object_path }]);
+    }
+  } });
+  const failure = await bearer(request(app).delete(`/api/traces/${traceId}`)).expect(502);
+  assert.equal(failure.body.error.code, "TRACE_PHOTO_CLEANUP_FAILED");
+  fail = false;
+  await bearer(request(app).post(`/api/traces/${traceId}/photo-cleanup`)).expect(204);
+  assert.equal(calls.filter(({ url }) => url.pathname === "/rest/v1/rpc/delete_own_trace").length, 1);
+});
+
+test("sweeping pending photos removes leftovers for the caller's deleted Traces", async () => {
+  let removed = false;
+  const paths = [{ object_path: `${userId}/${traceId}/photo.jpg` }];
+  const { app, calls } = fixture({ handler: ({ url, body }) => {
+    if (url.pathname === "/rest/v1/rpc/deleted_trace_media_pending") return json(removed ? [] : paths);
+    if (url.pathname === "/storage/v1/object/trace-media") { removed = true; assert.deepEqual(body.prefixes, [paths[0].object_path]); return json([{ name: paths[0].object_path }]); }
+  } });
+  await request(app).post("/api/contributions/photo-cleanup").expect(401);
+  await bearer(request(app).post("/api/contributions/photo-cleanup")).expect(204);
+  assert.equal(calls.filter(({ url }) => url.pathname === "/storage/v1/object/trace-media").length, 1);
+});
+
+test("sweeping with nothing pending makes no storage call, and a failed removal is reported", async () => {
+  const none = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/deleted_trace_media_pending" ? json([]) : undefined });
+  await bearer(request(none.app).post("/api/contributions/photo-cleanup")).expect(204);
+  assert.equal(none.calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+  const paths = [{ object_path: `${userId}/${traceId}/photo.jpg` }];
+  const stuck = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/rpc/deleted_trace_media_pending") return json(paths);
+    if (url.pathname === "/storage/v1/object/trace-media") return json({ message: "Storage unavailable" }, 503);
+  } });
+  const response = await bearer(request(stuck.app).post("/api/contributions/photo-cleanup")).expect(502);
+  assert.equal(response.body.error.code, "TRACE_PHOTO_CLEANUP_FAILED");
+});
+
+test("a silently skipped storage removal is not reported as success", async () => {
+  const paths = [{ object_path: `${userId}/${traceId}/photo.jpg` }];
+  const { app } = fixture({ handler: ({ url }) => {
+    if (["/rest/v1/rpc/delete_own_trace", "/rest/v1/rpc/deleted_trace_media"].includes(url.pathname)) return json(paths);
+    if (url.pathname === "/storage/v1/object/trace-media") return json([]);
+  } });
+  const response = await bearer(request(app).delete(`/api/traces/${traceId}`)).expect(502);
+  assert.equal(response.body.error.code, "TRACE_PHOTO_CLEANUP_FAILED");
+});
+
+test("photo cleanup is owner checked and UUID validated", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/deleted_trace_media"
+    ? json({ code: "PT404", message: "Record not found." }, 404) : undefined });
+  await request(app).post(`/api/traces/${traceId}/photo-cleanup`).expect(401);
+  await bearer(request(app).post("/api/traces/invalid/photo-cleanup")).expect(400);
+  await bearer(request(app).post(`/api/traces/${traceId}/photo-cleanup`)).expect(404);
+  assert.equal(businessCalls(calls).length, 1);
+});
+
+test("member contribution list, detail and reviews explicitly exclude deleted Traces", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([]) : undefined });
+  await bearer(request(app).get("/api/contributions")).expect(200);
+  await bearer(request(app).get(`/api/contributions/${traceId}`)).expect(404);
+  await bearer(request(app).get(`/api/contributions/${traceId}/reviews`)).expect(404);
+  for (const call of businessCalls(calls)) assert.equal(call.url.searchParams.get("deleted_at"), "is.null");
+});
+
 test("health works without credentials; data routes return actionable 503", async () => {
   const app = createApp({ config: readConfig({}) });
   const health = await request(app).get("/api/health").expect(200);
@@ -489,18 +609,20 @@ test("submission preserves database eligibility and missing-evidence errors", as
   }
 });
 
-test("staff Trace detail requires staff access and filters hidden/deleted records", async () => {
+test("staff Trace detail requires staff access and retains deleted records", async () => {
   const member = fixture();
   await request(member.app).get(`/api/moderation/traces/${traceId}`).expect(401);
   await bearer(request(member.app).get(`/api/moderation/traces/${traceId}`)).expect(403);
   assert.equal(businessCalls(member.calls).length, 0);
   for (const role of ["moderator", "admin"]) {
-    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([{ id: traceId, status: "pending", version: 3 }]) : undefined });
-    await bearer(request(app).get(`/api/moderation/traces/${traceId}`)).expect(200);
+    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([{ id: traceId, status: "pending", version: 3, deleted_at: "2026-11-02T00:00:00Z" }]) : undefined });
+    const response = await bearer(request(app).get(`/api/moderation/traces/${traceId}`)).expect(200);
+    assert.ok(response.body.data.deleted_at);
     const query = businessCalls(calls)[0].url.searchParams;
     assert.equal(query.get("id"), `eq.${traceId}`);
+    // Deleted traces stay readable for staff; moderation-hidden ones remain excluded.
     assert.equal(query.get("is_hidden"), "eq.false");
-    assert.equal(query.get("deleted_at"), "is.null");
+    assert.equal(query.get("deleted_at"), null);
     assert.equal(query.get("limit"), "1");
     assert.match(query.get("select"), /trace_media/);
   }
@@ -510,7 +632,7 @@ test("moderation history includes saved Trace titles and reviewer names", async 
   const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/moderation_actions" ? json([]) : undefined });
   await bearer(request(app).get("/api/moderation/history?limit=25&offset=25")).expect(200);
   const query = businessCalls(calls)[0].url.searchParams;
-  assert.match(query.get("select"), /trace:traces\(id,title,author:profiles!traces_author_id_fkey/);
+  assert.match(query.get("select"), /trace:traces\(id,title,deleted_at,author:profiles!traces_author_id_fkey/);
   assert.match(query.get("select"), /actor:profiles!moderation_actions_actor_id_fkey/);
   assert.match(query.get("select"), /author:profiles!comments_author_id_fkey/);
   assert.match(query.get("select"), /reporter:profiles!reports_reporter_id_fkey/);
@@ -561,7 +683,7 @@ test("staff can read prior review decisions while members cannot use staff feedb
   await bearer(request(app).get(`/api/moderation/traces/${traceId}/reviews`)).expect(200);
   const queries = businessCalls(calls).map(({ url }) => url.searchParams);
   assert.equal(queries[0].get("is_hidden"), "eq.false");
-  assert.equal(queries[0].get("deleted_at"), "is.null");
+  assert.equal(queries[0].get("deleted_at"), null);
   assert.equal(queries[1].get("trace_id"), `eq.${traceId}`);
   assert.match(queries[1].get("select"), /actor:profiles!moderation_actions_actor_id_fkey\(id,display_name\)/);
 });

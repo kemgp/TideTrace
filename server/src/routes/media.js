@@ -78,7 +78,7 @@ export function mediaRoutes(gateway) {
   });
   router.get("/media/:id/url", async (req, res) => {
     // Storage SELECT and table RLS enforce public/owner/staff visibility.
-    const media = first(await result(req.db.from("trace_media").select("object_path").eq("id", uuid.parse(req.params.id)).limit(1)));
+    const media = first(await result(req.db.from("trace_media").select("object_path,trace:traces!inner(deleted_at)").is("trace.deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
     const data = await result(req.db.storage.from("trace-media").createSignedUrl(media.object_path, 60));
     res.json({ data: { url: data.signedUrl, expires_in: 60 } });
   });

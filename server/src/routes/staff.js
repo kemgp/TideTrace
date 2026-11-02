@@ -20,13 +20,13 @@ export function staffRoutes(gateway) {
     res.json({ data: await result(paginate(req.db.from("traces").select(traceSelect).eq("status", input.status).eq("is_hidden", false).is("deleted_at", null).order("submitted_at").order("id"), input)) });
   });
   router.get("/traces/:id", async (req, res) => {
-    const row = first(await result(req.db.from("traces").select(traceSelect).eq("id", uuid.parse(req.params.id)).eq("is_hidden", false).is("deleted_at", null).limit(1)));
+    const row = first(await result(req.db.from("traces").select(traceSelect).eq("id", uuid.parse(req.params.id)).eq("is_hidden", false).limit(1)));
     res.json({ data: await withPrivateLocation(req.db, row) });
   });
   router.get("/traces/:id/reviews", async (req, res) => {
     const id = uuid.parse(req.params.id);
     const pagination = page.parse(req.query);
-    first(await result(req.db.from("traces").select("id").eq("id", id).eq("is_hidden", false).is("deleted_at", null).limit(1)));
+    first(await result(req.db.from("traces").select("id").eq("id", id).eq("is_hidden", false).limit(1)));
     res.json({ data: await result(paginate(req.db.from("moderation_actions").select(`${reviewSelect},actor_id,actor:profiles!moderation_actions_actor_id_fkey(id,display_name)`).eq("trace_id", id).eq("action", "review_trace").order("created_at", { ascending: false }).order("id", { ascending: false }), pagination)) });
   });
   router.post("/traces/:id/decision", async (req, res) => {
@@ -50,7 +50,7 @@ export function staffRoutes(gateway) {
   });
   router.get("/history", async (req, res) => {
     const input = page.extend({ outcome: z.enum(["approved", "revision", "rejected", "kept", "removed", "dismissed"]).optional() }).parse(req.query);
-    let query = req.db.from("moderation_actions").select("*,trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name)),report:reports(id,status,reporter:profiles!reports_reporter_id_fkey(id,display_name),trace:traces(id,title,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name))),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)");
+    let query = req.db.from("moderation_actions").select("*,trace:traces(id,title,deleted_at,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name)),report:reports(id,status,reporter:profiles!reports_reporter_id_fkey(id,display_name),trace:traces(id,title,deleted_at,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name))),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)");
     if (input.outcome) {
       const states = { approved: ["approved"], revision: ["revision_requested"], rejected: ["rejected"], kept: ["visible", "kept"], removed: ["hidden", "removed", "resolved"], dismissed: ["dismissed"] };
       query = query.in("to_state", states[input.outcome]);

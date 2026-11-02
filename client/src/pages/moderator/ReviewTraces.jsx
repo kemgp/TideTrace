@@ -217,14 +217,15 @@ function Decision({initialTrace,onReload}){
   };
   return <div className="card mod-review-detail">
     <TraceStatusBadge status={trace.status} />
-    {role === "mod" && <div className="mod-review-media"><TracePhotos trace={current} /></div>}
+    {current.deleted_at && <p className="hint">Deleted by the author.</p>}
+    {role === "mod" && !current.deleted_at && <div className="mod-review-media"><TracePhotos trace={current} /></div>}
     <h2 style={{ marginTop: 16 }}>{trace.title}</h2>
     <p className="hint">Submitted by {trace.author}</p>
     <div className="chiprow"><span className="chip">{trace.category}</span><span className="chip">{trace.location}</span></div>
     <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates />
-    <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={busy || blocked} />
+    {!current.deleted_at && <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={busy || blocked} />}
     <h3>Description</h3><p style={{ whiteSpace: "pre-wrap" }}>{trace.description}</p>
-    {role !== "mod" && <TracePhotos trace={current} />}
+    {role !== "mod" && !current.deleted_at && <TracePhotos trace={current} />}
     <TraceFeedback key={`${current.id}:${current.version}`} id={current.id} staff />
     {own && <p role="alert">You cannot review your own submission.</p>}
     {!own && !eligible && <p className="hint">This Trace is not awaiting a decision.</p>}
@@ -259,6 +260,7 @@ export function ModerationHistory(){
     {!result.loading && !result.error && (rows.length ? <div className="card">{rows.map((row) => <div className="lrow" key={row.id}>
       <div className="grow">
         <div className="t">{row.trace_id && row.action === "review_trace" ? <Link to={`${base}/${encodeURIComponent(row.trace_id)}`}>{row.trace?.title || "View reviewed Trace"}</Link> : row.trace?.title || row.report?.trace?.title || (row.comment || row.report?.comment ? "Reported comment" : "Reported content")}</div>
+        {(row.trace?.deleted_at || row.report?.trace?.deleted_at) && <p className="hint">Deleted by the author.</p>}
         <p>{row.action === "review_trace" ? labels[row.to_state] || row.to_state : row.action === "review_report" ? (row.to_state === "resolved" ? "Report resolved — content removed" : "Report dismissed") : row.action.replaceAll("_", " ")}</p>
         <p className="hint">{row.actor?.display_name || "Staff member"} · {new Date(row.created_at).toLocaleString()}</p>
         {row.reason && <p style={{ whiteSpace: "pre-wrap" }}>{row.reason}</p>}

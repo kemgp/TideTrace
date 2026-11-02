@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Link, useParams } from "react-router-dom";
 import useRemoteData from "../hooks/useRemoteData.js";
 import { displayTrace } from "../api/data.js";
@@ -13,6 +14,7 @@ import Card from "./Card.jsx";
 import ReportContent from "./ReportContent.jsx";
 import TraceComments from "./TraceComments.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
+import DeleteTrace from "./DeleteTrace.jsx";
 import "./trace-detail.css";
 
 export default function LiveTraceDetail({ contribution = false }) {
@@ -59,6 +61,10 @@ function TraceContent({ initialTrace, contribution }) {
       {contribution && current.status !== "draft" && <TraceFeedback key={`${current.id}:${current.status}`} id={current.id} />}
       {current.status === "revision_requested" && contribution && <p className="hint">Address the moderator's feedback, save your changes, then resubmit this Trace for review.</p>}
       {editable && !submissionLocked && <Link className="btn outline" to={`/user/contributions/${encodeURIComponent(trace.id)}/edit`}>{current.status === "revision_requested" ? "Edit requested revision" : "Edit draft"}</Link>}
+      <DeleteTrace trace={current} disabled={submissionLocked} onDeleted={() => {
+        // Clear the selected-photo navigation guard before the confirmed deletion redirects.
+        flushSync(() => setCurrent((saved) => ({ ...saved, deleted_at: new Date().toISOString() })));
+      }} />
       {fieldError("photo")}
       {contribution && <TracePhotos trace={current} contribution onChange={setCurrent} onLockedChange={setSubmissionLocked} onValidation={setFieldErrors} operationLock={operationLock} />}
     </Card>
