@@ -214,7 +214,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
           <label className="lbl" htmlFor="draft-category">Category (required)</label>
           <select className="input" id="draft-category" name="category_id" {...fieldProps("category_id")} required value={fields.category_id} onChange={change} disabled={categories.loading || Boolean(categories.error)}>
             <option value="">Choose a category</option>
-            {fields.category_id && !validCategory && <option value={fields.category_id} disabled>Previous category unavailable — choose another</option>}
+            {fields.category_id && !validCategory && <option value={fields.category_id} disabled>Previous category unavailable. Choose another.</option>}
             {available.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
           {fieldError("category_id")}

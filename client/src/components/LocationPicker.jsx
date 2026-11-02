@@ -18,7 +18,7 @@ export default function LocationPicker({ location, onChange }) {
         className="input"
         value={location}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Barangay / landmark — auto-filled from pin"
+        placeholder="Barangay or landmark (filled from the pin)"
         style={{ marginTop: 12 }}
       />
       <button type="button" className="btn ghost sm" style={{ marginTop: 8 }} onClick={dropPin}>

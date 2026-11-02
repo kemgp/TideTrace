@@ -74,7 +74,7 @@ export default function TraceComments({ traceId }) {
           {comment.author_id !== profile?.id && <ReportContent targetId={comment.id} type="comment" />}
         </div>
       </div>)}
-      {offsets.length > 0 && !comments.length && <EmptyState className="empty-state--compact" title="No comments yet — be the first to say something." />}
+      {offsets.length > 0 && !comments.length && <EmptyState className="empty-state--compact" title="No comments yet. Be the first to say something." />}
     </div>
     {hasMore && !result.error && <button type="button" className="btn outline sm trace-detail__more" disabled={loadingMore} aria-busy={loadingMore || undefined} onClick={() => setOffset(lastLoaded + PAGE_SIZE)}>{loadingMore ? "Loading…" : "Show more comments"}</button>}
     {error && <p role="alert">{error}</p>}

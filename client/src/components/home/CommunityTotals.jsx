@@ -8,7 +8,7 @@ function Stat({label,value,loading,reduced}){
  const shown=useCountUp(value??0,seen&&value!=null,reduced);
  const animated=!reduced&&value!=null;
  return <div className="tt-stat" ref={ref}>
-  <b>{loading?<span className="tt-total-skeleton" aria-label="Loading total"/>:value==null?'—':animated?<><span aria-hidden="true">{shown.toLocaleString()}</span><span className="sr-only">{value.toLocaleString()}</span></>:value.toLocaleString()}</b>
+  <b>{loading?<span className="tt-total-skeleton" aria-label="Loading total"/>:value==null?<><span aria-hidden="true">—</span><span className="sr-only">Not available</span></>:animated?<><span aria-hidden="true">{shown.toLocaleString()}</span><span className="sr-only">{value.toLocaleString()}</span></>:value.toLocaleString()}</b>
   <span>{label}</span>
  </div>;
 }

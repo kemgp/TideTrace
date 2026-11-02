@@ -26,9 +26,9 @@ export default function Dashboard() {
     <div className="wrap">
       <div className="banner">
         <div>
-          <b>Kumusta, {profile?.display_name} — your activity</b>
+          <b>Kumusta, {profile?.display_name}</b>
           <div className="s">
-            Your saved contributions and learning, all time
+            Your activity: saved contributions and learning, all time
           </div>
         </div>
 

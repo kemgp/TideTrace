@@ -20,7 +20,7 @@ export default function Dashboard() {
     <div className="wrap">
       <div className="banner admin">
         <div>
-          <b>Welcome, {profile?.display_name} — platform overview</b>
+          <b>Welcome, {profile?.display_name}</b>
           <div className="s">Manage. Configure. Sustain the platform.</div>
         </div>
         <svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8">

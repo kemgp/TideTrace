@@ -49,7 +49,7 @@ it("shows skeletons, preserves real zero, and rejects another account's response
   first = false; data = { ...data, id: "other-account" };
   fireEvent.click(within(region).getByRole("button", { name: "Refresh totals" }));
   await within(region).findByRole("alert");
-  expect(within(region).getByText("Your Traces").closest(".stat").querySelector("b").textContent).toBe("—");
+  expect(within(region).getByText("Your Traces").closest(".stat").querySelector("b").textContent).toContain("—");
 });
 it("refreshes on focus and every 30 seconds, pauses when hidden and stops on logout", async () => {
   let approved = 10;

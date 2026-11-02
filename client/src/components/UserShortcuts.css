@@ -24,6 +24,7 @@
   border-radius: var(--r-sm);
 }
 .app-shell .user-shortcuts__label { min-width: 0; overflow-wrap: anywhere; }
+.app-shell .user-shortcuts__hint { display: block; margin-top: 2px; font-size: var(--fs-meta); font-weight: 400; color: var(--soft); }
 .app-shell .user-shortcuts__arrow { justify-self: end; font-size:var(--fs-section); }
 .app-shell .user-shortcuts__link:hover { color: var(--blue); background: var(--bg); }
 .app-shell .user-shortcuts__link:focus-visible { outline:var(--focus-width) solid var(--focus-ring); outline-offset: 2px; }

@@ -1,9 +1,9 @@
 import {useRef} from 'react';
 import {useInView} from './motion.js';
 const steps=[
- ['Join your community',"Sign up and connect to your barangay or coastal community — see what's already been logged nearby."],
+ ['Join your community',"Sign up and connect to your barangay or coastal community. See what's already been logged nearby."],
  ['Log what you see','Snap a photo, record a story, or note a sighting. It takes under a minute to add to the shared archive.'],
- ['Watch the impact grow',"See your contribution join the collective — visualized alongside everyone else's small acts of care."],
+ ['Watch the impact grow',"See your contribution join the collective, visualized alongside everyone else's small acts of care."],
 ];
 export default function HowItWorks(){
  const grid=useRef(null);
