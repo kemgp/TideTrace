@@ -13,6 +13,7 @@ import UserShortcuts from "../../components/UserShortcuts.jsx";
 import Button from "../../components/Button.jsx";
 
 export default function Dashboard() {
+  throw new Error("test crash");
   const { profile } = useApp();
   const navigate = useNavigate();
 
