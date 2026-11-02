@@ -14,12 +14,14 @@ export function matchesFileType(buffer, type) {
   if (type === "image/png") return buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   if (type === "image/webp") return buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP";
   if (type === "video/mp4") return buffer.toString("ascii", 4, 8) === "ftyp";
+  if (type === "application/pdf") return buffer.toString("ascii", 0, 5) === "%PDF-";
   return false;
 }
 
 export function mediaRoutes(gateway) {
   const router = Router();
   const member = authenticate(gateway);
+  const admin = authenticate(gateway, { roles: ["admin"] });
   const uploadLimit = rateLimit({
     windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false,
     handler: (req, res) => res.status(429).json({ error: { code: "RATE_LIMITED", message: "Upload limit reached. Try again later.", request_id: req.requestId } }),
@@ -82,5 +84,50 @@ export function mediaRoutes(gateway) {
     const data = await result(req.db.storage.from("trace-media").createSignedUrl(media.object_path, 60));
     res.json({ data: { url: data.signedUrl, expires_in: 60 } });
   });
+  // Tide lesson files (cover image and PDF slides). Admin uploads; everyone reads through signed URLs.
+  const tideAsset = {
+    cover: { types: ["image/jpeg", "image/png", "image/webp"], limit: "5mb", label: "Choose a JPEG, PNG or WebP cover image." },
+    slides: { types: ["application/pdf"], limit: "25mb", label: "Upload the slides as a PDF." },
+  };
+  const tideExt = { ...formats, "application/pdf": "pdf" };
+  for (const kind of Object.keys(tideAsset)) {
+    const rule = tideAsset[kind];
+    router.post(`/tides/:id/${kind}`, admin, uploadLimit, (req, res, next) => {
+      req.mediaType = req.get("Content-Type")?.split(";")[0].toLowerCase();
+      if (!rule.types.includes(req.mediaType)) throw new HttpError(415, "UNSUPPORTED_MEDIA", rule.label);
+      next();
+    }, raw({ type: () => true, limit: rule.limit }), async (req, res) => {
+      const id = uuid.parse(req.params.id);
+      const query = z.object({ pages: z.coerce.number().int().min(1).max(500).optional() }).strict().parse(req.query);
+      if (kind === "slides" && !query.pages) throw new HttpError(400, "VALIDATION_ERROR", "Enter the number of pages (1 to 500).");
+      if (!matchesFileType(req.body, req.mediaType)) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
+      first(await result(req.db.from("tides").select("id").eq("id", id).limit(1)));
+      const path = `${id}/${kind}-${randomUUID()}.${tideExt[req.mediaType]}`;
+      await result(req.db.storage.from("tide-assets").upload(path, req.body, { contentType: req.mediaType, upsert: false }));
+      let saved;
+      try {
+        saved = await result(req.db.rpc("set_tide_asset", { p_tide_id: id, p_kind: kind, p_object_path: path, p_pages: kind === "slides" ? query.pages : null }));
+      } catch (error) {
+        await req.db.storage.from("tide-assets").remove([path]).catch(() => {});
+        throw error;
+      }
+      if (saved.previous_path) await req.db.storage.from("tide-assets").remove([saved.previous_path]).catch(() => {});
+      res.status(201).json({ data: saved.tide });
+    });
+    router.delete(`/tides/:id/${kind}`, admin, uploadLimit, async (req, res) => {
+      const saved = await result(req.db.rpc("clear_tide_asset", { p_tide_id: uuid.parse(req.params.id), p_kind: kind }));
+      if (saved.previous_path) await req.db.storage.from("tide-assets").remove([saved.previous_path]).catch(() => {});
+      res.json({ data: saved.tide });
+    });
+    router.get(`/tides/:id/${kind}`, async (req, res) => {
+      // Table RLS and the storage policy limit this to published lessons (or admins).
+      const column = kind === "cover" ? "cover_path" : "slides_path,slides_pages";
+      const tide = first(await result(req.db.from("tides").select(column).eq("id", uuid.parse(req.params.id)).limit(1)));
+      const objectPath = tide[`${kind}_path`];
+      if (!objectPath) throw new HttpError(404, "NOT_FOUND", "Record not found.");
+      const data = await result(req.db.storage.from("tide-assets").createSignedUrl(objectPath, 600));
+      res.json({ data: { url: data.signedUrl, expires_in: 600, ...(kind === "slides" ? { pages: tide.slides_pages } : {}) } });
+    });
+  }
   return router;
 }

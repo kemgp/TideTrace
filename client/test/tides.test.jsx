@@ -21,6 +21,11 @@ function setup(handler = () => undefined, role = "admin") {
   vi.stubGlobal("fetch", calls);
   return calls;
 }
+async function fillLesson() {
+  fireEvent.change(await screen.findByLabelText("Lesson title"), { target: { value: sampleTide.title } });
+  fireEvent.change(screen.getByLabelText("Slug"), { target: { value: sampleTide.slug } });
+  fireEvent.change(screen.getByLabelText("Lesson content"), { target: { value: sampleTide.body } });
+}
 const open = (path) => render(<StrictMode><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></StrictMode>);
 async function clickReady(name) {
   const button = await screen.findByRole("button", { name, exact: true });
@@ -41,7 +46,7 @@ it("creates the sample draft, previews safely, publishes, returns to draft and a
     if (url.startsWith("/api/admin/tides?")) return ok(saved ? [saved] : []);
   });
   open("/admin/tides/new");
-  fireEvent.click(await screen.findByRole("button", { name: "Use sample lesson" }));
+  await fillLesson();
   expect(screen.getByLabelText("Lesson title").value).toBe(sampleTide.title);
   await clickReady("Preview");
   expect(within(screen.getByRole("region", { name: "Lesson preview" })).getByRole("heading", { name: sampleTide.title })).toBeTruthy();
@@ -113,7 +118,7 @@ it.each([409, 502])("blocks replay after uncertain or stale update %s and reload
 it("does not recreate automatically after a lost create response", async () => {
   const calls = setup((url) => { if (url === "/api/admin/tides") throw new TypeError("Lost response"); });
   open("/admin/tides/new");
-  fireEvent.click(await screen.findByRole("button", { name: "Use sample lesson" }));
+  await fillLesson();
   await clickReady("Save draft");
   await screen.findByText(/Check Manage Tides for the saved lesson/);
   expect(screen.getByLabelText("Lesson title").closest("fieldset").disabled).toBe(true);
@@ -125,7 +130,7 @@ it("blocks duplicate save actions and ignores their response after logout", asyn
   const pending = new Promise((resolve) => { finish = resolve; });
   const calls = setup((url) => url === "/api/admin/tides" ? pending : undefined);
   open("/admin/tides/new");
-  fireEvent.click(await screen.findByRole("button", { name: "Use sample lesson" }));
+  await fillLesson();
   const save = screen.getByRole("button", { name: "Save draft" });
   fireEvent.click(save); fireEvent.click(save);
   await waitFor(() => expect(calls.mock.calls.filter(([, options]) => options.method === "POST")).toHaveLength(1));
@@ -207,7 +212,7 @@ it("does not label failed completion reads as not started", async () => {
   setup((url) => url.startsWith("/api/tides?") ? ok([lesson({ status: "published" })]) : url.startsWith("/api/tide-completions?") ? fail() : undefined, "user");
   open("/user/tides");
   await screen.findByText("Completion unavailable");
-  expect(screen.queryByText("Not started")).toBeNull();
+  expect(screen.queryByText("Not started", { selector: ".user-lesson-status" })).toBeNull();
 });
 
 it("reloads saved completion after a lost response without replaying the write", async () => {

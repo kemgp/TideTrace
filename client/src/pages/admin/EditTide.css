@@ -1,0 +1,29 @@
+/* Lesson editor form spacing: each label sits above its field, with errors and hints kept small and close. */
+.tide-form .lbl{display:block;margin:18px 0 6px;}
+.tide-form .hint{margin:6px 0 0;}
+.tide-form [role="alert"]{margin:6px 0 0;font-size:var(--fs-label);}
+.tide-form .input{display:block;width:100%;}
+
+
+
+
+/* Layout: slug and topic share a row; cover and slides sit side by side. */
+.tide-form .tide-row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.tide-form .tide-cell{min-width:0;}
+.tide-form textarea.input{min-height:96px;resize:vertical;}
+.tide-form #tide-body{min-height:340px;line-height:1.6;}
+.tide-form .row .btn{min-width:110px;}
+.lesson-assets{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+.lesson-asset{border:1.5px dashed var(--line);border-radius:var(--r-md);padding:16px;background:rgba(237,247,255,.5);display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.lesson-asset .lbl{margin:0;font-weight:600;}
+.lesson-asset .hint{margin:0 0 8px;}
+.asset-chip{margin:6px 0 4px;padding:8px 12px;border-radius:var(--r-sm);background:#fff;border:1px solid var(--line);font-size:var(--fs-label);font-weight:600;overflow-wrap:anywhere;}
+html.dark-mode .asset-chip{background:var(--d-surface);border-color:var(--d-border);}
+.lesson-asset input[type="file"]{max-width:100%;font-size:var(--fs-label);color:var(--soft);}
+.lesson-asset input[type="file"]::file-selector-button{margin-right:12px;padding:8px 14px;border:1px solid var(--blue);border-radius:var(--r-sm);background:#fff;color:var(--blue);font:inherit;font-weight:600;cursor:pointer;}
+.lesson-asset input[type="file"]::file-selector-button:hover{background:var(--bg);}
+.lesson-asset input[type="file"]:disabled::file-selector-button{opacity:.5;cursor:not-allowed;}
+.lesson-asset .btn{margin-top:10px;}
+html.dark-mode .lesson-asset{background:var(--d-surface-2);border-color:var(--d-border-strong);}
+html.dark-mode .lesson-asset input[type="file"]::file-selector-button{background:var(--d-surface);color:var(--d-text);border-color:var(--d-border-strong);}
+@media(max-width:640px){.tide-form .tide-row,.lesson-assets{grid-template-columns:1fr;}}

@@ -1,8 +1,13 @@
 import React from "react";
+import { readingMinutes } from "../api/tideText.js";
+import LessonBody from "./LessonBody.jsx";
+import "./Lesson.css";
 
-export default function TideLesson({ title, body }) {
-  return <article aria-label="Lesson content">
-    <h2 style={{ fontSize: "var(--fs-section-lg)", lineHeight: 1.3, overflowWrap: "anywhere" }}>{title || "Untitled lesson"}</h2>
-    <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.8, marginTop: 20 }}>{body || "No lesson content yet."}</div>
+export default function TideLesson({ title, body, hideTitle = false }) {
+  const minutes = readingMinutes(body);
+  return <article aria-label="Lesson content" className="lesson">
+    {!hideTitle && <h2 className="lesson-title">{title || "Untitled lesson"}</h2>}
+    {minutes && <p className="lesson-meta">{minutes} min read</p>}
+    <LessonBody body={body} />
   </article>;
 }

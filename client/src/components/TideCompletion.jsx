@@ -3,12 +3,12 @@ import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState from "./RemoteState.jsx";
 
-export default function TideCompletion({ tideId }) {
+export default function TideCompletion({ tideId, onCompleted }) {
   const { profile } = useApp();
-  return <Completion key={`${profile.id}:${tideId}`} tideId={tideId} />;
+  return <Completion key={`${profile.id}:${tideId}`} tideId={tideId} onCompleted={onCompleted} />;
 }
 
-function Completion({ tideId }) {
+function Completion({ tideId, onCompleted }) {
   const { profile, writeData } = useApp();
   const result = useRemoteData(`tide-completions?tide_ids=${encodeURIComponent(tideId)}`, { collection: true });
   const [saved, setSaved] = useState(false);
@@ -17,6 +17,8 @@ function Completion({ tideId }) {
   const pending = useRef(null);
   useEffect(() => () => pending.current?.abort(), []);
   const completed = saved || result.data?.some((record) => record.tide_id === tideId);
+  // Lets the lesson page react once the lesson is known to be completed (for example to highlight the next lesson).
+  useEffect(() => { if (completed) onCompleted?.(); }, [completed]);
   async function complete() {
     if (pending.current || completed) return;
     const controller = new AbortController();
