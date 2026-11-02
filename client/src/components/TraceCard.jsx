@@ -12,12 +12,14 @@ function TraceCardPhoto({trace,to,linkState}){
   const deferred=profile?.data_saver&&!requested;
   const [url,setUrl]=useState("");
   const [status,setStatus]=useState("loading");
+  const [loaded,setLoaded]=useState(false);
 
   useEffect(()=>{
     if(deferred)return;
     const controller=new AbortController();
     setUrl("");
     setStatus("loading");
+    setLoaded(false);
 
     const loadPhoto=async()=>{
       try{
@@ -69,12 +71,16 @@ function TraceCardPhoto({trace,to,linkState}){
   if(url){
     const PhotoTag=to?Link:"div";
     return(
-      <PhotoTag className="trace-card-photo" {...(to?{to,state:linkState}:{})}>
+      <PhotoTag className={`trace-card-photo${loaded?"":" trace-card-photo-loading"}`} {...(to?{to,state:linkState}:{})}>
         <img
           src={url}
           alt={trace?.title?`${trace.title} photo`:"Trace photo"}
           referrerPolicy="no-referrer"
+          decoding="async"
+          // Hidden (over the shimmer) until fully downloaded and decoded, so it appears whole instead of painting top to bottom.
+          onLoad={(event)=>{const image=event.currentTarget;(image.decode?image.decode().catch(()=>{}):Promise.resolve()).then(()=>setLoaded(true));}}
           onError={()=>{setUrl("");setStatus("unavailable");}}
+          style={{opacity:loaded?1:0,transition:"opacity .25s ease"}}
         />
       </PhotoTag>
     );

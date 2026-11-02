@@ -917,3 +917,4 @@ html.dark-mode .trace-neighbors__link:hover .trace-neighbors__arrow{background:v
 html.dark-mode .trace-neighbors__link:hover{background:var(--d-surface-2);border-color:var(--d-muted);box-shadow:none;}
 html.dark-mode .trace-neighbors__link:focus-visible{outline-color:var(--d-text);}
 html.dark-mode .trace-related{color:var(--d-text);}
+@media(prefers-reduced-motion:reduce){.trace-card-photo img{transition:none!important;}}

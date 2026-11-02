@@ -29,7 +29,7 @@
 .trace-detail__actions .btn.danger{background:transparent;color:var(--danger);border:1.5px solid var(--danger);}
 .trace-detail__actions .btn.danger:hover:not(:disabled){background:var(--danger-bg);}
 /* Portrait or small photos sit on a blurred copy of themselves instead of an empty frame. */
-.trace-detail__backdrop{position:absolute;inset:-24px;background-size:cover;background-position:center;filter:blur(24px) saturate(1.1);opacity:.55;transform:scale(1.1);}
+.trace-detail__backdrop{position:absolute;inset:-24px;background-size:cover;background-position:center;filter:blur(24px) saturate(1.1);opacity:.55;transform:scale(1.1);transition:opacity .25s ease;}
 .trace-detail__media-item>img{position:relative;z-index:1;}
 .trace-detail__author-name{font-weight:600;color:var(--navy);}
 .trace-map-caption{margin-top:8px;}
@@ -119,8 +119,8 @@
 .trace-detail__thumb:hover{border-color:var(--blue);background:rgba(32,52,99,.08);}
 .trace-detail__thumb:focus-visible{border-color:var(--blue);}
 .trace-detail__media-item:not(.is-active) .trace-detail__backdrop{display:none;}
-.photo-loading{position:absolute;inset:0;display:grid;place-items:center;margin:0;font-size:var(--fs-label);color:var(--soft);background:linear-gradient(90deg,var(--sk-base) 25%,var(--sk-shine) 50%,var(--sk-base) 75%);background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite;}
-@media(prefers-reduced-motion:reduce){.photo-loading{animation:none;}}
+.photo-loading{z-index:2;pointer-events:none;position:absolute;inset:0;display:grid;place-items:center;margin:0;font-size:var(--fs-label);color:var(--soft);background:linear-gradient(90deg,var(--sk-base) 25%,var(--sk-shine) 50%,var(--sk-base) 75%);background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite;}
+@media(prefers-reduced-motion:reduce){.photo-loading{animation:none;}.trace-detail__media-item>img,.trace-detail__backdrop{transition:none!important;}}
 .app-shell button.photo-viewer__nav{position:absolute;top:50%;transform:translateY(-50%);box-sizing:border-box;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:var(--navy);line-height:1;display:grid;place-items:center;cursor:pointer;}
 .photo-viewer__nav--prev{left:12px;}.photo-viewer__nav--next{right:12px;}
 .photo-viewer__nav:hover{background:#fff;}
