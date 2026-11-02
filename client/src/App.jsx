@@ -2,7 +2,7 @@ import Home from "./pages/Home/index.jsx";
 import NavigationGuard from "./components/NavigationGuard.jsx";
 import LegalPage from "./pages/legal/LegalPage.jsx";
 import PageMetadata from "./components/PageMetadata.jsx";
-import React from "react";
+import React,{useEffect,useRef} from "react";
 import {Link,Navigate,Route,Routes,useLocation} from "react-router-dom";
 import {ROLE_HOME} from "./api/auth.js";
 import {readRoleHint} from "./api/roleHint.js";
@@ -223,6 +223,13 @@ function AppShell(){
     retrySession
   }=useApp();
   const location=useLocation();
+  // A short fade when the page changes, so content does not snap. Opacity only: no layout movement.
+  const mainRef=useRef(null),firstPath=useRef(true);
+  useEffect(()=>{
+    if(firstPath.current){firstPath.current=false;return;}
+    const el=mainRef.current;if(!el)return;
+    el.classList.remove('route-enter');void el.offsetWidth;el.classList.add('route-enter');
+  },[location.pathname]);
   // While a saved session is restored the role is unknown; use the remembered one for layout only
   // (container width, colours) so the page does not resize when the account arrives.
   const shellRole=role||(sessionReady===false?readRoleHint():null);
@@ -272,7 +279,7 @@ function AppShell(){
           </button>
         </div>
       )}
-      <main>
+      <main ref={mainRef}>
           <Routes>
             <Route path="/terms-of-service" element={<LegalPage document="terms" />} />
             <Route path="/privacy-policy" element={<LegalPage document="privacy" />} />

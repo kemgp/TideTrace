@@ -1,6 +1,6 @@
 .trace-photo-upload{margin-top:16px;min-width:0;max-width:100%;}
 .trace-photo-upload>.lbl{display:block;margin:0 0 8px;}
-.trace-photo-upload__card{overflow:hidden;border:1px solid #dce0ee;border-radius:6px;background:#f6f7fc;box-shadow:0 3px 8px #26345e14;}
+.trace-photo-upload__card{overflow:hidden;border:1px solid #dce0ee;border-radius:var(--r-sm);background:#f6f7fc;box-shadow:var(--shadow-sm);}
 .trace-photo-upload__drop{position:relative;display:flex;min-height:230px;margin:10px;flex-direction:column;align-items:center;justify-content:center;gap:12px;border:2px dashed #cdd1df;border-radius:3px;color:#535966;text-align:center;transition:background .15s,border-color .15s;}
 .trace-photo-upload__drop.is-dragging{background:#e9edff;border-color:#697bdb;}
 .trace-photo-upload__icon{width:48px;height:48px;color:#697bdb;}
@@ -19,12 +19,12 @@
 .trace-photo-upload__details small{display:block;margin-top:3px;color:#747d92;font-size:var(--fs-badge);}
 .trace-photo-upload__remove{display:grid;place-items:center;flex:none;width:24px;height:24px;border:0;border-radius:50%;color:#fff;background:#dd626e;font-size:var(--fs-card);line-height:1;}
 .trace-photo-upload>.hint{margin-top:10px;}
-html.dark-mode .trace-photo-upload__card{background:#1b243b;border-color:#34445d;box-shadow:none;}
+html.dark-mode .trace-photo-upload__card{background:#1b243b;border-color:var(--d-border-strong);box-shadow:none;}
 html.dark-mode .trace-photo-upload__drop{border-color:#586482;color:#d9e3f0;}
 html.dark-mode .trace-photo-upload__drop.is-dragging{background:#293454;border-color:#a9b8ff;}
 html.dark-mode .trace-photo-upload__icon{color:#a9b8ff;}
 html.dark-mode .trace-photo-upload__drop>span{color:#a9b8cc;}
-html.dark-mode .trace-photo-upload__row{background:#20304b;border-color:#34445d;}
+html.dark-mode .trace-photo-upload__row{background:#20304b;border-color:var(--d-border-strong);}
 html.dark-mode .trace-photo-upload__details{color:#d9e3f0;}
 html.dark-mode .trace-photo-upload__details small{color:#a9b8cc;}
 html.dark-mode .trace-photo-upload__browse:focus-visible{outline-color:#a9b8ff;}

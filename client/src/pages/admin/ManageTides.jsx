@@ -1,4 +1,5 @@
 import { PAGE_SIZE } from "../../api/pagination.js";
+import EmptyState from "../../components/EmptyState.jsx";
 import ContentTabs from "./ContentTabs.jsx";
 import AdminIcon from "../../components/AdminIcon.jsx";
 import React, { useState } from "react";
@@ -21,7 +22,7 @@ export default function ManageTides() {
       <div className="grow"><Link className="t" to={`/admin/tides/${encodeURIComponent(lesson.id)}/edit`}>{lesson.title}</Link><div className="hint" style={{ overflowWrap: "anywhere" }}>{lesson.slug}</div></div>
       <span className={`badge ${lesson.status === "published" ? "approved" : "draft"}`}>{lesson.status === "published" ? "Published" : lesson.status === "archived" ? "Archived" : "Draft"}</span>
       <Link className="mini blue" to={`/admin/tides/${encodeURIComponent(lesson.id)}/edit`}>Edit</Link>
-    </div>)}</div> : <p className="card admin-lessons__empty">No lessons yet. Add your first lesson to get started.</p>)}
+    </div>)}</div> : <EmptyState card className="admin-lessons__empty" title="No lessons yet. Add your first lesson to get started." />)}
     <Pagination offset={offset} count={lessons.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </div>;
 }

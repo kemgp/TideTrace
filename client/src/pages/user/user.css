@@ -15,8 +15,8 @@
 .app-shell.user-shell .user-learning-callout > div { flex: 1 1 240px; }
 .app-shell.user-shell .user-learning-callout p { margin-bottom: 0; }
 .user-trace-card { display: block; text-decoration: none; color: inherit; }
-.app-shell.user-shell .tcard { padding: 12px; border-radius: 10px; box-shadow: none; }
-.app-shell.user-shell .tcard .thumb { height: 68px; border-radius: 7px; }
+.app-shell.user-shell .tcard { padding: 12px; border-radius: var(--r-md); box-shadow: none; }
+.app-shell.user-shell .tcard .thumb { height: 68px; border-radius: var(--r-sm); }
 .app-shell.user-shell .tcard .t { font-size:var(--fs-label); line-height: 1.5; }
 .app-shell.user-shell .tcard .m { flex-wrap: wrap; gap: 8px; }
 .app-shell.user-shell .tcard .m span { font-size:var(--fs-badge); }
@@ -30,9 +30,9 @@
 .app-shell.user-shell .user-tide-card:nth-child(5n+5) .thumb { background: var(--teal); }
 .app-shell.user-shell .user-lesson-status { border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; }
 .app-shell.user-shell .user-lesson-status.is-complete { color: #356e73; background: #e2f2f2; border-color: #9ccdd0; }
-.user-contribution { color: inherit; text-decoration: none; gap: 14px; border-radius: 8px; padding: 18px 8px; }
+.user-contribution { color: inherit; text-decoration: none; gap: 14px; border-radius: var(--r-sm); padding: 18px 8px; }
 .user-contribution:hover { background: var(--bg); }
-.user-category-marker { display: inline-block; width: 42px; height: 42px; border-radius: 7px; flex: none; }
+.user-category-marker { display: inline-block; width: 42px; height: 42px; border-radius: var(--r-sm); flex: none; }
 .app-shell.user-shell .user-contribution .t { font-size:var(--fs-label); }
 .app-shell.user-shell .user-contribution .m { margin-top: 6px; font-size:var(--fs-badge); }
 .app-shell.user-shell .rail { align-self: start; }
@@ -45,11 +45,11 @@
 .user-account-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 .user-account-header .avatar { display: grid; place-items: center; background: var(--tan); width: 48px; height: 48px; flex: none; }
 .app-shell.user-shell .settings-section-title h2 { font-size:var(--fs-card); }
-.app-shell.user-shell .notification-item { border: 1px solid var(--line); border-radius: 9px; padding: 14px; margin-bottom: 10px; }
-.app-shell.user-shell .notification-item .nico { color: var(--teal); background: #e2f2f2; border-radius: 7px; display: grid; place-items: center; }
+.app-shell.user-shell .notification-item { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 14px; margin-bottom: 10px; }
+.app-shell.user-shell .notification-item .nico { color: var(--teal); background: #e2f2f2; border-radius: var(--r-sm); display: grid; place-items: center; }
 .app-shell.user-shell .trace-detail { max-width: 780px; }
 .app-shell.user-shell .trace-detail__description { font-size:var(--fs-label); }
-.app-shell.user-shell .user-lesson .card { border-radius: 12px; }
+.app-shell.user-shell .user-lesson .card { border-radius: var(--r-md); }
 .app-shell.user-shell footer { background: var(--navy); }
 .app-shell.user-shell .foot-tagline, .app-shell.user-shell .foot-meta { display: none; }
 @media (min-width: 768px) {

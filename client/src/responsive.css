@@ -71,7 +71,7 @@ body { min-width: 0; }
 .app-shell .brand span { font-size:var(--fs-card); }
 .app-shell .nav-right { grid-column: 2; grid-row: 1; gap: 6px; min-width: 0; }
 .app-shell .nav-right .role-tag { display: none; }
-.app-shell .menu-btn { display: grid; place-items: center; width: 44px; height: 44px; color: var(--navy); border-radius: 8px; }
+.app-shell .menu-btn { display: grid; place-items: center; width: 44px; height: 44px; color: var(--navy); border-radius: var(--r-sm); }
 .app-shell .nav-panel { display: none; grid-column: 1 / -1; width: 100%; min-width: 0; max-height: calc(100dvh - 88px); overflow-y: auto; overscroll-behavior: contain; padding: 8px 0; }
 .app-shell .nav.open .nav-panel { display: grid; gap: 12px; }
 .app-shell .nav .nav-links, .app-shell .nav.open .nav-links { display: flex; position: static; width: 100%; flex-direction: column; flex-wrap: nowrap; align-items: stretch; padding: 0; gap: 4px; border: 0; grid-column: auto; grid-row: auto; }
@@ -93,7 +93,7 @@ body { min-width: 0; }
 .app-shell :is(.trace-photo-upload__remove, .admin-chip-remove, .traychip button) { min-width: 44px; min-height: 44px; }
 .app-shell .admin-chip-remove { padding: 0; }
 .app-shell .tgl { width: 44px; height: 44px; min-height: 44px; background: transparent; }
-.app-shell .tgl::before { content: ''; position: absolute; width: 37px; height: 21px; top: 11px; left: 3px; border-radius: 12px; background: var(--teal); }
+.app-shell .tgl::before { content: ''; position: absolute; width: 37px; height: 21px; top: 11px; left: 3px; border-radius: var(--r-md); background: var(--teal); }
 .app-shell .tgl.off::before { background: #c7dcee; }
 .app-shell .tgl::after { top: 13.5px; left: 21px; }
 .app-shell .tgl.off::after { left: 5.5px; }
@@ -119,7 +119,7 @@ body { min-width: 0; }
 .app-shell .mod-decision .btn { flex: 1 1 150px; }
 
 /* Content-heavy UI: contain scrolling inside the table or dialog, not the page. */
-.app-shell .table-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; border-radius: 6px; }
+.app-shell .table-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; border-radius: var(--r-sm); }
 .app-shell .table-scroll table { min-width: 420px; width: 100%; }
 .app-shell .admin-permissions { overflow: visible; }
 .app-shell :is(.modal, dialog) { overscroll-behavior: contain; }
@@ -220,12 +220,12 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
   .app-shell .account-menu__panel {
     display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 60;
     flex-direction: column; gap: 2px; min-width: 190px; padding: 6px;
-    background: #fff; border: 1px solid var(--line); border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(32, 52, 99, .14);
+    background: #fff; border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
   }
   .app-shell .account-menu.is-open .account-menu__panel { display: flex; }
   .app-shell .account-menu__panel .btn { width: 100%; justify-content: flex-start; padding: 10px 12px; font-size:var(--fs-label); text-align: left; }
-  html.dark-mode .app-shell .account-menu__panel { background: #172235; border-color: #2b3a52; }
+  html.dark-mode .app-shell .account-menu__panel { background: var(--d-surface); border-color: var(--d-border); }
 }
 
 @media (min-width: 1280px) {

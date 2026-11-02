@@ -18,8 +18,8 @@
 .category-list__copy { min-width: 0; }
 .category-list__copy p { color: var(--soft); font-size:var(--fs-meta); line-height: 1.6; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .category-list__item .category-form { margin-bottom: 18px; background: var(--bg); }
-html.dark-mode .category-list__item .category-form { background: #101827; }
-html.dark-mode :is(.category-list__item, .category-form__actions) { border-color: #34445d; }
+html.dark-mode .category-list__item .category-form { background: var(--d-bg); }
+html.dark-mode :is(.category-list__item, .category-form__actions) { border-color: var(--d-border-strong); }
 @media (max-width: 700px) {
   .category-form__fields { grid-template-columns: minmax(0, 1fr); }
   .category-list__row { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }

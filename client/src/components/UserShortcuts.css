@@ -21,7 +21,7 @@
   font-weight: 600;
   line-height: 1.5;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 .app-shell .user-shortcuts__label { min-width: 0; overflow-wrap: anywhere; }
 .app-shell .user-shortcuts__arrow { justify-self: end; font-size:var(--fs-section); }
