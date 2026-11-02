@@ -279,7 +279,7 @@ it("uses the same saved photo for the navbar and own Traces even if a feed snaps
   vi.stubGlobal("fetch", vi.fn((url, options) => url === "/api/auth/me" ? Promise.resolve(response({ ...profile, avatar_url: savedPhoto })) : fetchRecords(url, options)));
   open();
   expect((await screen.findByAltText("Actual Member's profile photo")).src).toBe(savedPhoto);
-  expect(screen.getByRole("button", { name: "Profile settings" }).querySelector("img").src).toBe(savedPhoto);
+  expect(screen.getByRole("button", { name: "Account menu" }).querySelector("img").src).toBe(savedPhoto);
   fireEvent.click(screen.getByText("Saved seagrass survey"));
   await screen.findByText("Saved description");
   // The author line and the comment box both show this member's current photo.

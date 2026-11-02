@@ -39,13 +39,13 @@ it("loads saved notifications and persists individual read status with an update
   const item = (await screen.findByText(row.message)).closest(".nitem");
   expect(item.classList.contains("is-unread")).toBe(true);
   const readsBefore = fetchMock.mock.calls.filter(([url]) => url.startsWith("/api/notifications") && url !== "/api/notifications/read").length;
-  expect(screen.getByRole("link", { name: "Notifications (1 unread)" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Notifications (1 unread)" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Mark as read" }));
   await waitFor(() => expect(item.classList.contains("is-unread")).toBe(false));
   expect(screen.getByText(row.message).closest(".nitem")).toBe(item);
   expect(screen.queryByText("Read", { exact: true })).toBeNull();
   expect(fetchMock.mock.calls.filter(([url]) => url.startsWith("/api/notifications") && url !== "/api/notifications/read").length).toBe(readsBefore);
-  expect(screen.getByRole("link", { name: "Notifications" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
   const call = fetchMock.mock.calls.find(([url]) => url === "/api/notifications/read");
   expect(JSON.parse(call[1].body)).toEqual({ ids: [row.id] });
   expect(call[1].headers.Authorization).toBe("Bearer access");
@@ -54,7 +54,7 @@ it("loads saved notifications and persists individual read status with an update
 it("counts unread notifications beyond the page and marks all pages read", async () => {
   const { fetchMock } = setup({ many: true });
   await screen.findByText("Update 0");
-  expect(screen.getByRole("link", { name: "Notifications (26 unread)" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Notifications (26 unread)" })).toBeTruthy();
   expect(screen.getAllByRole("button", { name: "Mark as read" })).toHaveLength(6);
   expect(screen.queryByText("Update 6")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Next page" }));
@@ -63,7 +63,7 @@ it("counts unread notifications beyond the page and marks all pages read", async
   fireEvent.click(screen.getByRole("button", { name: "Mark all read" }));
   await waitFor(() => expect(item.classList.contains("is-unread")).toBe(false));
   expect(fetchMock.mock.calls.length).toBe(requestsBefore + 1);
-  expect(screen.getByRole("link", { name: "Notifications" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
   expect(JSON.parse(fetchMock.mock.calls.find(([url]) => url === "/api/notifications/read")[1].body)).toEqual({ ids: null });
 });
 
@@ -89,7 +89,7 @@ it("marks only the selected item without disturbing other unread notifications",
   fireEvent.click(first.querySelector("button"));
   await waitFor(() => expect(first.classList.contains("is-unread")).toBe(false));
   expect(second.classList.contains("is-unread")).toBe(true);
-  expect(screen.getByRole("link", { name: "Notifications (25 unread)" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Notifications (25 unread)" })).toBeTruthy();
   expect(fetchMock.mock.calls.length).toBe(requestsBefore + 1);
 });
 

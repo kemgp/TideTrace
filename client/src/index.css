@@ -118,6 +118,13 @@ textarea.input{height:110px;padding:10px 12px;resize:vertical;}
 .avatar-btn{width:34px;height:34px;border-radius:50%;background:var(--tan);color:var(--navy);font-weight:700;font-size:var(--fs-meta);border:none;}
 .avatar-btn.mod{background:var(--teal);}
 .avatar-btn.admin{background:var(--blue);color:#fff;}
+.nav-bell{position:relative;display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;margin:0 8px 0 6px;border-radius:50%;color:var(--soft);}
+.nav-bell:hover{color:var(--blue);background:#e3ecfa;}
+.nav-bell[aria-current="page"]{color:var(--blue);background:#e3ecfa;}
+.nav-bell__badge{position:absolute;top:-1px;right:-3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--clay-strong);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;box-shadow:0 0 0 2px #fff;}
+html.dark-mode .nav-bell{color:var(--d-muted);}
+html.dark-mode .nav-bell:hover,html.dark-mode .nav-bell[aria-current="page"]{color:var(--d-text);background:var(--d-surface-2);}
+html.dark-mode .nav-bell__badge{box-shadow:0 0 0 2px var(--d-surface);}
 .nav-badge{background:var(--clay-strong);color:#fff;font-size:var(--fs-badge);font-weight:700;border-radius:var(--r-md);padding:1px 6px;}
 .role-tag{font-size:var(--fs-badge);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;border-radius:var(--r-md);padding:3px 9px;}
 .menu-btn{display:none;background:none;border:none;}

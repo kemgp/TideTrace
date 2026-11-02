@@ -3,6 +3,7 @@ import React,{useEffect,useRef,useState} from "react";
 import {Link,useLocation,useNavigate} from "react-router-dom";
 import {useApp} from "../context/AppContext.jsx";
 import AdminIcon from "./AdminIcon.jsx";
+import NotificationMenu from "./NotificationMenu.jsx";
 import {readRoleHint,writeRoleHint} from "../api/roleHint.js";
 
 const WAVE=(
@@ -17,8 +18,6 @@ const userLinks=[
   {to:"/user/traces",label:"Traces",icon:"pin"},
   {to:"/user/tides",label:"Tides",icon:"book"},
   {to:"/user/contributions",label:"Contributions",icon:"log"},
-  {to:"/user/notifications",label:"Notifications",icon:"bell"},
-  {to:"/user/profile",label:"Settings",icon:"settings"},
 ];
 
 const modLinks=[
@@ -45,7 +44,7 @@ function hintedLinks(){
 }
 
 export default function Navbar(){
-  const {role,logout,unreadNotificationCount,sessionReady}=useApp();
+  const {role,profile,logout,sessionReady}=useApp();
 
   const location=useLocation();
   const navigate=useNavigate();
@@ -142,8 +141,6 @@ export default function Navbar(){
         :role==="user"
           ?userLinks
           :[];
-
-  const unread=unreadNotificationCount;
 
   const isAuthPage=[
     "/login",
@@ -268,19 +265,61 @@ export default function Navbar(){
 
         <div className="nav-right">
 
+          {role==="user"&&<NotificationMenu onNavigate={()=>setOpen(false)} />}
+
           {role&&(
-            <button
-              type="button"
-              className={avatarClass}
-              title="Profile Settings"
-              aria-label="Profile settings"
-              onClick={()=>{
-                setOpen(false);
-                navigate(profilePath);
-              }}
+            <div
+              ref={accountRef}
+              className={`account-menu${accountOpen?" is-open":""}`}
             >
-              <ProfileAvatar />
-            </button>
+              <button
+                ref={accountToggleRef}
+                type="button"
+                className="account-menu__toggle"
+                aria-label="Account menu"
+                aria-haspopup="true"
+                aria-expanded={accountOpen}
+                aria-controls="account-menu-panel"
+                onClick={()=>setAccountOpen(previous=>!previous)}
+              >
+                <span className={avatarClass}><ProfileAvatar /></span>
+                <span className="account-menu__chevron" aria-hidden="true"><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg></span>
+              </button>
+
+              <div id="account-menu-panel" className="account-menu__panel">
+                {accountOpen&&(
+                  <p className="account-menu__who">
+                    <b>{profile?.display_name||"Your account"}</b>
+                    {role!=="user"&&<span>{role==="mod"?"Moderator":"Admin"}</span>}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  className="btn ghost sm nav-profile"
+                  onClick={()=>{
+                    setOpen(false);
+                    setAccountOpen(false);
+                    navigate(profilePath);
+                  }}
+                >
+                  {role==="user"?"Settings":"Change profile"}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn ghost sm nav-logout"
+                  onClick={()=>{
+                    setOpen(false);
+                    setAccountOpen(false);
+                    logout();
+                    navigate("/login",{replace:true});
+                  }}
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
           )}
 
           <button
@@ -329,11 +368,6 @@ export default function Navbar(){
               {links.map(link=>(
                 <li key={link.to}>
                   <Link
-                    aria-label={
-                      link.label==="Notifications"&&unread>0
-                        ?`Notifications (${unread} unread)`
-                        :undefined
-                    }
                     aria-current={
                       isActive(link)
                         ?"page"
@@ -354,12 +388,6 @@ export default function Navbar(){
                     )}
 
                     {link.label}
-
-                    {link.label==="Notifications"&&unread>0&&(
-                      <span className="nav-badge">
-                        {unread}
-                      </span>
-                    )}
                   </Link>
                 </li>
               ))}
@@ -411,49 +439,6 @@ export default function Navbar(){
                     {role==="mod"?"Moderator":"Admin"}
                   </span>
                 )}
-
-                <div
-                  ref={accountRef}
-                  className={`account-menu${accountOpen?" is-open":""}`}
-                >
-                  <button
-                    ref={accountToggleRef}
-                    type="button"
-                    className="btn ghost sm account-menu__toggle"
-                    aria-expanded={accountOpen}
-                    aria-controls="account-menu-panel"
-                    onClick={()=>setAccountOpen(previous=>!previous)}
-                  >
-                    Account
-                  </button>
-
-                  <div id="account-menu-panel" className="account-menu__panel">
-                    <button
-                      type="button"
-                      className="btn ghost sm nav-profile"
-                      onClick={()=>{
-                        setOpen(false);
-                        setAccountOpen(false);
-                        navigate(profilePath);
-                      }}
-                    >
-                      Change profile
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn ghost sm nav-logout"
-                      onClick={()=>{
-                        setOpen(false);
-                        setAccountOpen(false);
-                        logout();
-                        navigate("/login",{replace:true});
-                      }}
-                    >
-                      Log out
-                    </button>
-                  </div>
-                </div>
 
               </>
             ):(
