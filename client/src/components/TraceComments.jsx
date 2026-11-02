@@ -2,6 +2,7 @@ import { PAGE_SIZE } from "../api/pagination.js";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
+import DeleteComment from "./DeleteComment.jsx";
 import ReportContent from "./ReportContent.jsx";
 import RemoteState from "./RemoteState.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
@@ -13,6 +14,7 @@ export default function TraceComments({ traceId }) {
   const [offset, setOffset] = useState(0);
   const result = useRemoteData(`traces/${encodeURIComponent(traceId)}/comments?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   // Pages accumulate into one thread; "Show more comments" asks for the next page.
+  const heading = useRef(null);
   const [pages, setPages] = useState({});
   useEffect(() => { if (result.data) setPages((saved) => saved[offset] === result.data ? saved : { ...saved, [offset]: result.data }); }, [result.data, offset]);
   const counter = useId();
@@ -52,11 +54,15 @@ export default function TraceComments({ traceId }) {
   const offsets = Object.keys(pages).map(Number).sort((a, b) => a - b);
   const comments = offsets.flatMap((key) => pages[key]);
   const lastLoaded = offsets.at(-1);
-  const hasMore = lastLoaded === undefined ? false : lastLoaded === offset ? pages[lastLoaded].length === PAGE_SIZE : true;
+  const hasMore = lastLoaded === undefined ? false : lastLoaded === offset ? result.data?.length === PAGE_SIZE : true;
+  const removeComment = (id) => {
+    setPages((saved) => Object.fromEntries(Object.entries(saved).map(([offset, rows]) => [offset, rows.filter((comment) => comment.id !== id)])));
+    heading.current?.focus();
+  };
   const loadingMore = offset > 0 && result.loading;
   const remaining = 5000 - text.length;
   return <section className="trace-detail__comments" aria-label="Trace comments">
-    <h3 className="trace-detail__comments-title">Comments{offsets.length ? ` (${comments.length}${hasMore ? "+" : ""})` : ""}</h3>
+    <h3 ref={heading} tabIndex={-1} className="trace-detail__comments-title">Comments{offsets.length ? ` (${comments.length}${hasMore ? "+" : ""})` : ""}</h3>
     {(!comments.length || result.error) && <RemoteState compact {...result} />}
     <div className="trace-detail__comment-list">
       {comments.map((comment) => <div className="comment" key={comment.id}>
@@ -64,6 +70,7 @@ export default function TraceComments({ traceId }) {
         <div className="body"><span className="who">{comment.author_id === profile?.id ? "You" : comment.author?.display_name || "Community member"}</span>
           <RelativeTime className="when" value={comment.created_at} />
           <p>{comment.body}</p>
+          <DeleteComment comment={comment} onDeleted={removeComment} />
           {comment.author_id !== profile?.id && <ReportContent targetId={comment.id} type="comment" />}
         </div>
       </div>)}

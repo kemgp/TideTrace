@@ -904,3 +904,10 @@ html.dark-mode .app-shell .trace-menu__btn,html.dark-mode .app-shell .trace-menu
 html.dark-mode .app-shell .trace-menu__item:hover:not(:disabled),html.dark-mode .app-shell .trace-menu__item:focus-visible{background:#ffffff14;}
 html.dark-mode .app-shell .trace-menu__item--danger{color:#f2a29b;}
 
+
+html.dark-mode .app-shell .comment-delete.btn,html.dark-mode .comment-delete-error{color:#f2a29b;}
+html.dark-mode .trace-neighbors__link{background:var(--d-surface);border-color:var(--d-border);color:var(--d-text);}
+html.dark-mode .trace-neighbors__link small{color:var(--d-muted);}
+html.dark-mode .trace-neighbors__link:hover{background:var(--d-surface-2);border-color:var(--d-muted);}
+html.dark-mode .trace-neighbors__link:focus-visible{outline-color:var(--d-text);}
+html.dark-mode .trace-related{color:var(--d-text);}
