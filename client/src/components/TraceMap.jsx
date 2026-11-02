@@ -80,7 +80,6 @@ export default function TraceMap({ latitude, longitude, onChange, disabled = fal
   return <section aria-label={editable ? "Choose Trace location" : "Saved Trace location"} style={{ marginBlock: 16 }}>
     {editable && <p className="hint">Optional: click the map to place a pin, or drag the pin to adjust it. Keep the location name descriptive.</p>}
     {position && (editable || showCoordinates) && <p className="hint" role="status">{editable ? "Selected" : "Saved"} coordinates: {position.lat.toFixed(6)}, {position.lng.toFixed(6)}</p>}
-    {position && <p className="hint" aria-live="polite"><b>Pin location (approximate):</b> {enabled ? pinLabel?.key === pinKey ? pinLabel.text : "Looking up location…" : "Location name unavailable."}</p>}
     {!mapsConfigured() && <p className="hint">Map preview is unavailable.{editable ? " You can still save the location name." : ""}</p>}
     {enabled && <>
       {error && <p role="alert">{error}</p>}
@@ -92,6 +91,7 @@ export default function TraceMap({ latitude, longitude, onChange, disabled = fal
         </div>}
       </div>
     </>}
+    {position && <p className="hint trace-map-caption" aria-live="polite"><span aria-hidden="true">📍 </span><span className="sr-only">Pin location (approximate): </span>{enabled ? pinLabel?.key === pinKey ? pinLabel.text : "Looking up location…" : "Location name unavailable."}</p>}
     {editable && position && <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => onChange({ latitude: null, longitude: null })}>Clear pin</button>}
   </section>;
 }

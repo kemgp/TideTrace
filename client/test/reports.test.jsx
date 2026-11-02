@@ -49,6 +49,26 @@ it.each(["Trace", "comment"])("reports a %s with an inline required reason and c
   expect(JSON.parse(writes(calls)[0][1].body)).toEqual({ [field]: target, reason: "Needs review" });
 });
 
+it("does not offer reporting on a member's own trace or comment", async () => {
+  setup((url) => {
+    if (url === `/api/traces/${traceId}`) return ok({ ...trace, author_id: "current-user" });
+    if (url.startsWith(`/api/traces/${traceId}/comments?`)) return ok([{ id: commentId, trace_id: traceId, body: "My own note", author_id: "current-user" }]);
+  });
+  open(`/user/traces/${traceId}`);
+  await screen.findByText("My own note");
+  expect(screen.queryByRole("button", { name: "Report Trace", exact: true })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Report comment", exact: true })).toBeNull();
+  expect(screen.getByRole("button", { name: "Delete", exact: true })).toBeTruthy();
+});
+
+it("keeps reporting for other members' trace and comments, with Delete absent", async () => {
+  setup();
+  open(`/user/traces/${traceId}`);
+  expect(await screen.findByRole("button", { name: "Report Trace", exact: true })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "Report comment", exact: true })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Delete", exact: true })).toBeNull();
+});
+
 it("handles a duplicate report without claiming a new save", async () => {
   setup((url) => url === "/api/reports" ? fail(409, "ALREADY_EXISTS") : undefined);
   open(`/user/traces/${traceId}`);

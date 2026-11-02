@@ -1,6 +1,6 @@
 import TracePhotoSelector from "./TracePhotoSelector.jsx";
 import { compressPhoto } from "../api/compressPhoto.js";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import SubmitTrace from "./SubmitTrace.jsx";
 import { ApiError } from "../api/auth.js";
 import { useApp } from "../context/AppContext.jsx";
@@ -8,8 +8,26 @@ import { useUnsavedChanges } from "./NavigationGuard.jsx";
 
 import { PHOTO_TYPES as TYPES, photoError } from "../api/photos.js";
 
-function SavedPhoto({ media, index }) {
+function PhotoViewer({ url, alt, onClose }) {
+  const dialog = useRef(null);
+  useLayoutEffect(() => {
+    const element = dialog.current;
+    element.showModal?.();
+    return () => element.close?.();
+  }, []);
+  // Escape asks to close; React unmounts the viewer. Do not listen for the native close event: in
+  // development StrictMode closes and reopens the dialog once, and that event would dismiss it.
+  return <dialog ref={dialog} className="photo-viewer" aria-label={alt}
+    onCancel={(event) => { event.preventDefault(); onClose(); }}
+    onClick={(event) => { if (event.target === dialog.current) onClose(); }}>
+    <button type="button" className="btn outline sm photo-viewer__close" autoFocus onClick={onClose}>Close</button>
+    <img src={url} alt={alt} referrerPolicy="no-referrer" />
+  </dialog>;
+}
+
+function SavedPhoto({ media, index, hero = false }) {
   const { readData, profile } = useApp();
+  const [viewing, setViewing] = useState(false);
   const [requested, setRequested] = useState(false);
   const deferred = profile?.data_saver && !requested;
   const [attempt, setAttempt] = useState(0);
@@ -30,7 +48,7 @@ function SavedPhoto({ media, index }) {
   if (deferred) return <button type="button" className="btn outline sm" onClick={() => setRequested(true)}>Load {video ? "video" : "photo"} {index + 1}</button>;
   return <>
     {error ? <div><p role="alert">Photo {index + 1}: {error}</p><button className="btn outline sm" onClick={() => setAttempt((value) => value + 1)}>Reload photo {index + 1}</button></div>
-      : url ? video ? <video src={url} controls preload="none" onError={() => setError("Video could not load. Reload it to get a fresh link.")} aria-label={`Trace video ${index + 1}`} style={{ width: "100%", maxHeight: 320 }} /> : <img src={url} alt={media.alt_text || `Trace photo ${index + 1}`} referrerPolicy="no-referrer" onError={() => setError("Preview could not load. Reload it to get a fresh link.")} style={{ display: "block", width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 8 }} />
+      : url ? video ? <video src={url} controls preload="none" onError={() => setError("Video could not load. Reload it to get a fresh link.")} aria-label={`Trace video ${index + 1}`} style={{ width: "100%", maxHeight: 320 }} /> : <>{hero && <span className="trace-detail__backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(url)})` }} />}{hero && <button type="button" className="trace-detail__expand" aria-label={`View photo ${index + 1} larger`} onClick={() => setViewing(true)}>⤢</button>}{viewing && <PhotoViewer url={url} alt={media.alt_text || `Trace photo ${index + 1}`} onClose={() => setViewing(false)} />}<img src={url} alt={media.alt_text || `Trace photo ${index + 1}`} referrerPolicy="no-referrer" onError={() => setError("Preview could not load. Reload it to get a fresh link.")} style={{ display: "block", width: "100%", maxHeight: hero ? 420 : 320, objectFit: "contain", borderRadius: 8, position: "relative" }} /></>
         : <p role="status">Loading photo {index + 1}…</p>}
   </>;
 }
@@ -171,10 +189,10 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
   };
   return <section aria-label="Trace photos" className={hero ? "trace-detail__media" : undefined} style={hero ? undefined : { marginTop: 24 }}>
     {!hero && <h3>Photos</h3>}
-    {media.length === 0 && <p className={hero ? "trace-detail__media-empty" : "hint"}>No photos attached yet.</p>}
+    {media.length === 0 && <p className={hero ? "trace-detail__media-empty" : "hint"}>{hero && <span className="trace-detail__media-icon" aria-hidden="true">🌊</span>}No photos attached yet.</p>}
     <div className={hero ? "trace-detail__media-grid" : undefined} style={hero ? undefined : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 16 }}>
       {media.map((item, index) => <div className={hero ? "trace-detail__media-item" : undefined} key={item.id}>
-        {TYPES.includes(item.mime_type) || item.mime_type === "video/mp4" ? <SavedPhoto key={`${item.id}:${Boolean(profile?.data_saver)}`} media={item} index={index} /> : <p className="hint">Unsupported attachment.</p>}
+        {TYPES.includes(item.mime_type) || item.mime_type === "video/mp4" ? <SavedPhoto key={`${item.id}:${Boolean(profile?.data_saver)}`} media={item} index={index} hero={hero} /> : <p className="hint">Unsupported attachment.</p>}
         {editable && <button className="btn outline sm" style={{ marginTop: 8 }} disabled={locked || Boolean(busy) || uncertain} onClick={() => run("remove", item.id)}>Remove {TYPES.includes(item.mime_type) ? "photo" : "attachment"} {index + 1}</button>}
       </div>)}
     </div>

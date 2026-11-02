@@ -15,6 +15,8 @@ import ReportContent from "./ReportContent.jsx";
 import TraceComments from "./TraceComments.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 import DeleteTrace from "./DeleteTrace.jsx";
+import RelativeTime from "./RelativeTime.jsx";
+import { fullDate } from "../api/relativeTime.js";
 import "./trace-detail.css";
 
 export default function LiveTraceDetail({ contribution = false }) {
@@ -38,33 +40,83 @@ function TraceContent({ initialTrace, contribution }) {
   const [submissionLocked, setSubmissionLocked] = useState(false);
   const operationLock = useRef(null);
   const trace = displayTrace(current);
+  const mine = current.author_id === profile?.id;
   const editable = contribution && current.author_id === profile?.id && ["draft", "revision_requested"].includes(current.status) && !current.is_hidden && !current.deleted_at;
+  const editLink = editable && !submissionLocked && <Link className="btn outline sm" to={`/user/contributions/${encodeURIComponent(trace.id)}/edit`}>{current.status === "revision_requested" ? "Edit requested revision" : "Edit draft"}</Link>;
+  const map = !contribution && current.is_sensitive ? <p className="hint">Location withheld</p> : <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates={Boolean(contribution)} />;
+  const deleteButton = <DeleteTrace trace={current} disabled={submissionLocked} onDeleted={() => {
+    // Clear the selected-photo navigation guard before the confirmed deletion redirects.
+    flushSync(() => setCurrent((saved) => ({ ...saved, deleted_at: new Date().toISOString() })));
+  }} />;
+  if (!contribution) {
+    const posted = current.published_at || current.created_at;
+    return (
+      <Card className="trace-detail__card trace-detail__card--public">
+        <div className="trace-detail__layout">
+          <div className="trace-detail__main">
+            <TracePhotos trace={current} hero />
+            <div className="trace-detail__headline">
+              <h2 className="trace-detail__title">{trace.title || "Untitled draft"}</h2>
+              <div className="trace-detail__meta">
+                <div className="trace-detail__author"><AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} /><p className="hint"><span className="trace-detail__author-name">{trace.author}</span>{posted && <> · <RelativeTime value={posted} /></>}</p></div>
+                {trace.status === "approved" ? <span className="badge approved">Approved · Published</span> : <TraceStatusBadge status={trace.status} />}
+              </div>
+              <div className="chiprow trace-detail__tags"><span className="chip on">{trace.category}</span><span className="chip"><span aria-hidden="true">📍 </span>{trace.location}</span></div>
+            </div>
+            <span className="lbl sr-only">Description</span>
+            <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
+            <TraceComments traceId={current.id} />
+          </div>
+          <aside className="trace-detail__aside" aria-label="Trace details">
+            <section className="trace-detail__panel trace-detail__panel--location">
+              <h3 className="trace-detail__panel-title">Location</h3>
+              {current.is_sensitive
+                ? <p className="trace-detail__locked"><span aria-hidden="true">🔒 </span>Location withheld<small>Hidden to protect this site.</small></p>
+                : <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates={false} />}
+            </section>
+            <section className="trace-detail__panel trace-detail__panel--facts">
+              <h3 className="trace-detail__panel-title">About this trace</h3>
+              <dl className="trace-detail__facts">
+                <div><dt>Category</dt><dd>{trace.category}</dd></div>
+                {posted && <div><dt>Posted</dt><dd>{fullDate(posted)}</dd></div>}
+              </dl>
+            </section>
+            <div className="trace-detail__panel trace-detail__actions-panel">
+              {mine ? deleteButton : <ReportContent targetId={current.id} type="trace" />}
+            </div>
+          </aside>
+        </div>
+      </Card>
+    );
+  }
   return (
     <Card className={contribution ? "" : "trace-detail__card"}>
-      <div className="row between trace-detail__status">{!contribution && trace.status === "approved" ? <span className="badge approved">Approved · Published</span> : <TraceStatusBadge status={trace.status} />}<span className="hint">{trace.when}</span></div>
+      <div className="row between trace-detail__status">
+        <div className="trace-detail__status-main">{!contribution && trace.status === "approved" ? <span className="badge approved">Approved · Published</span> : <TraceStatusBadge status={trace.status} />}{contribution && <span className="hint">{trace.when}</span>}</div>
+        <div className="trace-detail__actions">
+          {editLink}
+          {deleteButton}
+        </div>
+      </div>
       {!contribution && <TracePhotos trace={current} hero />}
       <h2 className="trace-detail__title">{trace.title || "Untitled draft"}</h2>
       {fieldError("title")}
       <div className="chiprow trace-detail__tags"><span className="chip on">{trace.category}</span><span className="chip">{!contribution && <span aria-hidden="true">📍 </span>}{trace.location}</span></div>
       {fieldError("category_id")}
       {fieldError("location_name")}
-      {!contribution && current.is_sensitive ? <p className="hint">Location withheld</p> : <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates={Boolean(contribution)} />}
+      {contribution && map}
       {contribution && !current.deleted_at && <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={submissionLocked} />}
-      <div className="trace-detail__author"><AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} /><p className="hint"><span>{trace.author}</span>{!contribution && trace.when && <> · {trace.when}</>}</p></div>
+      <div className="trace-detail__author"><AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} /><p className="hint"><span className="trace-detail__author-name">{trace.author}</span>{!contribution && trace.when && <> · {trace.when}</>}</p></div>
       <div className="divider" />
-      <span className="lbl">Description</span>
+      <span className={contribution ? "lbl" : "lbl sr-only"}>Description</span>
       <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
       {fieldError("description")}
-      {!contribution && <ReportContent targetId={current.id} type="trace" />}
+      {!contribution && map}
+      {!contribution && !mine && <ReportContent targetId={current.id} type="trace" />}
       {!contribution && <TraceComments traceId={current.id} />}
       {contribution && trace.status === "pending" && <p role="status">Pending review. Your Trace is awaiting a reviewer; editing and uploads are disabled until a revision is requested.</p>}
       {contribution && current.status !== "draft" && <TraceFeedback key={`${current.id}:${current.status}`} id={current.id} />}
       {current.status === "revision_requested" && contribution && <p className="hint">Address the moderator's feedback, save your changes, then resubmit this Trace for review.</p>}
-      {editable && !submissionLocked && <Link className="btn outline" to={`/user/contributions/${encodeURIComponent(trace.id)}/edit`}>{current.status === "revision_requested" ? "Edit requested revision" : "Edit draft"}</Link>}
-      <DeleteTrace trace={current} disabled={submissionLocked} onDeleted={() => {
-        // Clear the selected-photo navigation guard before the confirmed deletion redirects.
-        flushSync(() => setCurrent((saved) => ({ ...saved, deleted_at: new Date().toISOString() })));
-      }} />
       {fieldError("photo")}
       {contribution && <TracePhotos trace={current} contribution onChange={setCurrent} onLockedChange={setSubmissionLocked} onValidation={setFieldErrors} operationLock={operationLock} />}
     </Card>
