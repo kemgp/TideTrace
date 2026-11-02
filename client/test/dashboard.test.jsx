@@ -47,7 +47,7 @@ it("shows skeletons, preserves real zero, and rejects another account's response
   const region = screen.getByRole("region", { name: "Dashboard totals" });
   await waitFor(() => expect(within(region).getByText("Your Traces").closest(".stat").querySelector("b").textContent).toBe("0"));
   first = false; data = { ...data, id: "other-account" };
-  fireEvent.click(within(region).getByRole("button", { name: "Refresh totals" }));
+  fireEvent(window, new Event("focus"));
   await within(region).findByRole("alert");
   expect(within(region).getByText("Your Traces").closest(".stat").querySelector("b").textContent).toContain("—");
 });
