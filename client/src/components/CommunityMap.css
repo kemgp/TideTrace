@@ -24,7 +24,7 @@
 .community-map-report, .community-map-preview { background: var(--bg); }
 .community-map-report .btn, .community-map-message .btn { margin-top: 12px; }
 .community-map-preview .community-map-meta { margin-bottom: 6px; }
-.community-map :is(button, a):focus-visible, .community-archive .archive-view-switch button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.community-map :is(button, a):focus-visible, .community-archive .archive-view-switch button:focus-visible { outline:var(--focus-width) solid var(--focus-ring); outline-offset: 3px; }
 @media (hover: hover) { .community-map-result:hover { background: var(--bg); } }
 @container (max-width: 680px) {
   .community-map-layout { grid-template-columns: 1fr; }
