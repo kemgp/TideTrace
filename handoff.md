@@ -2,6 +2,13 @@
 
 Current state of the project, what was changed in the latest session, and what is left.
 
+### Focus ring consistency — `focus-ring-consistency` (2026-11-03, uncommitted)
+
+- Tokens in `index.css`: `--focus-ring`, `--focus-halo`, `--focus-width` (2px). Dark mode swaps to `#a9b8ff` (was the 2.2:1 dark-blue ring on dark surfaces).
+- Buttons, links, chips and other controls: `outline: var(--focus-width) solid var(--focus-ring)` with offset. Text fields (`.input`, search wrapper, code input, settings, auth, comment box, moderator select): border in ring colour + 1px inset + 3px halo (about 2.5px solid), no outline. Shared rule for `.app-shell` fields lives in `responsive.css`.
+- A wrapper that draws the ring (`.search`) keeps its inner input outline-free. Invalid auth fields keep their red focus. Forced-colours mode draws a real outline.
+- New focus styles should use the tokens, not hard-coded colours. Home page (teal on dark) left unchanged on purpose.
+
 ### Trace detail polish 2 — `trace-detail-polish-2` (2026-11-02, uncommitted)
 
 - `ScrollManager` (App.jsx): new pages start at the top, browser Back/Forward restores position, in-place URL replaces never move the page. "Back to Traces" restores the list position via `state.restoreScroll` + `archive-scroll:<search>` in sessionStorage.

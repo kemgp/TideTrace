@@ -39,7 +39,7 @@
 .trace-detail__comments .avatar,.trace-detail__comments .author-avatar{width:32px;height:32px;}
 .trace-detail__comments .comment p{font-size:var(--fs-label);line-height:1.6;}
 .trace-detail__comment-form{align-items:stretch;}
-.trace-detail__comment-form .input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(49,78,157,.28);outline:none;}
+.trace-detail__comment-form .input:focus{outline:none;border-color:var(--focus-ring);box-shadow:inset 0 0 0 1px var(--focus-ring),0 0 0 3px var(--focus-halo);}
 .trace-detail__comment-form .btn:disabled{background:var(--line);color:var(--soft);opacity:1;}
 .empty-state--compact{padding:20px 16px;}
 /* Report links: quiet, left-aligned with their content. */
@@ -141,7 +141,7 @@
 .trace-menu__list{position:absolute;right:0;top:calc(100% + 4px);z-index:30;display:grid;gap:2px;min-width:220px;max-width:calc(100vw - 32px);padding:6px;border:1px solid var(--line);border-radius:var(--r-md);background:#fff;box-shadow:var(--shadow-md);}
 .app-shell .trace-menu__item{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--navy);font:inherit;text-align:left;cursor:pointer;}
 .app-shell .trace-menu__item:hover:not(:disabled),.app-shell .trace-menu__item:focus-visible{background:color-mix(in srgb,var(--navy) 8%,transparent);}
-.app-shell .trace-menu__item:focus-visible{outline:3px solid var(--blue);outline-offset:-3px;}
+.app-shell .trace-menu__item:focus-visible{outline:var(--focus-width) solid var(--focus-ring);outline-offset:-3px;}
 .app-shell .trace-menu__item:disabled{opacity:.5;cursor:not-allowed;}
 .app-shell .trace-menu__item--danger{color:var(--danger);}
 .trace-menu__item svg{flex:none;}
@@ -166,7 +166,7 @@
 .trace-neighbors__link:hover{background:var(--bg);border-color:var(--blue);box-shadow:var(--shadow-sm);}
 .trace-neighbors__link--newer:hover .trace-neighbors__arrow{transform:translateX(-3px);}
 .trace-neighbors__link--older:hover .trace-neighbors__arrow{transform:translateX(3px);}
-.trace-neighbors__link:focus-visible{outline:3px solid var(--blue);outline-offset:3px;}
+.trace-neighbors__link:focus-visible{outline:var(--focus-width) solid var(--focus-ring);outline-offset:3px;}
 .trace-related{margin-top:28px;min-width:0;}
 .trace-related h3{margin:0 0 16px;}
 .trace-related__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr));gap:16px;}

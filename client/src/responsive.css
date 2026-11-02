@@ -40,6 +40,14 @@ body { min-width: 0; }
 .app-shell .search { min-width: 0; width: 100%; flex: 1 1 220px; height: auto; min-height: 44px; }
 .app-shell .search input { min-width: 0; width: 100%; min-height: 42px; font-size:var(--fs-body); }
 .app-shell .search svg { flex: none; }
+/* The search wrapper draws the focus ring (see .search:focus-within); the inner input must not add a second, square one. */
+.app-shell :is(input:not([type="checkbox"],[type="radio"],[type="range"],[type="file"],[aria-invalid="true"]),select,textarea):focus-visible { outline:none;border-color:var(--focus-ring);box-shadow:inset 0 0 0 1px var(--focus-ring),0 0 0 3px var(--focus-halo); }
+.app-shell .search input:focus-visible { outline: none; border-color: transparent; box-shadow: none; }
+/* Shadows are removed in forced-colours mode, so draw the field focus as a real outline there. */
+@media (forced-colors: active) {
+  .app-shell :is(input, select, textarea):focus-visible, .input:focus, .code-input:focus, .search:focus-within { outline: 2px solid Highlight; outline-offset: 2px; }
+  .app-shell .search input:focus-visible { outline: none; }
+}
 .app-shell .lrow { flex-wrap: wrap; align-items: center; }
 .app-shell .lrow .grow { flex: 1 1 150px; min-width: 0; }
 .app-shell .lrow .act { width: 100%; justify-content: flex-start; gap: 8px; }
@@ -100,7 +108,7 @@ body { min-width: 0; }
 .app-shell .toggle { width: 44px; height: 44px; flex: none; }
 .app-shell .toggle span { inset: 10px 2px 11px 3px; }
 .app-shell label:has(input[type=checkbox]) { display: flex; align-items: center; gap: 8px; min-height: 44px; }
-.app-shell :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.app-shell :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline:var(--focus-width) solid var(--focus-ring); outline-offset: 3px; }
 
 /* Media respects its natural ratio; only existing thumbnail crops remain cropped. */
 .app-shell :is(img, video, iframe, canvas) { max-width: 100%; }

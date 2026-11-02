@@ -7,7 +7,7 @@ dialog.leave-dialog::backdrop{background:#10182799;backdrop-filter:blur(2px);}
 .leave-dialog p{margin:0 0 12px;overflow-wrap:anywhere;}
 .leave-dialog-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;}
 .leave-dialog-actions .btn{flex:1 1 160px;min-height:44px;}
-.leave-dialog button:focus-visible{outline:3px solid var(--blue);outline-offset:3px;}
+.leave-dialog button:focus-visible{outline:var(--focus-width) solid var(--focus-ring);outline-offset:3px;}
 html.dark-mode .leave-dialog{background:var(--d-surface);color:var(--d-text);border-color:var(--d-border-strong);}
 html.dark-mode .leave-dialog .outline{background:transparent;color:#d9e3f0;border-color:#8fa9d6;}
 html.dark-mode .leave-dialog button:focus-visible{outline-color:#a9b8ff;}
