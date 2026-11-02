@@ -261,7 +261,7 @@ export function ModerationHistory(){
       <div className="grow">
         <div className="t">{row.trace_id && row.action === "review_trace" ? <Link to={`${base}/${encodeURIComponent(row.trace_id)}`}>{row.trace?.title || "View reviewed Trace"}</Link> : row.trace?.title || row.report?.trace?.title || (row.comment || row.report?.comment ? "Reported comment" : "Reported content")}</div>
         {(row.trace?.deleted_at || row.report?.trace?.deleted_at) && <p className="hint">Deleted by the author.</p>}
-        <p>{row.action === "review_trace" ? labels[row.to_state] || row.to_state : row.action === "review_report" ? (row.to_state === "resolved" ? "Report resolved — content removed" : "Report dismissed") : row.action.replaceAll("_", " ")}</p>
+        <p>{row.action === "review_trace" ? labels[row.to_state] || row.to_state : row.action === "review_report" ? (row.to_state === "resolved" ? "Report resolved: content removed" : "Report dismissed") : row.action.replaceAll("_", " ")}</p>
         <p className="hint">{row.actor?.display_name || "Staff member"} · {new Date(row.created_at).toLocaleString()}</p>
         {row.reason && <p style={{ whiteSpace: "pre-wrap" }}>{row.reason}</p>}
       </div>

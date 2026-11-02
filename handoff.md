@@ -9,6 +9,11 @@ Current state of the project, what was changed in the latest session, and what i
 - A wrapper that draws the ring (`.search`) keeps its inner input outline-free. Invalid auth fields keep their red focus. Forced-colours mode draws a real outline.
 - New focus styles should use the tokens, not hard-coded colours. Home page (teal on dark) left unchanged on purpose.
 
+### Copy cleanup — `copy-cleanup` (2026-11-03, uncommitted)
+
+- Removed em-dashes from interface strings (shortcuts now label + hint, dashboard banners are just the greeting, review-submission buttons are "Submit trace" / "Keep editing", empty states and placeholders use full stops). Empty-value "—" stays visible but is `aria-hidden` with hidden "Not available" text. Rule added to CLAUDE.md.
+- Tests updated: comments empty state, and two placeholder checks now use `toContain("—")`.
+
 ### Trace detail polish 2 — `trace-detail-polish-2` (2026-11-02, uncommitted)
 
 - `ScrollManager` (App.jsx): new pages start at the top, browser Back/Forward restores position, in-place URL replaces never move the page. "Back to Traces" restores the list position via `state.restoreScroll` + `archive-scroll:<search>` in sessionStorage.

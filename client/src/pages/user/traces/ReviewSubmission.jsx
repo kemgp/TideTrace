@@ -31,10 +31,10 @@ export default function ReviewSubmission({ draft, onEdit, onSubmit, onDiscard })
       </div>
       <div className="decision">
         <h3>Submit this trace?</h3>
-        <p>Yes → added to My Contributions as <b>Pending review</b> · No → keep editing, nothing is published.</p>
+        <p>Submitting adds it to My Contributions as <b>Pending review</b>. If you keep editing, nothing is published.</p>
         <div className="row" style={{ flexWrap: "wrap" }}>
-          <button className="btn clay" onClick={onSubmit}>Yes — submit trace</button>
-          <button className="btn outline" onClick={onDiscard}>No — keep editing</button>
+          <button className="btn clay" onClick={onSubmit}>Submit trace</button>
+          <button className="btn outline" onClick={onDiscard}>Keep editing</button>
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ export default function ViewTraces() {
           <div>
             <span className="eyebrow">Traces</span>
             <h2>Community archive</h2>
-            <p>Sightings, clean-ups, and stories from coastal communities — searchable and filterable.</p>
+            <p>Sightings, clean-ups, and stories from coastal communities. Search and filter them.</p>
           </div>
           <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>New Trace</Button>
         </div>

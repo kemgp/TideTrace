@@ -23,7 +23,7 @@ export default function CommentSection({ comments, onAdd }) {
             </div>
           </div>
         ))}
-        {comments.length === 0 && <p className="hint">No comments yet — be the first to say something.</p>}
+        {comments.length === 0 && <p className="hint">No comments yet. Be the first to say something.</p>}
       </div>
       <div className="row" style={{ marginTop: 16 }}>
         <input

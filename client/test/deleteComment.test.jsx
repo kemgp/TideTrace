@@ -52,7 +52,7 @@ it.each([204, 404])("removes the only comment, focuses the heading and toasts on
   await waitFor(() => expect(screen.queryByText("Observation 0")).toBeNull());
   expect(await screen.findAllByText(status === 204 ? "Comment deleted." : "This comment no longer exists.")).toHaveLength(1);
   expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Comments (0)" }));
-  expect(screen.getByText("No comments yet — be the first to say something.")).toBeTruthy();
+  expect(screen.getByText("No comments yet. Be the first to say something.")).toBeTruthy();
   expect(fetch.mock.calls.filter(([url, o]) => url === "/api/comments/comment-0" && o.method === "DELETE")).toHaveLength(1);
 });
 it("guards double submission and leaves server failures inline", async () => {

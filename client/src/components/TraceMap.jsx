@@ -28,7 +28,7 @@ export default function TraceMap({ latitude, longitude, onChange, disabled = fal
       if (!active) return;
       const current = latest.current;
       map = new maps.Map(host.current, { center: current.position || DEFAULT_MAP_CENTER, zoom: current.position ? 15 : DEFAULT_MAP_ZOOM, mapId: mapId(), streetViewControl: false, mapTypeControl: false, gestureHandling: "cooperative" });
-      marker = new maps.marker.AdvancedMarkerElement({ map: current.position ? map : null, position: current.position || undefined, title: editable ? "Trace location — drag to adjust" : "Saved Trace location", gmpDraggable: editable && !current.disabled });
+      marker = new maps.marker.AdvancedMarkerElement({ map: current.position ? map : null, position: current.position || undefined, title: editable ? "Trace location. Drag to adjust." : "Saved Trace location", gmpDraggable: editable && !current.disabled });
       const update = (point) => {
         if (!active || latest.current.disabled || !editable || !point) return;
         const lat = typeof point.lat === "function" ? point.lat() : point.lat;

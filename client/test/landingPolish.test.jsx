@@ -112,7 +112,7 @@ it("shows plain totals when motion is reduced and a dash when there is no data",
   const { container, rerender } = render(<CommunityTotals community={{ loading: false, data: { published_traces: 12, contributors: 4, published_tides: 3, tides_completed: 27 } }} reduced />);
   expect(container.querySelector(".tt-stat b").textContent).toBe("12");
   rerender(<CommunityTotals community={{ loading: false, data: null }} reduced={false} />);
-  expect(container.querySelector(".tt-stat b").textContent).toBe("—");
+  expect(container.querySelector(".tt-stat b").textContent).toContain("—");
 });
 
 it("draws the How it works connector once the steps are in view", () => {

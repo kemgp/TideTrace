@@ -259,7 +259,7 @@ export default function Dashboard() {
 
       <div className="banner mod">
         <div>
-          <b>Magandang umaga, {profile?.display_name} — review queue</b>
+          <b>Magandang umaga, {profile?.display_name}</b>
           <div className="s">Review. Verify. Keep the community safe.</div>
         </div>
 
@@ -363,7 +363,7 @@ export default function Dashboard() {
             })}
           </div>
         ) : (
-          <EmptyState title="Queue clear — nothing pending right now." />
+          <EmptyState title="Queue clear. Nothing pending right now." />
         )
       )}
     </div>

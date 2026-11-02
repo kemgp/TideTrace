@@ -13,7 +13,7 @@ export default function ManageTides() {
   const result = useRemoteData(`admin/tides?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const lessons = result.data || [];
   return <div className="wrap admin-lessons">
-    <div className="vhead headrow admin-lessons__heading"><div><span className="eyebrow claye">Manage content — Tides</span><h2>Topics &amp; lessons</h2><p>Tides are TideTrace’s educational content — lessons about local ecosystems, biodiversity, pollution, and conservation.</p></div><Link className="btn blue" to="/admin/tides/new">＋ Add lesson</Link></div>
+    <div className="vhead headrow admin-lessons__heading"><div><span className="eyebrow claye">Manage content: Tides</span><h2>Topics &amp; lessons</h2><p>Tides are TideTrace’s educational content: lessons about local ecosystems, biodiversity, pollution, and conservation.</p></div><Link className="btn blue" to="/admin/tides/new">＋ Add lesson</Link></div>
     <div className="admin-lessons__toolbar"><ContentTabs />
     <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>Refresh lessons</button></div>
     <RemoteState {...result} />
