@@ -13,6 +13,7 @@ import TraceFeedback from "./TraceFeedback.jsx";
 import Card from "./Card.jsx";
 import ReportContent from "./ReportContent.jsx";
 import { safeArchiveSearch } from "../api/archiveParams.js";
+import { safeContributionSearch } from "../api/contributionParams.js";
 import TraceNeighbors, { TraceStepper } from "./TraceNeighbors.jsx";
 import RelatedTraces from "./RelatedTraces.jsx";
 import TraceComments from "./TraceComments.jsx";
@@ -26,7 +27,9 @@ import "./trace-detail.css";
 
 export default function LiveTraceDetail({ contribution = false }) {
   const { id } = useParams();
-  const archiveSearch = safeArchiveSearch(useLocation().state?.archiveSearch);
+  const locationState = useLocation().state;
+  const archiveSearch = safeArchiveSearch(locationState?.archiveSearch);
+  const listSearch = safeContributionSearch(locationState?.listSearch);
   const { profile } = useApp();
   const base = contribution ? "contributions" : "traces";
   const result = useRemoteData(`${base}/${encodeURIComponent(id)}`);
@@ -35,7 +38,7 @@ export default function LiveTraceDetail({ contribution = false }) {
 
   return <div className={contribution ? "wrap" : "wrap trace-detail"} style={contribution ? { maxWidth: 760 } : undefined}>
     <div className="trace-detail__topbar">
-      <Link className="btn ghost sm" to={`/user/${base}${contribution ? "" : archiveSearch}`} state={contribution ? undefined : { restoreScroll: true }}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
+      <Link className="btn ghost sm" to={`/user/${base}${contribution ? listSearch : archiveSearch}`} state={{ restoreScroll: true }}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
       {!contribution && <TraceStepper neighbors={neighbors} archiveSearch={archiveSearch} />}
     </div>
     <RemoteState {...result} />

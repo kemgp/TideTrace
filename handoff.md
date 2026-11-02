@@ -14,6 +14,14 @@ Current state of the project, what was changed in the latest session, and what i
 - Removed em-dashes from interface strings (shortcuts now label + hint, dashboard banners are just the greeting, review-submission buttons are "Submit trace" / "Keep editing", empty states and placeholders use full stops). Empty-value "—" stays visible but is `aria-hidden` with hidden "Not available" text. Rule added to CLAUDE.md.
 - Tests updated: comments empty state, and two placeholder checks now use `toContain("—")`.
 
+### My Contributions polish — `my-contributions-polish` (2026-11-03, uncommitted)
+
+- Rows: 56px thumbnail (`TraceThumb`: first photo, category colour fallback, reveal when decoded, skipped in Data Saver), status hint line, "Updated … ago", and a separate "Continue editing" / "Edit and resubmit" link for drafts and revision requests.
+- Delete is a quiet grey text button (`DeleteTrace quiet`, `.contrib-delete`); the trace detail header keeps the normal danger button.
+- Status filter and page live in the URL (`api/contributionParams.js`); the detail page's Back link returns to the same view and scroll position (`state.listSearch`, `state.restoreScroll`).
+- Empty states use `EmptyState` ("You haven't submitted any traces yet." with an upload action, or a per-status line with "Show all traces").
+- Tests: new `contributionsList.test.jsx`, `contributionParams.test.js`; two empty-state strings updated in `traces.test.jsx` and `deleteTrace.test.jsx`.
+
 ### Trace detail polish 2 — `trace-detail-polish-2` (2026-11-02, uncommitted)
 
 - `ScrollManager` (App.jsx): new pages start at the top, browser Back/Forward restores position, in-place URL replaces never move the page. "Back to Traces" restores the list position via `state.restoreScroll` + `archive-scroll:<search>` in sessionStorage.

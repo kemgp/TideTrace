@@ -150,7 +150,7 @@ it("deletes from contributions without nesting the button in a link and refreshe
   const modal = await dialog();
   fireEvent.click(within(modal).getByRole("button", { name: "Delete", exact: true }));
   await screen.findByText("Trace deleted.");
-  await screen.findByText("No saved contributions on this page.");
+  await screen.findByText("You haven't submitted any traces yet.");
   expect(screen.queryByText(trace.title)).toBeNull();
 });
 

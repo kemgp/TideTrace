@@ -6,7 +6,7 @@ import Button from "./Button.jsx";
 import "./NavigationGuard.css";
 
 // With onOpenChange the parent owns the open state (and the trigger, e.g. a menu item).
-export default function DeleteTrace({ trace, onDeleted, disabled = false, open: controlledOpen, onOpenChange }) {
+export default function DeleteTrace({ trace, onDeleted, disabled = false, quiet = false, open: controlledOpen, onOpenChange }) {
   const { profile } = useApp();
   const [innerOpen, setInnerOpen] = useState(false);
   const controlled = onOpenChange !== undefined;
@@ -14,7 +14,7 @@ export default function DeleteTrace({ trace, onDeleted, disabled = false, open: 
   const setOpen = controlled ? onOpenChange : setInnerOpen;
   if (!profile?.id || trace.author_id !== profile.id || trace.deleted_at) return null;
   return <>
-    {!controlled && <Button type="button" variant="danger" size="sm" disabled={disabled} onClick={() => setOpen(true)}>Delete</Button>}
+    {!controlled && <Button type="button" variant={quiet ? "ghost" : "danger"} size="sm" className={quiet ? "contrib-delete" : ""} disabled={disabled} onClick={() => setOpen(true)}>Delete</Button>}
     {open && <DeleteDialog trace={trace} onCancel={() => setOpen(false)} onDeleted={onDeleted} />}
   </>;
 }

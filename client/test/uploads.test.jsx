@@ -1,6 +1,6 @@
 import React, { StrictMode } from "react";
 import { expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
@@ -328,7 +328,10 @@ it("reopens the photo saved with a draft and later submits its current version w
   await screen.findByAltText("Trace photo 1");
   expect(saved.status).toBe("draft");
   fireEvent.click(screen.getByRole("link", { name: /Back to My Contributions/ }));
-  fireEvent.click(await screen.findByText(saved.title));
+  // A draft row opens the editor, so reopen the saved trace page directly to submit it.
+  expect((await screen.findByText(saved.title)).closest("a").getAttribute("href")).toBe(`/user/contributions/${saved.id}/edit`);
+  cleanup();
+  open(`/user/contributions/${saved.id}`);
   await screen.findByAltText("Trace photo 1");
   fireEvent.click(await submitButton());
   await screen.findByText(/Your Trace is awaiting a reviewer/);
