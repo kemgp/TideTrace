@@ -912,6 +912,8 @@ html.dark-mode .app-shell .trace-stepper__btn{border-color:var(--d-border);color
 html.dark-mode .archive-active p{color:var(--d-muted);}
 html.dark-mode .trace-neighbors__link{background:var(--d-surface);border-color:var(--d-border);color:var(--d-text);}
 html.dark-mode .trace-neighbors__link small{color:var(--d-muted);}
+html.dark-mode .trace-neighbors__arrow{background:var(--d-surface-2);color:var(--d-text);}
+html.dark-mode .trace-neighbors__link:hover .trace-neighbors__arrow{background:var(--focus-ring);color:var(--d-bg);}
 html.dark-mode .trace-neighbors__link:hover{background:var(--d-surface-2);border-color:var(--d-muted);box-shadow:none;}
 html.dark-mode .trace-neighbors__link:focus-visible{outline-color:var(--d-text);}
 html.dark-mode .trace-related{color:var(--d-text);}
