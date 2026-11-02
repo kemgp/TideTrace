@@ -282,7 +282,10 @@ it("uses the same saved photo for the navbar and own Traces even if a feed snaps
   expect(screen.getByRole("button", { name: "Profile settings" }).querySelector("img").src).toBe(savedPhoto);
   fireEvent.click(screen.getByText("Saved seagrass survey"));
   await screen.findByText("Saved description");
-  expect(screen.getByAltText("Actual Member's profile photo").src).toBe(savedPhoto);
+  // The author line and the comment box both show this member's current photo.
+  const photos = screen.getAllByAltText("Actual Member's profile photo");
+  expect(photos.length).toBeGreaterThan(0);
+  photos.forEach((photo) => expect(photo.src).toBe(savedPhoto));
 });
 
 it("shows commenter photos, uses the current viewer photo for own comments and falls back on image errors", async () => {

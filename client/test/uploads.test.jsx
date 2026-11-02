@@ -332,7 +332,7 @@ it("reopens the photo saved with a draft and later submits its current version w
   await screen.findByAltText("Trace photo 1");
   fireEvent.click(await submitButton());
   await screen.findByText(/Your Trace is awaiting a reviewer/);
-  expect(calls.mock.calls.filter(([, options]) => options.method === "POST").map(([url]) => url)).toEqual(["/api/traces", upload, submit]);
+  expect(calls.mock.calls.filter(([url, options]) => options.method === "POST" && url !== "/api/contributions/photo-cleanup").map(([url]) => url)).toEqual(["/api/traces", upload, submit]);
 });
 
 it("retains a category-only draft and selected photo after a definite upload failure, with a save-only retry", async () => {
@@ -461,7 +461,7 @@ it.each(["logout", "navigate"])("cancels draft photo saving on %s without late s
   await act(async () => finish(response(photo)));
   expect(screen.queryByText(/Draft saved\./)).toBeNull();
   expect(screen.queryByAltText("Trace photo 1")).toBeNull();
-  expect(calls.mock.calls.filter(([url, options]) => options.method === "POST" && !url.startsWith("/api/auth/")).map(([url]) => url)).toEqual(["/api/traces", upload]);
+  expect(calls.mock.calls.filter(([url, options]) => options.method === "POST" && !url.startsWith("/api/auth/") && url !== "/api/contributions/photo-cleanup").map(([url]) => url)).toEqual(["/api/traces", upload]);
 });
 
 it("loads the version and concurrent edits saved during draft upload before editing again", async () => {

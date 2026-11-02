@@ -284,3 +284,12 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Dark mode added for status badges, trace detail, trace map and the draft editor.
 - `components/EmptyState.jsx` replaces plain "No ... yet" lines (wording unchanged). Main content fades in on route change (opacity only).
 - Not done: specific loading labels (tests rely on the "Loading content" accessible name), real-device Safari checks.
+
+## Trace detail polish (branch `trace-detail-polish`, built on `delete-own-traces`)
+- Header row holds status plus owner actions (Edit, outline Delete); Delete no longer sits under the comment box.
+- Public view order: photo (blurred backdrop for portrait/small), title, chips, author and date, description, map with quiet address caption, report link, comments. Contribution view keeps its order.
+- Authors no longer see Report Trace / Report comment on their own content. Report links are quiet, left-aligned text links.
+- Comments: heading, larger avatars, EmptyState when empty, clearer disabled Send, focus ring on the box.
+- Card is 820px wide on desktop; title uses the title scale; description at body size.
+- **Public trace detail redesign (same branch):** two columns on desktop (story left: photo hero, title block, description, comments; sticky details panel right: location map, "About this trace", Delete or Report). One column on phones with the map right after the description. Photo hero uses a fixed 16:10 shape with a blurred backdrop, extra photos become a thumbnail row, and an expand button opens a native `<dialog>` viewer (`.photo-viewer`). Dates read "3 days ago" with the full date on hover (`api/relativeTime.js`, `components/RelativeTime.jsx`). Comments are a thread with the signed-in avatar beside the box; per-comment Report appears on hover/focus (always visible on touch). Withheld locations and no-photo states have their own panels. The contribution (owner) view keeps its single-column order with Edit/Delete in the header.
+- Not built: thumbnail switching between photos, "show earlier comments" (pagination stays), a sticky comment box on phones.

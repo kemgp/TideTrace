@@ -47,8 +47,8 @@ function ReportForm({ type, targetId }) {
       }
     } finally { pending.current = null; if (!controller.signal.aborted) setBusy(false); }
   }
-  return <div style={{ marginBlock: 12 }}>
-    {notice ? <p role="status">{notice}</p> : <button className="btn ghost sm" aria-expanded={open} onClick={() => setOpen(!open)} disabled={busy}>Report {type === "trace" ? "Trace" : "comment"}</button>}
+  return <div className="report-content">
+    {notice ? <p role="status">{notice}</p> : <button className="btn ghost sm report-link" aria-expanded={open} onClick={() => setOpen(!open)} disabled={busy}>Report {type === "trace" ? "Trace" : "comment"}</button>}
     {open && <form aria-label={`Report ${type}`} noValidate onSubmit={(event) => { event.preventDefault(); run(); }}>
       <label className="lbl" htmlFor={inputId}>Reason for report</label>
       <textarea className="input" id={inputId} maxLength={2000} value={reason} disabled={busy || blocked} onChange={(event) => setReason(event.target.value)} />

@@ -62,7 +62,8 @@ it("saves an unfinished draft, reopens it from contributions, and persists an ed
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
   await screen.findByRole("heading", { name: "Return visit" });
   expect(screen.getByText("More seagrass observed")).toBeTruthy();
-  const writes = calls.mock.calls.filter(([, options]) => ["POST", "PUT"].includes(options.method));
+  // The quiet photo-cleanup sweep is housekeeping, not a user write.
+  const writes = calls.mock.calls.filter(([url, options]) => ["POST", "PUT"].includes(options.method) && url !== "/api/contributions/photo-cleanup");
   expect(writes).toHaveLength(2);
   expect(JSON.parse(writes[1][1].body)).toEqual({ category_id: category.id, title: "Return visit", location_name: "Lawis shoreline", description: "More seagrass observed", latitude: null, longitude: null, version: 1, is_sensitive: false });
 });

@@ -5,6 +5,8 @@ import useRemoteData from "../hooks/useRemoteData.js";
 import ReportContent from "./ReportContent.jsx";
 import RemoteState, { Pagination } from "./RemoteState.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
+import EmptyState from "./EmptyState.jsx";
+import RelativeTime from "./RelativeTime.jsx";
 
 export default function TraceComments({ traceId }) {
   const { writeData, profile } = useApp();
@@ -44,23 +46,24 @@ export default function TraceComments({ traceId }) {
   };
   const comments = result.data || [];
   return <section className="trace-detail__comments" aria-label="Trace comments">
-    <h3 className="lbl">Comments{result.data && offset === 0 && comments.length < 25 ? ` (${comments.length})` : ""}</h3>
+    <h3 className="trace-detail__comments-title">Comments{result.data && offset === 0 && comments.length < 25 ? ` (${comments.length})` : ""}</h3>
     <RemoteState compact {...result} />
     <div className="trace-detail__comment-list">
       {comments.map((comment) => <div className="comment" key={comment.id}>
         <AuthorAvatar authorId={comment.author_id || comment.author?.id} name={comment.author_id === profile?.id ? profile.display_name : comment.author?.display_name || "Community member"} url={comment.author?.avatar_url} />
         <div className="body"><span className="who">{comment.author_id === profile?.id ? "You" : comment.author?.display_name || "Community member"}</span>
-          <time className="when" dateTime={comment.created_at}>{comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ""}</time>
+          <RelativeTime className="when" value={comment.created_at} />
           <p>{comment.body}</p>
-          <ReportContent targetId={comment.id} type="comment" />
+          {comment.author_id !== profile?.id && <ReportContent targetId={comment.id} type="comment" />}
         </div>
       </div>)}
-      {result.data && !comments.length && <p className="hint">{offset ? "No more comments." : "No comments yet — be the first to say something."}</p>}
+      {result.data && !comments.length && <EmptyState className="empty-state--compact" title={offset ? "No more comments." : "No comments yet — be the first to say something."} />}
     </div>
     {(offset > 0 || comments.length === PAGE_SIZE) && <Pagination offset={offset} count={comments.length} size={PAGE_SIZE} loading={result.loading} onChange={setOffset} />}
     {error && <p role="alert">{error}</p>}
     {notice && <p className="hint" role="status">{notice}</p>}
     <form className="trace-detail__comment-form" onSubmit={send}>
+      <AuthorAvatar authorId={profile?.id} name={profile?.display_name} url={profile?.avatar_url} />
       <input className="input" aria-label="Add a comment" placeholder="Add a comment…" value={text} maxLength={5000} disabled={busy || uncertain} onChange={(event) => setText(event.target.value)} />
       <button className="btn blue sm" type="submit" disabled={busy || uncertain || !text.trim()}>{busy ? "Sending…" : "Send"}</button>
     </form>
