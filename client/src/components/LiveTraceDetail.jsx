@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import useRemoteData from "../hooks/useRemoteData.js";
 import { displayTrace } from "../api/data.js";
 import RemoteState from "./RemoteState.jsx";
@@ -12,6 +12,9 @@ import { useApp } from "../context/AppContext.jsx";
 import TraceFeedback from "./TraceFeedback.jsx";
 import Card from "./Card.jsx";
 import ReportContent from "./ReportContent.jsx";
+import { safeArchiveSearch } from "../api/archiveParams.js";
+import TraceNeighbors from "./TraceNeighbors.jsx";
+import RelatedTraces from "./RelatedTraces.jsx";
 import TraceComments from "./TraceComments.jsx";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 import DeleteTrace from "./DeleteTrace.jsx";
@@ -23,18 +26,19 @@ import "./trace-detail.css";
 
 export default function LiveTraceDetail({ contribution = false }) {
   const { id } = useParams();
+  const archiveSearch = safeArchiveSearch(useLocation().state?.archiveSearch);
   const { profile } = useApp();
   const base = contribution ? "contributions" : "traces";
   const result = useRemoteData(`${base}/${encodeURIComponent(id)}`);
 
   return <div className={contribution ? "wrap" : "wrap trace-detail"} style={contribution ? { maxWidth: 760 } : undefined}>
-    <Link className="btn ghost sm" style={{ marginBottom: 14 }} to={`/user/${base}`}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
+    <Link className="btn ghost sm" style={{ marginBottom: 14 }} to={`/user/${base}${contribution ? "" : archiveSearch}`}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
     <RemoteState {...result} />
-    {result.data && <TraceContent key={`${profile?.id}:${result.data.id}`} initialTrace={result.data} contribution={contribution} />}
+    {result.data && <TraceContent key={`${profile?.id}:${result.data.id}`} initialTrace={result.data} contribution={contribution} archiveSearch={archiveSearch} />}
   </div>;
 }
 
-function TraceContent({ initialTrace, contribution }) {
+function TraceContent({ initialTrace, contribution, archiveSearch }) {
   const { profile } = useApp();
   const [current, setCurrent] = useState(initialTrace);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -78,6 +82,7 @@ function TraceContent({ initialTrace, contribution }) {
             <span className="lbl sr-only">Description</span>
             <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
             <TraceComments traceId={current.id} />
+            <TraceNeighbors key={current.id} traceId={current.id} archiveSearch={archiveSearch} />
           </div>
           <aside className="trace-detail__aside" aria-label="Trace details">
             <section className="trace-detail__panel trace-detail__panel--location">
@@ -99,6 +104,7 @@ function TraceContent({ initialTrace, contribution }) {
             </section>
           </aside>
         </div>
+        <RelatedTraces key={current.id} traceId={current.id} archiveSearch={archiveSearch} />
       </Card>
     );
   }

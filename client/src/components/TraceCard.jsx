@@ -6,7 +6,7 @@ import {useApp} from "../context/AppContext.jsx";
 import {PHOTO_TYPES} from "../api/photos.js";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 
-function TraceCardPhoto({trace,to}){
+function TraceCardPhoto({trace,to,linkState}){
   const {readData,profile}=useApp();
   const [requested,setRequested]=useState(false);
   const deferred=profile?.data_saver&&!requested;
@@ -69,7 +69,7 @@ function TraceCardPhoto({trace,to}){
   if(url){
     const PhotoTag=to?Link:"div";
     return(
-      <PhotoTag className="trace-card-photo" {...(to?{to}:{})}>
+      <PhotoTag className="trace-card-photo" {...(to?{to,state:linkState}:{})}>
         <img
           src={url}
           alt={trace?.title?`${trace.title} photo`:"Trace photo"}
@@ -89,7 +89,7 @@ function TraceCardPhoto({trace,to}){
   );
 }
 
-export default function TraceCard({trace,to}){
+export default function TraceCard({trace,to,linkState}){
   const {profile}=useApp();
   const Tag=to?Link:"article";
 
@@ -135,8 +135,8 @@ export default function TraceCard({trace,to}){
         }
       `}</style>
 
-      <TraceCardPhoto key={`${trace.id}:${Boolean(profile?.data_saver)}`} trace={trace} to={to}/>
-      <Tag {...(to?{to}:{})}>
+      <TraceCardPhoto key={`${trace.id}:${Boolean(profile?.data_saver)}`} trace={trace} to={to} linkState={linkState}/>
+      <Tag {...(to?{to,state:linkState}:{})}>
 
       <div className="t">{trace.title}</div>
 

@@ -47,6 +47,21 @@ export function contentRoutes(gateway) {
     const rows = await result(feed.order("published_at", { ascending: false }).order("id").limit(501));
     send(res, { pins: rows.slice(0, 500), truncated: rows.length > 500 });
   });
+  router.get("/traces/:id/neighbors", async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    first(await result(publicTraces(req.db).eq("id", id).limit(1)));
+    const rows = await result(req.db.rpc("trace_neighbors", { p_trace_id: id }));
+    const neighbors = { newer: null, older: null };
+    for (const { direction, id, title } of rows) if (direction in neighbors) neighbors[direction] = { id, title };
+    send(res, neighbors);
+  });
+  router.get("/traces/:id/related", async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    const trace = first(await result(publicTraces(req.db).eq("id", id).limit(1)));
+    const rows = await result(publicTraces(req.db).eq("category_id", trace.category_id).neq("id", id)
+      .order("published_at", { ascending: false }).order("id").limit(3));
+    send(res, await withAuthorPhotos(req.db, rows));
+  });
   router.get("/traces/:id", async (req, res) => {
     // Always a public detail; private submissions have a separate member route.
     const row = first(await result(publicTraces(req.db).eq("id", uuid.parse(req.params.id)).limit(1)));
@@ -162,6 +177,10 @@ export function contentRoutes(gateway) {
   router.post("/traces/:id/comments", member, async (req, res) => {
     const input = z.object({ body: text(5000) }).strict().parse(req.body);
     send(res, first(await result(req.db.from("comments").insert({ ...input, trace_id: uuid.parse(req.params.id) }).select())), 201);
+  });
+  router.delete("/comments/:id", member, async (req, res) => {
+    await result(req.db.rpc("delete_own_comment", { p_comment_id: uuid.parse(req.params.id) }));
+    res.sendStatus(204);
   });
   router.post("/reports", member, async (req, res) => {
     send(res, first(await result(req.db.from("reports").insert(report.parse(req.body)).select())), 201);

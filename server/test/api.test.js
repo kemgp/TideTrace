@@ -1362,3 +1362,68 @@ test("hide-location accepts only a version and returns verified private coordina
   assert.equal(response.body.data.latitude, 10);
   assert.deepEqual(businessCalls(calls)[0].body, { p_id: traceId, p_version: 2 });
 });
+
+test("comment deletion validates membership and UUID and calls the owner RPC", async () => {
+  const { app, calls, state } = fixture({ handler: ({ url, body }) => {
+    if (url.pathname === "/rest/v1/rpc/delete_own_comment") { assert.deepEqual(body, { p_comment_id: traceId }); return json(null, 204); }
+  } });
+  await request(app).delete(`/api/comments/${traceId}`).expect(401);
+  await bearer(request(app).delete(`/api/comments/${traceId}`), "expired").expect(401);
+  state.status = "suspended";
+  await bearer(request(app).delete(`/api/comments/${traceId}`)).expect(403);
+  state.status = "active";
+  await bearer(request(app).delete("/api/comments/not-a-uuid")).expect(400);
+  await bearer(request(app).delete(`/api/comments/${traceId}`)).expect(204);
+  assert.equal(businessCalls(calls).length, 1);
+});
+
+test("comment deletion maps PT404 to the standard not-found body", async () => {
+  const { app } = fixture({ handler: ({ url }) => url.pathname.endsWith("/delete_own_comment") ? json({ code: "PT404" }, 404) : undefined });
+  const response = await bearer(request(app).delete(`/api/comments/${traceId}`)).expect(404);
+  assert.equal(response.body.error.code, "NOT_FOUND");
+  assert.equal(response.body.error.message, "Record not found.");
+  assert.equal(typeof response.body.error.request_id, "string");
+});
+
+for (const rows of [[], [{ direction: "older", id: mediaId, title: "Older" }], [{ direction: "newer", id: categoryId, title: "Newer" }, { direction: "older", id: mediaId, title: "Older" }]]) {
+  test(`neighbors maps ${rows.length} directions with null defaults`, async () => {
+    const { app } = fixture({ handler: ({ url, body }) => {
+      if (url.pathname === "/rest/v1/traces") return json([{ id: traceId }]);
+      if (url.pathname.endsWith("/trace_neighbors")) { assert.deepEqual(body, { p_trace_id: traceId }); return json(rows); }
+    } });
+    const response = await request(app).get(`/api/traces/${traceId}/neighbors`).expect(200);
+    assert.deepEqual(response.body.data, { newer: rows.find((r) => r.direction === "newer") ? { id: categoryId, title: "Newer" } : null, older: rows.find((r) => r.direction === "older") ? { id: mediaId, title: "Older" } : null });
+  });
+}
+for (const route of ["neighbors", "related"]) {
+  test(`${route} rejects invalid IDs and non-public traces before additional reads`, async () => {
+    const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([]) : undefined });
+    await request(app).get(`/api/traces/invalid/${route}`).expect(400);
+    await request(app).get(`/api/traces/${traceId}/${route}`).expect(404);
+    assert.equal(calls.length, 1);
+    const params = calls[0].url.searchParams;
+    assert.equal(params.get("status"), "eq.approved");
+    assert.equal(params.get("is_hidden"), "eq.false");
+    assert.equal(params.get("deleted_at"), "is.null");
+  });
+}
+for (const rows of [[], [{ id: mediaId, title: "Related", is_sensitive: true, latitude: null, longitude: null }]]) {
+  test(`related returns ${rows.length} rows with public category, exclusion, order and limit filters`, async () => {
+    const { app } = fixture({ handler: ({ url }) => {
+      if (url.pathname === "/rest/v1/traces") {
+        if (url.searchParams.get("id") === `eq.${traceId}`) return json([{ id: traceId, category_id: categoryId }]);
+        const p = url.searchParams;
+        assert.equal(p.get("id"), `neq.${traceId}`);
+        assert.equal(p.get("category_id"), `eq.${categoryId}`);
+        assert.equal(p.get("limit"), "3");
+        assert.equal(p.get("order"), "published_at.desc,id.asc");
+        assert.equal(p.get("status"), "eq.approved");
+        assert.equal(p.get("is_hidden"), "eq.false");
+        assert.equal(p.get("deleted_at"), "is.null");
+        return json(rows);
+      }
+    } });
+    const response = await request(app).get(`/api/traces/${traceId}/related`).expect(200);
+    assert.deepEqual(response.body.data, rows);
+  });
+}

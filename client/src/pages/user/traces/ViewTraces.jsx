@@ -1,6 +1,7 @@
 import { PAGE_SIZE } from "../../../api/pagination.js";
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { readArchiveParams, writeArchiveParams, archiveSearch, pageToOffset, offsetToPage } from "../../../api/archiveParams.js";
 import useRemoteData from "../../../hooks/useRemoteData.js";
 import { displayTrace } from "../../../api/data.js";
 import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
@@ -11,16 +12,28 @@ import Button from "../../../components/Button.jsx";
 export default function ViewTraces() {
   const categoriesResult = useRemoteData("categories", { collection: true });
   const categories = categoriesResult.data || [];
-  const [view, setView] = useState("list");
-  const [offset, setOffset] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const state = readArchiveParams(params);
+  const { query, page, view } = state;
+  const cat = categories.some((category) => category.id === state.category) ? state.category : "All";
+  const offset = pageToOffset(page, PAGE_SIZE);
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const [cat, setCat] = useState("All");
-  const result = useRemoteData(`traces?limit=${PAGE_SIZE}&offset=${offset}${query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true, keepPrevious: true });
+  const [draft, setDraft] = useState(query);
+  useEffect(() => setDraft(query), [params.toString()]);
+  const update = (next, { replace = false } = {}) => {
+    const merged = { ...state, ...next };
+    if ((next.query !== undefined && next.query !== query) || (next.category !== undefined && next.category !== state.category)) merged.page = 1;
+    setParams(writeArchiveParams(merged), { replace });
+  };
+  const result = useRemoteData(state.category !== "All" && categoriesResult.loading ? null : `traces?limit=${PAGE_SIZE}&offset=${offset}${query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""}${cat === "All" ? "" : `&category_id=${encodeURIComponent(cat)}`}`, { collection: true, keepPrevious: true });
   const traces = useMemo(() => (result.data || []).map(displayTrace), [result.data]);
   const filtering = Boolean(query.trim()) || cat !== "All";
-  const clearFilters = () => { setQuery(""); setCat("All"); setOffset(0); };
-  const pickCategory = (value) => { const picked = categories.find((c) => String(c.id) === value); setCat(picked ? picked.id : "All"); setOffset(0); };
+  const clearFilters = () => { setDraft(""); update({ query: "", category: "All", page: 1 }); };
+  const pickCategory = (value) => update({ category: categories.some((c) => c.id === value) ? value : "All" });
+  useEffect(() => {
+    if (result.data && !result.loading && !result.refreshing && !result.error && !result.data.length && page > 1) update({ page: 1 }, { replace: true });
+  }, [result.data, result.loading, result.refreshing, result.error, page]);
+
 
   return (
     <div className="wrap community-archive">
@@ -40,11 +53,11 @@ export default function ViewTraces() {
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#6b7f9e" strokeWidth={2}>
             <circle cx={11} cy={11} r={7} /><path d="m21 21-4-4" />
           </svg>
-          <input aria-label="Search traces" maxLength={200} placeholder="Search all traces, people, places…" value={query} onChange={(e) => { setQuery(e.target.value); setOffset(0); }} />
+          <input aria-label="Search traces" maxLength={200} placeholder="Search all traces, people, places…" value={draft} onChange={(e) => { setDraft(e.target.value); update({ query: e.target.value }, { replace: true }); }} />
         </div>
         <div className="archive-view-switch" role="group" aria-label="Archive view">
-          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "list"} onClick={() => setView("list")}>List</Button>
-          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "map"} onClick={() => setView("map")}>Map</Button>
+          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "list"} onClick={() => update({ view: "list" })}>List</Button>
+          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "map"} onClick={() => update({ view: "map" })}>Map</Button>
         </div>
       </div>
 
@@ -57,19 +70,19 @@ export default function ViewTraces() {
       </div>
 
       <div className="chiprow archive-chips" style={{ marginBottom: 20 }}>
-        <button aria-pressed={cat === "All"} className={`chip ${cat === "All" ? "on" : ""}`} onClick={() => { setCat("All"); setOffset(0); }}>All</button>
+        <button aria-pressed={cat === "All"} className={`chip ${cat === "All" ? "on" : ""}`} onClick={() => { pickCategory("All"); }}>All</button>
         {categories.map((c) => (
-          <button key={c.id} aria-pressed={cat === c.id} className={`chip ${cat === c.id ? "on" : ""}`} onClick={() => { setCat(c.id); setOffset(0); }}>{c.name}</button>
+          <button key={c.id} aria-pressed={cat === c.id} className={`chip ${cat === c.id ? "on" : ""}`} onClick={() => { pickCategory(c.id); }}>{c.name}</button>
         ))}
       </div>
 
       <RemoteState compact {...categoriesResult} loading={categoriesResult.loading && !result.loading} />
-      {view === "map" ? <CommunityMap query={query} category={cat} onList={() => setView("list")} /> : <>
+      {view === "map" ? <CommunityMap query={query} category={cat} onList={() => update({ view: "list" })} /> : <>
       <RemoteState {...result} />
       {result.refreshing && <p className="sr-only" role="status">Updating traces…</p>}
       {!result.loading && !result.error && (traces.length > 0 ? (
         <div className={`g3${result.refreshing ? " is-refreshing" : ""}`} aria-busy={result.refreshing || undefined}>
-          {traces.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} />)}
+          {traces.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} linkState={{ archiveSearch: archiveSearch(state) }} />)}
         </div>
       ) : (
         <div className="ph archive-empty" style={{ marginTop: 10 }}>{filtering ? <>
@@ -77,7 +90,7 @@ export default function ViewTraces() {
           <Button type="button" variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button>
         </> : "No approved traces found."}</div>
       ))}
-      {!(offset === 0 && !result.loading && !result.error && traces.length === 0) && <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || result.refreshing} />}
+      {!(offset === 0 && !result.loading && !result.error && traces.length === 0) && <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={(offset) => update({ page: offsetToPage(offset, PAGE_SIZE) })} loading={result.loading || result.refreshing} />}
       </>}
     </div>
   );
