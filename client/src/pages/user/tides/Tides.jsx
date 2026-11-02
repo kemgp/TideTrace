@@ -40,22 +40,24 @@ export default function Tides() {
     <div className="vhead"><span className="eyebrow">Tides</span><h2>Learn the sea in your own language</h2><p>Explore published lessons and learn about your coastal community.</p></div>
     <TidesProgress />
     <div className="tide-filters">
-      <div className="tide-search">
-        <label className="sr-only" htmlFor="tide-search">Search lessons</label>
-        <input id="tide-search" type="search" className="input" placeholder="Search lessons" maxLength={80} value={typed} onChange={(event) => setTyped(event.target.value)} />
+      <div className="tide-filter-bar">
+        <div className="tide-search">
+          <label className="sr-only" htmlFor="tide-search">Search lessons</label>
+          <input id="tide-search" type="search" className="input" placeholder="Search lessons" maxLength={80} value={typed} onChange={(event) => setTyped(event.target.value)} />
+        </div>
+        <div className="tide-chips tide-segment" role="group" aria-label="Filter by progress">
+          {PROGRESS.map(([value, label]) => <button type="button" key={value || "all"} className="tide-chip" aria-pressed={progress === value} onClick={() => choose(setProgress)(value)}>{label}</button>)}
+        </div>
       </div>
-      {topics.data?.length > 0 && <div className="tide-chips" role="group" aria-label="Filter by topic">
+      {topics.data?.length > 0 && <div className="tide-chips tide-topics" role="group" aria-label="Filter by topic">
         <button type="button" className="tide-chip" aria-pressed={!topic} onClick={() => choose(setTopic)("")}>All topics</button>
         {topics.data.map((item) => <button type="button" key={item.id} className="tide-chip" aria-pressed={topic === item.id} onClick={() => choose(setTopic)(item.id)}>{item.name}</button>)}
       </div>}
-      <div className="tide-chips" role="group" aria-label="Filter by progress">
-        {PROGRESS.map(([value, label]) => <button type="button" key={value || "all"} className="tide-chip" aria-pressed={progress === value} onClick={() => choose(setProgress)(value)}>{label}</button>)}
-      </div>
     </div>
     <RemoteState {...result} />
     {completions.error && <div><p>Completion status could not be loaded.</p><RemoteState {...completions} /></div>}
     {!result.loading && !result.error && (lessons.length
-      ? <div className="g3" aria-busy={result.refreshing}>{lessons.map((tide) => <TideCard key={tide.id} tide={tide} completionLabel={completions.loading ? "Loading completion…" : completions.error ? "Completion unavailable" : completed.has(tide.id) ? "Completed" : "Not started"} />)}</div>
+      ? <div className="g3 tide-results" aria-busy={result.refreshing}>{lessons.map((tide) => <TideCard key={tide.id} tide={tide} completionLabel={progress ? (progress === "completed" ? "Completed" : "Not started") : completions.loading ? "Loading completion…" : completions.error ? "Completion unavailable" : completed.has(tide.id) ? "Completed" : "Not started"} />)}</div>
       : <div className="tide-empty"><p>{filtered ? "No lessons match these filters." : "No published lessons found."}</p>{filtered && <button type="button" className="btn outline sm" onClick={clear}>Clear filters</button>}</div>)}
     <Pagination offset={offset} count={lessons.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </div>;
