@@ -45,10 +45,10 @@ it("makes archive cards accessible links to the saved trace", async () => {
   expect(within(card).getByText("Lawis coast")).toBeTruthy();
 });
 
-it("links contribution rows to their saved details with their actual status", async () => {
+it("links contribution rows to their editor or saved details with their actual status", async () => {
   setup("/user/contributions");
   const row = await screen.findByRole("link", { name: /My coast/ });
-  expect(row.getAttribute("href")).toBe("/user/contributions/draft");
+  expect(row.getAttribute("href")).toBe("/user/contributions/draft/edit");
   expect(within(row).getByText("Draft")).toBeTruthy();
 });
 

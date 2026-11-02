@@ -330,7 +330,7 @@ it("filters contributions before paging and resets the page when changing status
   await screen.findByText("approved contribution 6");
   expect(calls.mock.calls.some(([url]) => url === "/api/contributions?limit=6&offset=6&status=approved")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
-  await screen.findByText("No contributions match this status.");
+  await screen.findByText("No rejected traces.");
   fireEvent.click(screen.getByRole("button", { name: "All", exact: true }));
   await screen.findByText("all contribution 0");
 });

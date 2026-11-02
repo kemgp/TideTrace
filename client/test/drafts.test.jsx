@@ -54,7 +54,6 @@ it("saves an unfinished draft, reopens it from contributions, and persists an ed
   expect(create.headers.Authorization).toBe("Bearer live-access");
   fireEvent.click(screen.getByRole("link", { name: /Back to My Contributions/ }));
   fireEvent.click(await screen.findByText("Untitled draft"));
-  fireEvent.click(await screen.findByRole("link", { name: "Edit draft" }));
   await screen.findByRole("option", { name: "Seagrass" });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Return visit" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Lawis shoreline" } });
