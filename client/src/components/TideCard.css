@@ -1,0 +1,31 @@
+/* Lesson card: picture, title, short preview, then reading time and completion. */
+.tide-thumb{position:relative;flex:none;display:grid;place-items:center;height:96px;margin-bottom:12px;border-radius:var(--r-sm);color:rgba(255,255,255,.92);overflow:hidden;background:linear-gradient(135deg,var(--tone),color-mix(in srgb,var(--tone) 68%,#000));}
+.tide-thumb[data-tone="0"]{--tone:var(--navy);}
+.tide-thumb[data-tone="1"]{--tone:var(--blue);}
+.tide-thumb[data-tone="2"]{--tone:var(--teal-strong);}
+.tide-thumb[data-tone="3"]{--tone:var(--clay-strong);}
+.tide-thumb[data-tone="4"]{--tone:var(--blue-dark);}
+.tide-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .25s ease;}
+.app-shell.user-shell .tcard.user-tide-card .t{font-size:var(--fs-body);font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.tide-excerpt{margin-top:6px;font-size:var(--fs-meta);line-height:1.5;color:var(--soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;}
+/* The card is a column and the meta row takes the leftover space above it, so reading time and
+   completion sit on the same line at the bottom of every card in a row. */
+.tcard.user-tide-card{display:flex;flex-direction:column;color:inherit;text-decoration:none;}
+.app-shell.user-shell .user-tide-card .m{margin-top:auto;padding-top:12px;}
+.app-shell.user-shell .user-lesson-status.is-complete{font-weight:600;}
+.app-shell.user-shell .user-lesson-status.is-complete::before{content:"✓ " / "";}
+@media(prefers-reduced-motion:reduce){.tide-thumb img{transition:none;}}
+html.dark-mode .tide-excerpt{color:var(--d-muted);}
+html.dark-mode .app-shell.user-shell .user-lesson-status.is-complete{color:#9fd8d3;}
+
+/* Overall progress above the lessons. */
+.tides-progress{margin:20px 0 22px;max-width:520px;}
+.tides-progress-row{display:flex;justify-content:space-between;gap:12px;font-size:var(--fs-label);color:var(--soft);}
+.tides-progress-row b{color:var(--navy);}
+.tides-progress-bar{height:8px;margin-top:8px;border-radius:999px;background:var(--line);overflow:hidden;}
+.tides-progress-bar span{display:block;height:100%;border-radius:inherit;background:var(--teal-strong);transition:width .4s ease;}
+@media(prefers-reduced-motion:reduce){.tides-progress-bar span{transition:none;}}
+html.dark-mode .tides-progress-row b{color:var(--d-text);}
+html.dark-mode .tides-progress-row{color:var(--d-muted);}
+html.dark-mode .tides-progress-bar{background:var(--d-border);}
+html.dark-mode .tides-progress-bar span{background:#5aa2a8;}
