@@ -364,3 +364,9 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Fixed: the revision list asked the server for `status=revision`; the API only accepts `revision_requested`.
 - "What's new" (`components/WhatsNew.jsx`): up to three unread notifications under "Needs your attention", each linking to the Notifications page. Notifications have no trace id (only `action_id` into `moderation_actions`), so rows cannot deep-link to a trace yet; that needs the join to be exposed (check RLS on `moderation_actions` first).
 - `useNotifications` now keeps the last known unread count for the same account while a refresh runs (tab focus, 60s poll), so the nav badge and "What's new" no longer vanish and return. The list itself still shows its loading state on refresh.
+
+## Tides polish (branch `tides-polish`)
+- Lesson cards (`components/TideCard.jsx`, `TideCard.css`): a colour block with a book icon (colour slot is a stable hash of the lesson id, `api/tideText.js`), a 16px two-line title, a three-line preview cut from the body, and "N min read" (about 200 words a minute) beside the completion status.
+- `components/TideThumb.jsx` already accepts `tide.image_url`: when lessons get an image column it shows the image (revealed after it has fully loaded) and falls back to the colour block if it fails. The Tides API returns `select *`, so a new column reaches the card without server changes; the admin editor and an upload path still need building.
+- "N of M completed" with a progress bar (`components/TidesProgress.jsx`): finished count from the dashboard totals, total from `community-summary` (`published_tides`). Clamped so unpublished-after-completion lessons cannot exceed the total. Hidden if either request fails.
+- Removed the second heading ("Learn a new topic"); the progress line sits in its place.
