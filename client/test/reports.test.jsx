@@ -28,6 +28,10 @@ function setup(handler = () => undefined, role = "user") {
 }
 const open = (path) => render(<StrictMode><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></StrictMode>);
 const writes = (calls) => calls.mock.calls.filter(([, options]) => options.method === "POST");
+async function menuAction(name) {
+  fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name }));
+}
 async function click(name) {
   const button = await screen.findByRole("button", { name, exact: true });
   await waitFor(() => expect(button.disabled || button.closest("fieldset")?.disabled || false).toBe(false));
@@ -39,7 +43,7 @@ it.each(["Trace", "comment"])("reports a %s with an inline required reason and c
   const target = type === "Trace" ? traceId : commentId;
   const calls = setup((url, options) => url === "/api/reports" ? ok({ id, reporter_id: "current-user", ...JSON.parse(options.body) }) : undefined);
   open(`/user/traces/${traceId}`);
-  await click(`Report ${type}`);
+  if (type === "Trace") await menuAction("Report trace"); else await click("Report comment");
   await click("Submit report");
   await screen.findByText("Enter a reason for this report.");
   expect(writes(calls)).toHaveLength(0);
@@ -56,23 +60,25 @@ it("does not offer reporting on a member's own trace or comment", async () => {
   });
   open(`/user/traces/${traceId}`);
   await screen.findByText("My own note");
-  expect(screen.queryByRole("button", { name: "Report Trace", exact: true })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+  expect(screen.queryByRole("menuitem", { name: "Report trace" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Report comment", exact: true })).toBeNull();
-  expect(screen.getByRole("button", { name: "Delete", exact: true })).toBeTruthy();
+  expect(screen.getByRole("menuitem", { name: "Delete trace" })).toBeTruthy();
 });
 
 it("keeps reporting for other members' trace and comments, with Delete absent", async () => {
   setup();
   open(`/user/traces/${traceId}`);
-  expect(await screen.findByRole("button", { name: "Report Trace", exact: true })).toBeTruthy();
+  fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
+  expect(await screen.findByRole("menuitem", { name: "Report trace" })).toBeTruthy();
   expect(await screen.findByRole("button", { name: "Report comment", exact: true })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Delete", exact: true })).toBeNull();
+  expect(screen.queryByRole("menuitem", { name: "Delete trace" })).toBeNull();
 });
 
 it("handles a duplicate report without claiming a new save", async () => {
   setup((url) => url === "/api/reports" ? fail(409, "ALREADY_EXISTS") : undefined);
   open(`/user/traces/${traceId}`);
-  await click("Report Trace");
+  await menuAction("Report trace");
   fireEvent.change(screen.getByLabelText("Reason for report"), { target: { value: "Review" } });
   await click("Submit report");
   await screen.findByText("You already have an open report for this content.");
@@ -85,7 +91,7 @@ it("checks an uncertain report without automatically sending it again", async ()
     if (url.startsWith("/api/reports?")) return ok([{ id, trace_id: traceId, reporter_id: "current-user", status: "open" }]);
   });
   open(`/user/traces/${traceId}`);
-  await click("Report Trace");
+  await menuAction("Report trace");
   fireEvent.change(screen.getByLabelText("Reason for report"), { target: { value: "Review" } });
   await click("Submit report");
   await screen.findByRole("button", { name: "Check saved report" });
@@ -177,7 +183,7 @@ it("blocks duplicate member reports and ignores the save after logout", async ()
   const pending = new Promise((resolve) => { finish = resolve; });
   const calls = setup((url) => url === "/api/reports" ? pending : undefined);
   open(`/user/traces/${traceId}`);
-  await click("Report Trace");
+  await menuAction("Report trace");
   fireEvent.change(screen.getByLabelText("Reason for report"), { target: { value: "Review" } });
   const button = screen.getByRole("button", { name: "Submit report" });
   fireEvent.click(button); fireEvent.click(button);

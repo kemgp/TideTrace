@@ -32,6 +32,30 @@ function CardsSkeleton(){
     <div className="ps-card-grid">{[1,2,3,4,5,6].map(i=><div className="ps-card" key={i}><S className="ps-photo"/><S className="ps-line lg"/><S className="ps-line"/><S className="ps-line sm"/></div>)}</div>
   </div>;
 }
+// Same two-column shape as the public trace page, so nothing moves when the data arrives.
+function TraceDetailSkeleton(){
+  return <div className="ps-trace-detail">
+    <div className="ps-detail-card">
+      <div className="ps-trace-layout">
+        <div className="ps-trace-main">
+          <S className="ps-trace-hero"/>
+          <S className="ps-title"/>
+          <S className="ps-line"/>
+          <div className="ps-chips"><S/><S/></div>
+          <S className="ps-paragraph"/>
+          <S className="ps-heading short"/>
+          <S className="ps-line lg"/>
+          <S className="ps-line"/>
+        </div>
+        <div className="ps-trace-aside">
+          <S className="ps-trace-panel map"/>
+          <S className="ps-trace-panel"/>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
 function DetailSkeleton(){
   return <div className="ps-page narrow">
     <S className="ps-button small"/>
@@ -420,11 +444,17 @@ export default function SkeletonLoader({path=""}){
       html.dark-mode .ps-list-row,html.dark-mode .ps-setting-row{border-color:#26354b}
       @media(max-width:900px){.ps-admin-profile-grid{grid-template-columns:1fr}.ps-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ps-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ps-settings{grid-template-columns:1fr}.ps-chart-grid{grid-template-columns:1fr}}
       @media(max-width:640px){.ps-history-headrow{display:block}.ps-history-actions{margin-top:18px}.ps-history-row{align-items:flex-start;padding:18px}.ps-history-row-actions{min-width:0;flex-direction:column;align-items:flex-end}.ps-headrow{display:block}.ps-notification-actions{margin-bottom:16px}.ps-card-grid,.ps-stats,.ps-actions{grid-template-columns:1fr}.ps-photo{height:220px}.ps-search{width:100%}}
+      .ps-trace-detail .ps-detail-card{padding:24px}
+      .ps-trace-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:32px;align-items:start}
+      .ps-trace-main,.ps-trace-aside{min-width:0}
+      .ps-trace-hero{aspect-ratio:16/10;border-radius:12px;margin-bottom:20px}
+      .ps-trace-aside{display:grid;gap:16px}.ps-trace-panel{height:110px;border-radius:12px}.ps-trace-panel.map{height:250px}
+      @media(max-width:900px){.ps-trace-layout{grid-template-columns:1fr;gap:16px}}
     `}</style>
     {type==="dashboard"&&<DashboardSkeleton/>}
     {type==="review"&&<ReviewQueueSkeleton/>}
     {type==="cards"&&<CardsSkeleton/>}
-    {type==="detail"&&<DetailSkeleton/>}
+    {type==="detail"&&(/^\/user\/traces\/[^/]+$/.test(path)?<TraceDetailSkeleton/>:<DetailSkeleton/>)}
     {type==="form"&&<FormSkeleton/>}
     {type==="settings"&&<SettingsSkeleton/>}
     {type==="analytics"&&<AnalyticsSkeleton/>}

@@ -19,6 +19,14 @@ it.each([
   rerender(view(false));
   expect(screen.queryByRole("status", { name: "Loading content" })).toBeNull();
 });
+it("uses a two-column skeleton for a public trace and the single column for other details", () => {
+  const view = (path) => render(<MemoryRouter initialEntries={[path]}><RemoteState loading /></MemoryRouter>);
+  const trace = view("/user/traces/trace-id");
+  expect(trace.container.querySelector(".ps-trace-layout")).toBeTruthy();
+  trace.unmount();
+  const tide = view("/user/tides/tide-id");
+  expect(tide.container.querySelector(".ps-trace-layout")).toBeNull();
+});
 it("keeps nested loading sections compact instead of repeating a whole page", () => {
   render(<MemoryRouter initialEntries={["/user/traces/trace-id"]}><RemoteState compact loading /></MemoryRouter>);
   expect(screen.getByRole("status", { name: "Loading content" }).className).toBe("remote-skeleton");

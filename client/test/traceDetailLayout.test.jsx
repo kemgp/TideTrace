@@ -31,16 +31,18 @@ it("groups location, facts and actions in a details panel beside the story", asy
   expect(within(aside).getByRole("heading", { name: "Location" })).toBeTruthy();
   expect(within(aside).getByRole("heading", { name: "About this trace" })).toBeTruthy();
   expect(within(aside).getByText("Category").closest("div").textContent).toContain("Pollution");
-  expect(within(aside).getByRole("button", { name: "Report Trace", exact: true })).toBeTruthy();
-  expect(within(aside).queryByRole("button", { name: "Delete", exact: true })).toBeNull();
+  expect(within(aside).queryByRole("button", { name: "More actions" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+  expect(screen.getByRole("menuitem", { name: "Report trace" })).toBeTruthy();
+  expect(screen.queryByRole("menuitem", { name: "Delete trace" })).toBeNull();
 });
 
-it("shows the owner's Delete in the panel instead of Report", async () => {
+it("shows the owner's Delete in the menu instead of Report", async () => {
   setup({ ...base, author_id: "current-user", author: { id: "current-user", display_name: "Test member" } });
   open();
-  const aside = await screen.findByRole("complementary", { name: "Trace details" });
-  expect(await within(aside).findByRole("button", { name: "Delete", exact: true })).toBeTruthy();
-  expect(within(aside).queryByRole("button", { name: "Report Trace", exact: true })).toBeNull();
+  fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
+  expect(await screen.findByRole("menuitem", { name: "Delete trace" })).toBeTruthy();
+  expect(screen.queryByRole("menuitem", { name: "Report trace" })).toBeNull();
 });
 
 it("explains a withheld location instead of drawing a map", async () => {
@@ -55,7 +57,7 @@ it("shows who posted and when in words, with the full date available", async () 
   setup();
   open();
   const heading = await screen.findByRole("heading", { name: "Coastal observation" });
-  const meta = heading.parentElement;
+  const meta = heading.closest(".trace-detail__headline");
   expect(within(meta).getByText("Other Member")).toBeTruthy();
   const time = meta.querySelector("time");
   expect(time.getAttribute("title")).toMatch(/2026/);
