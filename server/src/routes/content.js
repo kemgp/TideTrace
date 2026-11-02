@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware.js";
-import { first, result, upstreamError } from "../errors.js";
+import { HttpError, first, result, upstreamError } from "../errors.js";
 import { coordinatePair, draft, page, paginate, report, text, uuid, version } from "../validation.js";
 import { withAuthorPhotos } from "../profilePhotos.js";
 import { withPrivateLocation } from "../traceLocations.js";
@@ -96,19 +96,19 @@ export function contentRoutes(gateway) {
   });
   router.get("/contributions", member, async (req, res) => {
     const query = page.extend({ status: z.enum(["draft", "pending", "approved", "revision_requested", "rejected"]).optional() }).parse(req.query);
-    let contributions = req.db.from("traces").select(traceSelect).eq("author_id", req.user.id);
+    let contributions = req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).is("deleted_at", null);
     if (query.status) contributions = contributions.eq("status", query.status);
     const rows = await result(paginate(contributions.order("created_at", { ascending: false }).order("id"), query));
     send(res, await withAuthorPhotos(req.db, rows));
   });
   router.get("/contributions/:id", member, async (req, res) => {
-    const row = first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).eq("id", uuid.parse(req.params.id)).limit(1)));
+    const row = first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).is("deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
     send(res, await withPrivateLocation(req.db, (await withAuthorPhotos(req.db, [row]))[0]));
   });
   router.get("/contributions/:id/reviews", member, async (req, res) => {
     const id = uuid.parse(req.params.id);
     const pagination = page.parse(req.query);
-    first(await result(req.db.from("traces").select("id").eq("id", id).eq("author_id", req.user.id).limit(1)));
+    first(await result(req.db.from("traces").select("id").eq("id", id).eq("author_id", req.user.id).is("deleted_at", null).limit(1)));
     send(res, await result(paginate(req.db.from("moderation_actions").select(reviewSelect).eq("trace_id", id).eq("action", "review_trace").order("created_at", { ascending: false }).order("id", { ascending: false }), pagination)));
   });
   async function saveDraft(req, res, creating) {
@@ -124,6 +124,31 @@ export function contentRoutes(gateway) {
   }
   router.post("/traces", member, (req, res) => saveDraft(req, res, true));
   router.put("/traces/:id", member, (req, res) => saveDraft(req, res, false));
+  async function removeStoredPhotos(db, paths, remainingPaths) {
+    if (!paths.length) return;
+    try {
+      await result(db.storage.from("trace-media").remove(paths.map((item) => item.object_path)));
+      // Storage can report success without deleting objects excluded by RLS.
+      if ((await remainingPaths()).length) throw new Error("Photos remain in storage");
+    } catch {
+      throw new HttpError(502, "TRACE_PHOTO_CLEANUP_FAILED", "The trace is deleted, but its photos could not be removed. Retry photo removal.");
+    }
+  }
+  async function deleteTrace(req, res, cleanupOnly = false) {
+    const id = uuid.parse(req.params.id);
+    const paths = await result(req.db.rpc(cleanupOnly ? "deleted_trace_media" : "delete_own_trace", { p_trace_id: id }));
+    await removeStoredPhotos(req.db, paths, () => result(req.db.rpc("deleted_trace_media", { p_trace_id: id })));
+    res.sendStatus(204);
+  }
+  router.delete("/traces/:id", member, (req, res) => deleteTrace(req, res));
+  // Retry only the irreversible deletion's unfinished Storage step.
+  router.post("/traces/:id/photo-cleanup", member, (req, res) => deleteTrace(req, res, true));
+  // Finishes any interrupted photo removal for all of the caller's deleted Traces.
+  router.post("/contributions/photo-cleanup", member, async (req, res) => {
+    const pending = () => result(req.db.rpc("deleted_trace_media_pending"));
+    await removeStoredPhotos(req.db, await pending(), pending);
+    res.sendStatus(204);
+  });
   router.post("/traces/:id/hide-location", member, async (req, res) => {
     const input = z.object({ version }).strict().parse(req.body);
     const saved = await result(req.db.rpc("hide_trace_location", { p_id: uuid.parse(req.params.id), p_version: input.version }));

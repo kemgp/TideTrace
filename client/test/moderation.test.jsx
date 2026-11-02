@@ -33,6 +33,19 @@ const detail = `/api/moderation/traces/${trace().id}`;
 const decisionPath = `${detail}/decision`;
 const decisionButtons = () => ["Approve & publish", "Request revision", "Reject"].map((name) => screen.getByRole("button", { name }));
 
+it("keeps deleted pending Traces readable with their history and no decision or photo controls", async () => {
+  const calls = setup((url) => {
+    if (url === detail) return response(trace({ deleted_at: "2026-11-02T00:00:00Z", trace_media: [{ id: "deleted-photo", mime_type: "image/png" }] }));
+    if (url.startsWith(`${detail}/reviews?`)) return response([{ id: "review", to_state: "revision_requested", reason: "Previous review", created_at: "2026-10-01T00:00:00Z" }]);
+  });
+  open(`/moderator/review/${trace().id}`);
+  await screen.findByText("Deleted by the author.");
+  await screen.findByText("Previous review");
+  expect(screen.queryByRole("button", { name: "Approve & publish" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Hide exact location" })).toBeNull();
+  expect(calls.mock.calls.some(([url]) => url.includes("/media/"))).toBe(false);
+});
+
 it("loads the live queue, reviews photos, approves and refreshes queue and history", async () => {
   let reviewed = false;
   const photo = { id: "photo-id", mime_type: "image/png", sort_order: 0 };

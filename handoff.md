@@ -2,6 +2,16 @@
 
 Current state of the project, what was changed in the latest session, and what is left.
 
+### Own-Trace deletion — `delete-own-traces` (2026-11-02, uncommitted)
+
+- Branched from updated `main`; no commit or push. Apply `supabase/migrations/20261102000100_delete_own_trace.sql` before deploying the API/client changes.
+- Owners can soft-delete every status. Comments become hidden; open Trace/comment reports resolve with `trace deleted`; existing history and notifications remain, with no new notifications. Member/public reads exclude deleted Traces; staff detail/history retain them and mark them deleted. The existing `moderate_trace` RPC still rejects a deleted pending Trace.
+- The API deletes all Storage objects under the owner's Trace folder, including detached uploads, and verifies removal before returning 204. A Storage failure leaves the Trace deleted and shows an inline retry in the dialog, using owner-only `POST /api/traces/:id/photo-cleanup`. Repeated `DELETE /api/traces/:id` still returns 404. If the dialog/browser is closed before cleanup succeeds, the sweep described below finishes it the next time My Contributions opens.
+- Interrupted photo removal is finished automatically: `POST /api/contributions/photo-cleanup` (RPC `deleted_trace_media_pending`) removes leftover photos for all of the caller's deleted Traces; My Contributions calls it quietly on load. Auto-resolved reports store `resolved_by = null`. Staff trace routes still exclude moderation-hidden Traces (only deleted ones are readable). A 404 on delete means already gone (notice + back to contributions); a 404 on photo retry means finished.
+- Danger Delete buttons appear on contribution rows and owner details. Native modal uses the existing dialog styles, Cancel/Escape and focus return, disabled busy buttons/spinner, inline errors, and one `Trace deleted.` toast after navigation. Confirmed deletion clears the selected-photo guard to avoid a second confirmation.
+- Added client, server and SQL regression coverage. JS/JSX/CSS syntax checks and `git diff --check` passed; tests, migration execution and browser checks were not run here.
+- Run on the Mac: `cd client && npm test`, then `cd ../server && npm test`. Apply the migration above. Against a disposable local/test database with all migrations applied, run from the repo root: `psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/delete-own-trace.sql` (fixtures roll back). The SQL check is also wired into `supabase/tests/local-check.mjs` for environments already set up with PGlite.
+
 ## 1. What TideTrace is
 
 Community ecological awareness app for Iloilo. **Traces** are member photo observations (category, location, description). **Tides** are short lessons published by admins. Flow: contribute → review → discover → learn.

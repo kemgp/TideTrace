@@ -19,7 +19,7 @@ export function upstreamError(error) {
   if (code === "40001") return new HttpError(409, "STALE_VERSION", "This record changed. Reload it before retrying.");
   if (code === "42501") return new HttpError(403, "FORBIDDEN", "You do not have permission to perform this action.");
   if (code === "23505") return new HttpError(409, "ALREADY_EXISTS", "This record already exists.");
-  if (code === "PGRST116") return new HttpError(404, "NOT_FOUND", "Record not found.");
+  if (code === "PGRST116" || code === "PT404") return new HttpError(404, "NOT_FOUND", "Record not found.");
   if (code === "P0001") return new HttpError(400, "WORKFLOW_ERROR", error.message || "This action is not allowed.");
   if (/^(22|23)/.test(code)) return new HttpError(400, "INVALID_DATA", "The supplied values do not satisfy the database constraints.");
   const status = Number(error.status || error.statusCode);
