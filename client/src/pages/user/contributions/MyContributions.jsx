@@ -10,7 +10,7 @@ import TraceStatusBadge from "../../../components/TraceStatusBadge.jsx";
 import RelativeTime from "../../../components/RelativeTime.jsx";
 import EmptyState from "../../../components/EmptyState.jsx";
 import { scrollToWhenReady } from "../../../components/ScrollManager.jsx";
-import Button from "../../../components/Button.jsx";
+import PageHeader from "../../../components/PageHeader.jsx";
 import DeleteTrace from "../../../components/DeleteTrace.jsx";
 import { useApp } from "../../../context/AppContext.jsx";
 import "./contributions.css";
@@ -58,19 +58,10 @@ export default function MyContributions() {
   }, [result.data, result.loading, result.error, page]);
 
   return (
-    <div className="wrap">
-      <div className="vhead">
-        <div className="headrow">
-          <div>
-            <span className="eyebrow">My contributions</span>
-            <h2>Your traces &amp; their status</h2>
-            <p>Your saved submissions, including drafts. Filter by status across all your contributions.</p>
-          </div>
-          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>New Trace</Button>
-        </div>
-      </div>
-
-      <div className="chiprow" style={{ marginBottom: 20 }}>
+    <>
+    <PageHeader eyebrow="My contributions" title="Your traces &amp; their status" subtitle="Your saved submissions, including drafts. Filter by status across all your contributions." actions={<button type="button" className="banner-action" onClick={() => navigate("/user/traces/upload")}>New Trace</button>} />
+    <div className="page-body contributions-page">
+      <div className="chiprow contrib-filters">
         {CONTRIBUTION_FILTERS.map((f) => (
           <button key={f} className={`chip ${filter === f ? "on" : ""}`} aria-pressed={filter === f} onClick={() => update({ status: f, page: 1 })}>{FILTER_LABELS[f]}</button>
         ))}
@@ -119,5 +110,6 @@ export default function MyContributions() {
       ))}
       <Pagination offset={offset} count={mine.length} size={PAGE_SIZE} onChange={(next) => update({ page: Math.floor(next / PAGE_SIZE) + 1 })} loading={result.loading} />
     </div>
+    </>
   );
 }

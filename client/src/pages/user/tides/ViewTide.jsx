@@ -74,10 +74,8 @@ export default function ViewTide() {
     {lesson && <p role="alert">This lesson is not available.</p>}
   </div>;
   return <>
-    <PageHeader as="h2" back={<Link className="page-hero__back" to="/user/tides">← Back to Tides</Link>} eyebrow="Tides · Lesson" title={lesson.title || "Untitled lesson"} subtitle={(typeof lesson.summary === "string" && lesson.summary.trim()) || undefined}>
-      {chaptered && <div className="page-hero__chips"><span>{chapters} chapters</span></div>}
-    </PageHeader>
-    <div className="page-body user-lesson">
+    <PageHeader className="page-hero--lesson" as="h2" back={<Link className="page-hero__back" to="/user/tides">← Back to Tides</Link>} eyebrow={`${lesson.category?.name || "Tides"} · Lesson${chaptered ? ` · ${chapters} chapters` : ""}`} title={lesson.title || "Untitled lesson"} subtitle={(typeof lesson.summary === "string" && lesson.summary.trim()) || undefined} />
+    <div className={`page-body user-lesson${chaptered ? " is-chaptered" : ""}`}>
       <ReadingProgress targetRef={card} value={progress} />
       <div ref={card}><Card>{lesson.slides_path
         ? <><SlidesViewer key={lesson.id} tideId={lesson.id} pages={lesson.slides_pages} onProgress={setSlideProgress} /><details className="lesson-text-version" open><summary>Text version</summary><TideLesson hideTitle title={lesson.title} body={lesson.body} images={images} /></details></>

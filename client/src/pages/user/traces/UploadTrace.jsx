@@ -8,5 +8,5 @@ export default function UploadTrace() {
   const { state, key } = useLocation();
   const point = coordinates(state?.traceLocation?.latitude, state?.traceLocation?.longitude);
   const { profile } = useApp();
-  return <div className="wrap user-upload"><TraceDraftForm key={`${profile.id}:${key}`} initialLocation={point ? { latitude: point.lat, longitude: point.lng } : null} /></div>;
+  return <TraceDraftForm key={`${profile.id}:${key}`} initialLocation={point ? { latitude: point.lat, longitude: point.lng } : null} />;
 }

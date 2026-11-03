@@ -3,10 +3,8 @@ import Card from "./Card.jsx";
 import "./TraceDraftLayout.css";
 
 const STEPS = [
-  { key: "category", label: "Select category", hint: "What kind of trace?" },
-  { key: "location", label: "Add location", hint: "Name your coastal site" },
-  { key: "description", label: "Add description", hint: "Tell your story" },
-  { key: "photo", label: "Add photo", hint: "Share what you saw" },
+  { key: "story", label: "Photo & story", hint: "Add a photo and tell it" },
+  { key: "place", label: "Place & time", hint: "Where did you see it?" },
   { key: "review", label: "Review & submit", hint: "Check your details" },
 ];
 
@@ -27,10 +25,10 @@ export default function TraceDraftLayout({ activeStep, onSelect, editing, childr
   </div>;
 }
 
-export function TraceDraftSection({ step, onActivate, children }) {
+export function TraceDraftSection({ step, onActivate, active = true, children }) {
   const index = STEPS.findIndex((item) => item.key === step);
   const title = STEPS[index].label;
-  return <section className="trace-draft-section" id={`trace-step-${step}`} tabIndex={-1}
+  return <section className={`trace-draft-section${active ? "" : " is-inactive"}`} id={`trace-step-${step}`} tabIndex={-1}
     aria-label={step === "review" ? "Review submission" : title} onFocus={() => onActivate(step)}>
     <h3 className="trace-draft-section__heading">Step {index + 1} · {title}</h3>
     {children}

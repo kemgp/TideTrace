@@ -9,7 +9,6 @@ const id = "50000000-0000-4000-8000-000000000001";
 const prevId = "50000000-0000-4000-8000-000000000003";
 const nextId = "50000000-0000-4000-8000-000000000002";
 const ok = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
-const words = (count) => Array.from({ length: count }, (_, index) => `word${index}`).join(" ");
 const body = `Opening paragraph with **bold words**.\nSecond line stays on its own line.\n\n## What to do\n- Check the shoreline\n- Take a photo\n\n<img src=x onerror="alert(1)">`;
 const lesson = (extra = {}) => ({ id, title: "Reading the shoreline", slug: "reading-the-shoreline", body, status: "published", published_at: "2026-10-01T00:00:00Z", ...extra });
 
@@ -37,12 +36,7 @@ it("shows structure from the lesson text and keeps markup as text", async () => 
   expect(within(article).getByText("bold words").tagName).toBe("STRONG");
   expect(article.querySelector("img")).toBeNull();
   expect(article.textContent).toContain('<img src=x onerror="alert(1)">');
-  expect(within(article).getByText("1 min read")).toBeTruthy();
-});
-
-it("estimates a longer lesson in minutes", async () => {
-  setup({ tide: lesson({ body: words(650) }) });
-  expect(await screen.findByText("4 min read")).toBeTruthy();
+  expect(within(article).queryByText(/min read/)).toBeNull();
 });
 
 it("links to the previous and next lessons", async () => {

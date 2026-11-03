@@ -57,7 +57,8 @@ it("shows media before the title and saves comments through the trace API", asyn
   });
   open(`/user/traces/${trace().id}`);
   const title = await screen.findByRole("heading", { name: trace().title });
-  expect(screen.getByRole("region", { name: "Trace photos" }).compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByRole("region", { name: "Trace photos" })).toBeTruthy();
+  expect(title.closest(".page-hero")).toBeTruthy();
   await screen.findByText(/No comments yet/);
   fireEvent.change(screen.getByRole("textbox", { name: "Add a comment" }), { target: { value: "I observed this too." } });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));

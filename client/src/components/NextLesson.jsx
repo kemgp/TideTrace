@@ -21,7 +21,7 @@ export default function NextLesson() {
   return <Card className="user-learning-callout">
     <div>
       {next ? <>
-        <span className="lbl">Next lesson</span>
+        <span className="lbl">Continue learning</span>
         <p className="learning-title">{next.title}</p>
         {saved && <>
           <p className="learning-progress">Chapter {saved.part} of {saved.total}</p>

@@ -41,7 +41,7 @@ it("shows one chapter at a time with a contents list, and moves with Previous an
   expect(within(article).getByRole("heading", { level: 3, name: "First chapter" })).toBeTruthy();
   expect(within(article).queryByText("Welcome to the lesson.")).toBeNull();
   const contents = within(article).getByRole("navigation", { name: "Chapters" });
-  expect(within(contents).getAllByRole("button").map((button) => button.textContent)).toEqual(["Introduction", "First chapter", "Second chapter", "Third chapter"]);
+  expect(within(contents).getAllByRole("button").map((button) => button.textContent.replace(/^[✓\d]+/, ""))).toEqual(["Introduction", "First chapter", "Second chapter", "Third chapter"]);
   expect(within(contents).getByRole("button", { name: "First chapter" }).getAttribute("aria-current")).toBe("step");
   fireEvent.click(within(contents).getByRole("button", { name: "Third chapter" }));
   await within(article).findByText("Chapter 4 of 4: Third chapter");

@@ -2,8 +2,8 @@ import React from "react";
 
 // The ocean page header: eyebrow, title, optional subtitle and actions on a deep-water band with a wave edge.
 // `back` is an optional link shown above the eyebrow. Put the page content in a <div className="page-body"> straight after it. Children render under the subtitle.
-export default function PageHeader({ back, eyebrow, title, subtitle, actions, as: Heading = "h2", children }) {
-  return <section className="page-hero">
+export default function PageHeader({ back, eyebrow, title, subtitle, actions, as: Heading = "h2", className = "", children }) {
+  return <section className={`page-hero${className ? ` ${className}` : ""}`}>
     <div className="page-hero__inner">
       <div>
         {back}

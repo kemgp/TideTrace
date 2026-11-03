@@ -1,5 +1,5 @@
 /* Member pages follow the user SVG references; structural rules are mobile-first. */
-.app-shell.user-shell { background: #fff; }
+.app-shell.user-shell { background: var(--sea-wash, #fff); }
 .app-shell.user-shell .wrap { max-width: 1240px; }
 .app-shell.user-shell .nav-links a { display: flex; align-items: center; gap: 6px; }
 .app-shell.user-shell .nav-links svg { flex: none; }
@@ -15,7 +15,7 @@
 .app-shell.user-shell .user-learning-callout > div { flex: 1 1 240px; }
 .app-shell.user-shell .user-learning-callout p { margin-bottom: 0; }
 .user-trace-card { display: block; text-decoration: none; color: inherit; }
-.app-shell.user-shell .tcard { padding: 12px; border-radius: var(--r-md); box-shadow: none; }
+.app-shell.user-shell .tcard { padding: 12px; border-radius: var(--r-lg); box-shadow: var(--shadow-card, none); }
 .app-shell.user-shell .tcard .thumb { height: 68px; border-radius: var(--r-sm); }
 .app-shell.user-shell .tcard .t { font-size:var(--fs-label); line-height: 1.5; }
 .app-shell.user-shell .tcard .m { flex-wrap: wrap; gap: 8px; }

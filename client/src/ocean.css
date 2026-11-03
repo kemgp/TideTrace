@@ -12,6 +12,9 @@
   --shadow-lift: 0 18px 36px -14px rgba(32, 52, 99, .34);
 }
 
+/* Pages that open with the wave header start right under the navigation, with no gap. */
+.app-shell .view:has(> .page-hero) { padding-top: 0; padding-bottom: 0; }
+
 /* Member pages sit on a soft sea-wash background so white cards stand out. */
 .app-shell.user-shell { background: var(--sea-wash); }
 
@@ -23,7 +26,12 @@
 }
 
 /* Buttons: slightly rounder, with a soft glow on the main actions. */
-.btn { border-radius: 10px; }
+.btn { border-radius: 12px; min-height: 46px; font-weight: 700; }
+.btn.sm { min-height: 44px; padding: 9px 20px; }
+.btn.outline { border-color: #c7dcee; font-weight: 600; background: #fff; }
+.btn.outline:hover:not(:disabled) { border-color: var(--blue); background: #edf7ff; }
+.btn.ghost { min-height: 0; font-weight: 600; }
+html.dark-mode .btn.outline { background: transparent; border-color: var(--d-border); }
 .btn.blue { box-shadow: 0 10px 20px -12px rgba(49, 78, 157, .75); }
 .btn.clay { box-shadow: 0 10px 20px -12px rgba(168, 80, 37, .7); }
 .btn.blue:active, .btn.clay:active { box-shadow: none; }
@@ -61,3 +69,117 @@ html.dark-mode .page-hero { background: linear-gradient(160deg, #0d1626 0%, #1b2
   .tcard { transition: none; }
   .tcard:hover { transform: none; }
 }
+
+/* Header action buttons: white pill-button on the water. */
+.page-hero__actions .banner-action{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 26px;border:0;border-radius:12px;background:#fff;color:var(--navy);font:inherit;font-weight:700;font-size:15px;box-shadow:0 10px 24px -10px rgba(0,0,0,.45);cursor:pointer;white-space:nowrap;}
+.page-hero__actions .banner-action:hover{background:#edf7ff;}
+html.dark-mode .page-hero__actions .banner-action{background:var(--d-surface);color:var(--d-text);}
+
+/* Archive filters: one raised card, like the Tides list. */
+.archive-filters{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--shadow-lift);display:grid;gap:16px;margin-bottom:28px;}
+.archive-filters .toolbar,.archive-filters .chiprow,.archive-filters .archive-category-select{margin:0 !important;}
+.archive-filters .chip{min-height:40px;padding:0 16px;border-radius:999px;border:1.5px solid #c7dcee;background:#fff;color:#526581;font-weight:600;}
+.archive-filters .chip.on{border-color:#5aa2a8;background:#e2f2f2;color:#2f6a70;font-weight:700;}
+.community-archive .toolbar .search{border:1.5px solid #c7dcee;border-radius:12px;min-height:46px;}
+.community-archive .archive-view-switch{border-color:#c7dcee;border-radius:12px;background:#edf7ff;}
+.community-archive .g3{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px;}
+html.dark-mode .archive-filters{background:var(--d-surface);box-shadow:none;}
+html.dark-mode .archive-filters .chip{background:transparent;border-color:var(--d-border);color:var(--d-muted);}
+html.dark-mode .archive-filters .chip.on{background:#1f3a3d;border-color:#5aa2a8;color:#bfe3e6;}
+
+/* Contributions: filter card and raised rows. */
+.contributions-page .contrib-filters{background:#fff;border-radius:20px;padding:18px;box-shadow:var(--shadow-lift);margin:0 0 24px;}
+.contributions-page .chip{min-height:40px;padding:0 16px;border-radius:999px;border:1.5px solid #c7dcee;background:#fff;color:#526581;font-weight:600;}
+.contributions-page .chip.on{border-color:#5aa2a8;background:#e2f2f2;color:#2f6a70;font-weight:700;}
+.contributions-page .user-contributions{display:flex;flex-direction:column;gap:14px;}
+.contributions-page .contrib-row{background:#fff;border-radius:16px;box-shadow:0 8px 22px -16px rgba(32,52,99,.5);padding:14px 18px;align-items:center;transition:transform .18s ease,box-shadow .18s ease;}
+.contributions-page .contrib-row:hover{transform:translateY(-3px);box-shadow:0 18px 36px -14px rgba(32,52,99,.34);}
+.contributions-page .contrib-row .lrow{border:0;background:none;padding:0;box-shadow:none;}
+html.dark-mode .contributions-page .contrib-filters,html.dark-mode .contributions-page .contrib-row{background:var(--d-surface);box-shadow:none;}
+html.dark-mode .contributions-page .chip{background:transparent;border-color:var(--d-border);color:var(--d-muted);}
+html.dark-mode .contributions-page .chip.on{background:#1f3a3d;border-color:#5aa2a8;color:#bfe3e6;}
+@media(prefers-reduced-motion:reduce){.contributions-page .contrib-row{transition:none;}}
+
+/* Draft form: a roomier card under the header. */
+.page-body.user-upload{max-width:1180px;}
+
+/* Trace details: raised cards on the sea-wash page, stepper as light buttons on the water. */
+.page-body.trace-detail{max-width:1180px;}
+.page-body.trace-detail--contribution{max-width:900px;}
+.page-body .trace-detail__card{border-radius:20px;box-shadow:var(--shadow-lift);border:0;}
+.page-body .trace-detail__card--public{background:none;box-shadow:none;padding:0;}
+.trace-detail__card--public .trace-detail__main{background:#fff;border-radius:20px;padding:26px 32px 30px;box-shadow:var(--shadow-lift);}
+.trace-detail__card--public .trace-detail__panel{border:0;border-radius:20px;box-shadow:var(--shadow-card);padding:22px 24px;}
+.trace-detail__titlerow{justify-content:flex-end;}
+.page-hero__actions .trace-stepper__btn{background:rgba(255,255,255,.16);border-color:transparent;color:#fff;}
+.page-hero__actions .trace-stepper__btn:hover:not(.is-disabled){background:rgba(255,255,255,.28);}
+html.dark-mode .trace-detail__card--public .trace-detail__panel{background:var(--d-surface);box-shadow:none;}
+html.dark-mode .page-body .trace-detail__card{box-shadow:none;}
+
+/* Settings: raised navigation rail and panels. */
+.user-settings .rail{background:#fff;border-radius:20px;box-shadow:var(--shadow-lift);}
+.user-settings .rail .ri{border-radius:12px;}
+.user-settings .rail .ri.on,.user-settings .rail .ri[aria-current]{background:#e3ecfa;color:#314e9d;font-weight:700;}
+.app-shell.user-shell .user-settings__body > .card,.app-shell.user-shell .user-settings__usage{border:0;border-radius:20px;box-shadow:var(--shadow-lift);}
+html.dark-mode .user-settings .rail{background:var(--d-surface);box-shadow:none;}
+html.dark-mode .app-shell.user-shell .user-settings__body > .card{box-shadow:none;}
+
+/* Archive cards share the dashboard treatment. */
+.community-archive .g3 .user-trace-card{padding:0;overflow:hidden;border-radius:18px;border:0;box-shadow:0 8px 22px -16px rgba(32,52,99,.5);}
+.community-archive .g3 .user-trace-card .trace-card-photo{height:130px;border-radius:0;}
+.community-archive .g3 .user-trace-card .trace-card-photo img{object-fit:cover;}
+.community-archive .g3 .user-trace-card > a:not(.trace-card-photo){display:block;padding:14px 16px 16px;color:inherit;text-decoration:none;}
+.community-archive .g3 .user-trace-card .t{font-size:16px;line-height:1.35;}
+.community-archive .g3 .trace-card-author{display:none;}
+.community-archive .g3 .user-category-label{display:inline-block;background:#e3ecfa;color:#314e9d;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;}
+.community-archive .g3 .trace-card-when{display:inline;}
+.community-archive .g3 .user-trace-card > a:not(.trace-card-photo){display:flex;flex-direction:column;gap:6px;}
+.community-archive .g3 .user-trace-card > a:not(.trace-card-photo) > .m:first-of-type{order:-1;justify-content:flex-start;margin:0 0 4px;}
+.community-archive .g3 .user-trace-card .t{margin:0;}
+.community-archive .g3 .user-card-location{color:#526581;font-size:13px;}
+.community-archive .g3 .user-card-location{display:block;min-width:0;}
+.community-archive .g3 .user-card-location svg{vertical-align:-2px;margin-right:4px;}
+.community-archive .g3 .user-trace-card > a:not(.trace-card-photo) > .m{display:block;}
+.community-archive .g3 .user-trace-card > a:not(.trace-card-photo) > .m:first-of-type{margin:0 0 4px;}
+.community-archive .g3 .user-card-location svg{display:inline-block;}
+.app-shell.user-shell .community-archive .g3 .user-trace-card{padding:0;}
+.app-shell.user-shell .attention-item{padding:14px 18px;}
+.app-shell.user-shell .dash-stats .stat{padding:22px 24px;}
+.community-archive .g3 .user-trace-card .trace-card-photo{height:170px;}
+
+/* One header size everywhere: same height, padding and overlap on every page. */
+.page-hero .page-hero__inner{box-sizing:border-box;min-height:340px;}
+@media(max-width:640px){.page-hero .page-hero__inner{min-height:0;}}
+.page-hero__title{max-width:900px;}
+.page-hero__sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.page-hero .page-hero__back{min-height:36px;margin-bottom:12px;}
+
+/* Trace card photos fill the cover and are cropped to fit, anchored toward the top so faces and subjects stay in view. */
+.app-shell .community-grid .user-trace-card .trace-card-photo img,.app-shell .community-archive .g3 .user-trace-card .trace-card-photo img{object-fit:cover;object-position:center 30%;}
+
+/* Trace details (public): the story, comments, neighbours and related traces are separate raised cards in the left column. */
+.trace-detail__card--public .trace-detail__main{background:none;box-shadow:none;padding:0;overflow:visible;display:flex;flex-direction:column;gap:28px;}
+.trace-detail__card--public .trace-detail__main > :not(.trace-detail__media){margin-left:0;margin-right:0;}
+.trace-detail__story{background:#fff;border-radius:20px;box-shadow:var(--shadow-lift);overflow:hidden;padding-bottom:30px;}
+.trace-detail__story > :not(.trace-detail__media){margin-left:32px;margin-right:32px;}
+.trace-detail__story .trace-detail__media{border-radius:0;}
+.trace-detail__story .trace-detail__media-item.is-active{aspect-ratio:16/8;border-radius:0;}
+.trace-detail__story .trace-detail__media-item > img{object-fit:cover !important;object-position:center 30%;}
+.trace-detail__story .trace-detail__backdrop{display:none;}
+.trace-detail__story .trace-detail__headline{margin-top:22px;}
+.trace-detail__card--public .trace-detail__comments{background:#fff;border:0;border-radius:20px;box-shadow:var(--shadow-lift);padding:26px 32px;margin-top:0;}
+.trace-detail__card--public .trace-neighbors__link{background:#fff;border:0;border-radius:16px;box-shadow:var(--shadow-card);}
+html.dark-mode .trace-detail__story,html.dark-mode .trace-detail__card--public .trace-detail__comments,html.dark-mode .trace-detail__card--public .trace-neighbors__link{background:var(--d-surface);box-shadow:none;}
+@media(max-width:640px){.trace-detail__story > :not(.trace-detail__media){margin-left:18px;margin-right:18px;}.trace-detail__card--public .trace-detail__comments{padding:20px 18px;}}
+
+/* Related traces reuse the archive cards; newer / older links match the mockup (thumbnail, small label, title). */
+.trace-related.community-archive{margin-top:0;}
+.trace-related h3{font-family:'Poppins',sans-serif;font-size:20px;}
+.trace-related__grid.g3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}
+.app-shell .trace-neighbors{display:flex;flex-wrap:wrap;gap:16px;margin-top:0;}
+.app-shell .trace-neighbors__link{flex:1 1 220px;grid-column:auto;flex-direction:row;text-align:left;gap:14px;padding:12px 14px;border-radius:16px;}
+.trace-neighbors__thumb{flex:none;width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#5aa2a8,#203463);}
+.trace-neighbors__link--older .trace-neighbors__thumb{background:linear-gradient(135deg,#314e9d,#203463);}
+.app-shell .trace-neighbors__text small{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;}
+.app-shell .trace-neighbors__title{display:block;margin-top:2px;font-size:15px;}
+.page-hero__actions .trace-stepper__btn{border-radius:12px;min-height:44px;font-weight:600;font-size:14px;}

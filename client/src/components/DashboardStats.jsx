@@ -10,8 +10,9 @@ export default function DashboardStats({ result, items, usage = false, flush = f
     </div>}
     {result.error && <RemoteState compact {...result} />}
     <div className={usage ? "" : items.length === 3 ? "g3" : "g4"} aria-busy={result.loading}>
-      {items.map(([key, label, to]) => {
+      {items.map(([key, label, to, icon]) => {
         const body = <>
+          {icon && !usage && <i className="stat-icon" aria-hidden="true">{icon}</i>}
           {usage && <div className="l">{label}</div>}
           <b>{result.loading ? <span className="stat-placeholder" aria-label={`Loading ${label}`} /> : result.data ? result.data[key] : <><span aria-hidden="true">—</span><span className="sr-only">Not available</span></>}</b>
           {!usage && <span>{label}</span>}

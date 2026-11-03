@@ -58,10 +58,10 @@ it.each(["zzz", "30000000-0000-4000-8000-000000000099"])("ignores malformed or u
 it("returns from detail to the same archive state", async () => {
   const search = `?q=reef&category=${category}&page=2`; setup(search);
   fireEvent.click(await screen.findByRole("link", { name: /Reef survey/ }));
-  fireEvent.click(await screen.findByRole("link", { name: /Back to Traces/ })); expect(url()).toBe(`/user/traces${search}`);
+  await waitFor(() => expect(document.querySelector(".page-hero__back")).toBeTruthy()); fireEvent.click(screen.getByRole("link", { name: /Back to Traces/ })); expect(url()).toBe(`/user/traces${search}`);
 });
 it("uses plain archive for a directly opened trace", async () => {
-  setup(`/user/traces/${id}`); fireEvent.click(await screen.findByRole("link", { name: /Back to Traces/ })); expect(url()).toBe("/user/traces");
+  setup(`/user/traces/${id}`); await waitFor(() => expect(document.querySelector(".page-hero__back")).toBeTruthy()); fireEvent.click(screen.getByRole("link", { name: /Back to Traces/ })); expect(url()).toBe("/user/traces");
 });
 it("clears filters and replaces an out-of-range page", async () => {
   setup(`?q=reef&category=${category}&page=2`, []);

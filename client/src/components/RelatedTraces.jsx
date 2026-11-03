@@ -9,9 +9,9 @@ export default function RelatedTraces({ traceId, category, archiveSearch }) {
   const { data, loading, error } = useRemoteData(`traces/${encodeURIComponent(traceId)}/related`, { collection: true });
   const traces = (data || []).filter((trace) => trace.id !== traceId).slice(0, 3);
   if (loading || error || !traces.length) return null;
-  return <section className="trace-related" aria-labelledby={heading}>
+  return <section className="trace-related community-archive" aria-labelledby={heading}>
     <h3 id={heading}>{category ? `More in ${category}` : "More from this category"}</h3>
-    <div className="trace-related__grid">
+    <div className="trace-related__grid g3">
       {traces.map((trace) => <TraceCard key={trace.id} trace={displayTrace(trace)} to={`/user/traces/${trace.id}`} linkState={{ archiveSearch }} />)}
     </div>
   </section>;

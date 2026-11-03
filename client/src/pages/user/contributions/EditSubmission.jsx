@@ -11,9 +11,11 @@ export default function EditSubmission() {
   const result = useRemoteData(`contributions/${encodeURIComponent(id)}`);
   const trace = result.data;
   const editable = ["draft", "revision_requested"].includes(trace?.status) && trace.author_id === profile.id && !trace.is_hidden && !trace.deleted_at && Number.isInteger(trace.version) && trace.version > 0;
+  const back = <Link className="page-hero__back" to={`/user/contributions/${encodeURIComponent(id)}`}>← Back to contribution</Link>;
+  if (trace && editable) return <TraceDraftForm key={`${profile.id}:${trace.id}:${trace.version}`} trace={trace} onReload={result.retry} back={back} />;
   return <div className="wrap" style={{ maxWidth: 760 }}>
     <Link className="btn ghost sm" style={{ marginBottom: 14 }} to={`/user/contributions/${encodeURIComponent(id)}`}>← Back to contribution</Link>
     <RemoteState {...result} />
-    {trace && (editable ? <TraceDraftForm key={`${profile.id}:${trace.id}:${trace.version}`} trace={trace} onReload={result.retry} /> : <p role="alert">This contribution is not an editable draft. Only your own available drafts or requested revisions can be edited here.</p>)}
+    {trace && <p role="alert">This contribution is not an editable draft. Only your own available drafts or requested revisions can be edited here.</p>}
   </div>;
 }
