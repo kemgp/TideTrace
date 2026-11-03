@@ -1,0 +1,63 @@
+/* Ocean theme: shared building blocks (colors, depth, cards, page header).
+   Pages pick these up through the existing classes (.card, .tcard, .btn, .nav-links) and the PageHeader component. */
+:root {
+  --r-lg: 18px;
+  --ocean-deep: #203463;
+  --ocean-mid: #314e9d;
+  --ocean-glass: #3f78a8;
+  --sea-wash: #f3f9ff;
+  --wave-fill: #f3f9ff;
+  --card-line: #d6e6f4;
+  --shadow-card: 0 8px 22px -16px rgba(32, 52, 99, .5);
+  --shadow-lift: 0 18px 36px -14px rgba(32, 52, 99, .34);
+}
+
+/* Member pages sit on a soft sea-wash background so white cards stand out. */
+.app-shell.user-shell { background: var(--sea-wash); }
+
+/* Depth: cards get a soft shadow, and cards that link somewhere lift on hover. */
+.card { border-color: var(--card-line); border-radius: var(--r-lg); box-shadow: var(--shadow-card); }
+.tcard { border-color: var(--card-line); border-radius: var(--r-lg); box-shadow: var(--shadow-card); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+@media (hover: hover) {
+  .tcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: #a9c6e2; }
+}
+
+/* Buttons: slightly rounder, with a soft glow on the main actions. */
+.btn { border-radius: 10px; }
+.btn.blue { box-shadow: 0 10px 20px -12px rgba(49, 78, 157, .75); }
+.btn.clay { box-shadow: 0 10px 20px -12px rgba(168, 80, 37, .7); }
+.btn.blue:active, .btn.clay:active { box-shadow: none; }
+
+/* Navigation links become pills. */
+.nav-links a { border-radius: 999px; padding: 8px 14px; }
+
+/* Page header: a deep-water band with a wave edge. Use <PageHeader> and put the page body in .page-body. */
+.page-hero {
+  position: relative; overflow: hidden; color: #fff;
+  background: linear-gradient(160deg, var(--ocean-deep) 0%, var(--ocean-mid) 62%, var(--ocean-glass) 100%);
+}
+.page-hero::before { content: ""; position: absolute; right: -60px; top: -90px; width: 320px; height: 320px; border-radius: 50%; background: rgba(90, 162, 168, .22); }
+.page-hero::after { content: ""; position: absolute; right: 240px; top: 100px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255, 255, 255, .07); }
+.page-hero__inner { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 44px 32px 112px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.page-hero__eyebrow { margin: 0 0 10px; font-size: var(--fs-badge); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #bfe3e6; }
+.page-hero__title { margin: 0; font-family: 'Poppins', -apple-system, Segoe UI, sans-serif; font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.15; max-width: 640px; }
+.page-hero__sub { margin: 12px 0 0; max-width: 560px; font-size: var(--fs-body); line-height: 1.5; color: #dbe7f7; }
+.page-hero__actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.page-hero__wave { position: absolute; left: 0; bottom: -1px; width: 100%; height: 80px; z-index: 1; }
+.page-hero__wave path { fill: var(--wave-fill); }
+.page-body { position: relative; z-index: 2; max-width: 1180px; margin: -64px auto 0; padding: 0 32px 56px; }
+@media (max-width: 640px) {
+  .page-hero__inner { padding: 32px 20px 96px; }
+  .page-body { padding: 0 20px 40px; }
+}
+
+/* Dark mode: the same shapes in deep water colors. */
+html.dark-mode { --wave-fill: var(--d-bg); --card-line: var(--d-border); }
+html.dark-mode .app-shell.user-shell { background: var(--d-bg); }
+html.dark-mode .card, html.dark-mode .tcard { box-shadow: none; }
+html.dark-mode .page-hero { background: linear-gradient(160deg, #0d1626 0%, #1b2f5c 70%, #24507a 100%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tcard { transition: none; }
+  .tcard:hover { transform: none; }
+}

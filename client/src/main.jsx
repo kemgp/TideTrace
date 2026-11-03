@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import RouteError from "./components/RouteError.jsx";
 import "./index.css";
 import "./responsive.css";
+import "./ocean.css";
 
 const router = createBrowserRouter([{ path: "*", element: <App />, errorElement: <RouteError /> }]);
 
