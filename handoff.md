@@ -400,3 +400,8 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Lesson page: opening a lesson without `?part=` jumps to the saved chapter and shows "Continuing from chapter N" with a start-over button. Moving between chapters saves after 400 ms. Nothing is saved on chapter 1 of a new lesson, after completion, or if the saved-state reads fail. Save errors are silent.
 - Tides list: cards say "Completed", "In progress, chapter N of M" or "Not started". The progress filter reads All lessons / Incomplete / Completed.
 - Not covered: single-page lessons and slides lessons (no position is saved), a resume link on the dashboard "next lesson" card.
+
+## Ocean theme, part 1: shared base (branch `ocean-theme-base`)
+- New `client/src/ocean.css` (imported after `responsive.css`): sea-wash background on member pages, soft card shadows, hover lift on `.tcard`, rounder buttons with a glow on blue/clay, pill nav links, and dark-mode equivalents. Tokens: `--r-lg`, `--ocean-*`, `--sea-wash`, `--wave-fill`, `--shadow-card`, `--shadow-lift`.
+- New `PageHeader` component (`components/PageHeader.jsx`): deep-water band with eyebrow, title, subtitle, actions and a wave edge. Follow it with `<div className="page-body">` (pulls up 64px over the wave). Not used by any page yet; the Dashboard and Tides list adopt it next.
+- Plan: 2 Dashboard and Tides list, 3 lesson reader, 4 Archive/trace details/drafts/form, 5 Contributions/Settings/profile. One PR each.
