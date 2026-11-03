@@ -1,5 +1,6 @@
 /* The topic and progress filters reuse the shared .chip style so they match the Archive filters. */
-.tide-filters { display: grid; gap: 14px; margin: 20px 0; }
+.tide-filters { display: grid; gap: 14px; margin: 0 0 28px; padding: 18px; background: #fff; border-radius: var(--r-lg); box-shadow: var(--shadow-lift); }
+html.dark-mode .tide-filters { background: var(--d-surface); box-shadow: none; }
 .tide-filters .chip { transition: background-color .18s ease, color .18s ease, border-color .18s ease; cursor: pointer; }
 .tide-empty { margin-top: 10px; }
 .tide-empty p { margin-bottom: 12px; }
