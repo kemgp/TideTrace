@@ -31,7 +31,7 @@ beforeEach(() => { sessionStorage.clear(); });
 it("shows structure from the lesson text and keeps markup as text", async () => {
   setup();
   const article = await screen.findByRole("article", { name: "Lesson content" });
-  expect(within(article).getByRole("heading", { level: 2, name: "Reading the shoreline" })).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 2, name: "Reading the shoreline" })).toBeTruthy();
   expect(within(article).getByRole("heading", { level: 3, name: "What to do" })).toBeTruthy();
   expect(within(article).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Check the shoreline", "Take a photo"]);
   expect(within(article).getByText("bold words").tagName).toBe("STRONG");

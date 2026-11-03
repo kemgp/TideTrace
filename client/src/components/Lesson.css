@@ -1,9 +1,9 @@
 /* Lesson reading page: a comfortable column, clear structure, and a quiet progress bar. */
 .lesson-title{font-size:var(--fs-section-lg);line-height:1.3;overflow-wrap:anywhere;}
 .lesson-meta{margin-top:6px;font-size:var(--fs-meta);color:var(--soft);}
-.lesson-body{max-width:68ch;margin-top:20px;font-size:var(--fs-body);line-height:1.75;overflow-wrap:anywhere;}
+.lesson-body{max-width:68ch;margin-top:20px;font-size:1.125rem;line-height:1.75;color:#2a3d63;overflow-wrap:anywhere;}
 .lesson-body > * + *{margin-top:16px;}
-.lesson-body h3{font-size:var(--fs-section);line-height:1.35;margin-top:32px;}
+.lesson-body h3{font-family:'Poppins',-apple-system,Segoe UI,sans-serif;font-size:var(--fs-section-lg);line-height:1.35;margin-top:32px;}
 .lesson-body h4{font-size:var(--fs-card);line-height:1.4;margin-top:24px;}
 .lesson-body ul,.lesson-body ol{padding-left:1.4em;}
 .lesson-body li + li{margin-top:6px;}
@@ -46,3 +46,14 @@ html.dark-mode .lesson-figure img{border-color:var(--d-border);}
 html.dark-mode .chapter-contents li button{color:#8fb2ff;}
 html.dark-mode .chapter-contents li button[aria-current="step"]{color:var(--d-text);}
 .chapter-resume{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0;color:var(--soft);font-size:var(--fs-badge);}
+
+/* Ocean: lesson header extras and a roomier reading card. */
+.page-hero__back{display:inline-flex;align-items:center;min-height:44px;margin:0 0 20px -2px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font-size:var(--fs-label);font-weight:600;}
+.page-hero__back:hover{background:rgba(255,255,255,.26);}
+.page-hero__back:focus-visible{outline-color:#fff;}
+.page-hero__chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;font-size:var(--fs-meta);font-weight:600;}
+.page-hero__chips span{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.18);}
+.page-body.user-lesson{max-width:900px;}
+.app-shell.user-shell .user-lesson .card{border-radius:var(--r-lg);}
+@media(min-width:640px){.app-shell.user-shell .user-lesson .card{padding:36px 44px 32px;}}
+html.dark-mode .lesson-body{color:var(--d-text);}

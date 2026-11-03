@@ -8,6 +8,7 @@ import LessonNav from "../../../components/LessonNav.jsx";
 import SlidesViewer from "../../../components/SlidesViewer.jsx";
 import ReadingProgress from "../../../components/ReadingProgress.jsx";
 import Card from "../../../components/Card.jsx";
+import PageHeader from "../../../components/PageHeader.jsx";
 import { useApp } from "../../../context/AppContext.jsx";
 import { imageIds, parseLesson, splitChapters } from "../../../api/lessonFormat.js";
 
@@ -67,16 +68,22 @@ export default function ViewTide() {
     }, 400);
     return () => clearTimeout(timer);
   }, [ready, finished, part, id, chapters]);
-  return <div className="wrap user-lesson" style={{ maxWidth: 800 }}>
+  if (!lesson || !published) return <div className="wrap user-lesson" style={{ maxWidth: 800 }}>
     <Link className="btn ghost sm" to="/user/tides" style={{ marginBottom: 16 }}>← Back to Tides</Link>
     <RemoteState {...result} />
-    {lesson && (published ? <>
+    {lesson && <p role="alert">This lesson is not available.</p>}
+  </div>;
+  return <>
+    <PageHeader as="h2" back={<Link className="page-hero__back" to="/user/tides">← Back to Tides</Link>} eyebrow="Tides · Lesson" title={lesson.title || "Untitled lesson"} subtitle={(typeof lesson.summary === "string" && lesson.summary.trim()) || undefined}>
+      {chaptered && <div className="page-hero__chips"><span>{chapters} chapters</span></div>}
+    </PageHeader>
+    <div className="page-body user-lesson">
       <ReadingProgress targetRef={card} value={progress} />
-      <div ref={card}><Card><span className="lbl">Tides · Lesson</span>{lesson.slides_path
-        ? <><h2 className="lesson-title">{lesson.title}</h2><SlidesViewer key={lesson.id} tideId={lesson.id} pages={lesson.slides_pages} onProgress={setSlideProgress} /><details className="lesson-text-version" open><summary>Text version</summary><TideLesson hideTitle title={lesson.title} body={lesson.body} images={images} /></details></>
-        : <>{resumedFrom > 0 && part === resumedFrom && <p className="chapter-resume" role="status">Continuing from chapter {resumedFrom}. <button type="button" className="btn ghost sm" onClick={() => { setResumedFrom(0); onPart(1); }}>Start from the beginning</button></p>}<TideLesson title={lesson.title} body={lesson.body} images={images} paged={chaptered} part={part} onPart={onPart} /></>}
+      <div ref={card}><Card>{lesson.slides_path
+        ? <><SlidesViewer key={lesson.id} tideId={lesson.id} pages={lesson.slides_pages} onProgress={setSlideProgress} /><details className="lesson-text-version" open><summary>Text version</summary><TideLesson hideTitle title={lesson.title} body={lesson.body} images={images} /></details></>
+        : <>{resumedFrom > 0 && part === resumedFrom && <p className="chapter-resume" role="status">Continuing from chapter {resumedFrom}. <button type="button" className="btn ghost sm" onClick={() => { setResumedFrom(0); onPart(1); }}>Start from the beginning</button></p>}<TideLesson hideTitle title={lesson.title} body={lesson.body} images={images} paged={chaptered} part={part} onPart={onPart} /></>}
         {lastChapter && <TideCompletion tideId={lesson.id} onCompleted={() => setCompletedId(lesson.id)} />}</Card></div>
       <LessonNav key={lesson.id} tideId={lesson.id} completed={completedId === lesson.id} />
-    </> : <p role="alert">This lesson is not available.</p>)}
-  </div>;
+    </div>
+  </>;
 }

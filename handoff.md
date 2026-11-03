@@ -410,3 +410,7 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Both pages use `PageHeader` (wave band) and `.page-body`. Dashboard: greeting is the `h1`, the three totals moved into a raised row across the wave (the "Your activity" heading was dropped), "Updated HH:MM" sits under it. "Continue learning" is a deep-water card; if the next lesson has saved chapter progress it shows "Chapter N of M", a bar and "Continue lesson".
 - Tides list: the lessons progress bar lives inside the header; search and filters are in one raised card; lesson covers are taller (150px).
 - Styles: `dashboard.css`, `TideFilters.css`, `TideCard.css`, shared tokens in `ocean.css`.
+
+## Ocean theme, part 3: lesson reader (same branch)
+- The lesson page uses `PageHeader` (title is the page's `h2`, optional summary, "N chapters" chip, back link via the new `back` prop) and a roomier reading card (`.page-body.user-lesson`, 900px). The title is no longer inside the "Lesson content" article, so tests look for the heading on the page, not in the article. Lesson text is 1.125rem.
+- Not done: cover image banner on the lesson page (the single-lesson API route does not return a signed cover URL yet; would need `withCoverUrls` on `GET /tides/:id`), and a chapter sidebar for wide screens.
