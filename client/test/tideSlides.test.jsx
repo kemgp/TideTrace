@@ -128,7 +128,7 @@ it("explains an empty filtered library and can clear the filters", async () => {
   open("/user/tides");
   await screen.findByText("Tide pools");
   fireEvent.click(screen.getByRole("button", { name: "Completed" }));
-  expect(await screen.findByText("No lessons match these filters.")).toBeTruthy();
+  expect(await screen.findByText("No lessons match these filters. Try another search or clear filters.")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
   await screen.findByText("Tide pools");
   expect(urls.at(-1)).toBe("/api/tides?limit=6&offset=0");

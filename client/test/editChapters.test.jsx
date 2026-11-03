@@ -75,7 +75,7 @@ it("adds an image with a description, places it in the text at the cursor, and l
   let listed = [];
   const calls = setup((url, options) => {
     if (url === detail) return ok(lesson({ body: "Before\n\nAfter" }));
-    if (url === `/api/tides/${id}/images` && !options.method) return ok(listed);
+    if (url === `/api/tides/${id}/images` && options.method === "GET") return ok(listed);
     if (url.startsWith(`/api/tides/${id}/images?alt=`) && options.method === "POST") {
       listed = [{ id: imageId, alt: "A shore at low tide", url: "https://files.example.test/a.png" }];
       return ok({ id: imageId, tide_id: id, alt: "A shore at low tide" }, 201);
@@ -102,7 +102,7 @@ it("deleting an image also removes its line from the text", async () => {
   let listed = [{ id: imageId, alt: "A shore at low tide", url: null }];
   const calls = setup((url, options) => {
     if (url === detail) return ok(lesson({ body: `Before\n\n![A shore at low tide](image:${imageId})\n\nAfter` }));
-    if (url === `/api/tides/${id}/images` && !options.method) return ok(listed);
+    if (url === `/api/tides/${id}/images` && options.method === "GET") return ok(listed);
     if (url === `/api/tides/${id}/images/${imageId}` && options.method === "DELETE") { listed = []; return { ok: true, status: 204, json: async () => ({}) }; }
   });
   open(`/admin/tides/${id}/edit`);

@@ -1567,7 +1567,7 @@ test("progress filters need a signed-in member and use their own completions", a
     if (url.pathname === "/rest/v1/tides") return json([]);
   } });
   await bearer(request(app).get("/api/tides?progress=completed")).expect(200);
-  await bearer(request(app).get("/api/tides?progress=not_started")).expect(200);
+  await bearer(request(app).get("/api/tides?progress=incomplete")).expect(200);
   const lists = businessCalls(calls).filter(({ url }) => url.pathname === "/rest/v1/tides");
   assert.equal(lists[0].url.searchParams.get("id"), `in.(${tideId},${other})`);
   assert.equal(lists[1].url.searchParams.get("id"), `not.in.(${tideId},${other})`);
@@ -1658,4 +1658,29 @@ test("the lesson schema accepts the chapters switch and rejects other values", a
   const created = await bearer(request(app).post("/api/admin/tides")).send({ ...lesson, paged: true }).expect(201);
   assert.equal(created.body.data.paged, true);
   await bearer(request(app).post("/api/admin/tides")).send({ ...lesson, paged: "yes" }).expect(400);
+});
+
+test("saving lesson progress needs a signed-in member and a valid chapter, and goes through the save function", async () => {
+  const saved = { tide_id: tideId, part: 3, total: 5, updated_at: "2026-11-06T00:00:00Z" };
+  await request(fixture().app).put(`/api/tides/${tideId}/progress`).send({ part: 2, total: 5 }).expect(401);
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/save_tide_progress" ? json(saved) : undefined });
+  const response = await bearer(request(app).put(`/api/tides/${tideId}/progress`)).send({ part: 3, total: 5 }).expect(200);
+  assert.deepEqual(response.body.data, saved);
+  assert.deepEqual(calls.find(({ url }) => url.pathname === "/rest/v1/rpc/save_tide_progress").body, { p_tide_id: tideId, p_part: 3, p_total: 5 });
+  for (const body of [{ part: 6, total: 5 }, { part: 0, total: 5 }, { part: 1, total: 1 }, { part: 1.5, total: 5 }, { part: 2 }, { part: 2, total: 5, user_id: userId }, { part: "2", total: 5 }]) {
+    await bearer(request(app).put(`/api/tides/${tideId}/progress`)).send(body).expect(400);
+  }
+  await bearer(request(app).put("/api/tides/not-a-uuid/progress")).send({ part: 2, total: 5 }).expect(400);
+});
+
+test("a member reads only their own lesson progress", async () => {
+  const rows = [{ tide_id: tideId, part: 2, total: 4, updated_at: "2026-11-06T00:00:00Z" }];
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tide_progress" ? json(rows) : undefined });
+  await request(app).get("/api/tide-progress").expect(401);
+  const response = await bearer(request(app).get(`/api/tide-progress?tide_ids=${tideId}`)).expect(200);
+  assert.deepEqual(response.body.data, rows);
+  const query = businessCalls(calls).find(({ url }) => url.pathname === "/rest/v1/tide_progress").url.searchParams;
+  assert.equal(query.get("user_id"), `eq.${userId}`);
+  assert.equal(query.get("tide_id"), `in.(${tideId})`);
+  await bearer(request(app).get("/api/tide-progress?tide_ids=nope")).expect(400);
 });

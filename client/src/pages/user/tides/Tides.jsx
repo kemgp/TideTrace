@@ -7,7 +7,7 @@ import TideCard from "../../../components/TideCard.jsx";
 import TidesProgress from "../../../components/TidesProgress.jsx";
 import "../../../components/TideFilters.css";
 
-const PROGRESS = [["", "All lessons"], ["not_started", "Not started"], ["completed", "Completed"]];
+const PROGRESS = [["", "All lessons"], ["incomplete", "Incomplete"], ["completed", "Completed"]];
 
 export default function Tides() {
   const [offset, setOffset] = useState(0);
@@ -34,6 +34,16 @@ export default function Tides() {
   const lessons = result.data || [];
   const completions = useRemoteData(lessons.length ? `tide-completions?tide_ids=${lessons.map((lesson) => encodeURIComponent(lesson.id)).join(",")}` : null, { collection: true });
   const completed = new Set((completions.data || []).map((record) => record.tide_id));
+  // Where the member stopped in chaptered lessons they have not finished. A failed read just hides the extra detail.
+  const saved = useRemoteData(lessons.length ? `tide-progress?tide_ids=${lessons.map((lesson) => encodeURIComponent(lesson.id)).join(",")}` : null, { collection: true });
+  const stopped = new Map((saved.data || []).map((record) => [record.tide_id, record]));
+  const statusOf = (tide) => {
+    if (completions.loading) return "Loading completion…";
+    if (completions.error) return "Completion unavailable";
+    if (completed.has(tide.id)) return "Completed";
+    const at = stopped.get(tide.id);
+    return at ? `In progress, chapter ${at.part} of ${at.total}` : "Not started";
+  };
   const filtered = Boolean(topic || progress || search);
   const choose = (setter) => (value) => { setter(value); setOffset(0); };
   const clear = () => { setTopic(""); setProgress(""); setTyped(""); setSearch(""); applied.current = ""; setOffset(0); };
@@ -60,8 +70,8 @@ export default function Tides() {
     <RemoteState {...result} />
     {completions.error && <div><p>Completion status could not be loaded.</p><RemoteState {...completions} /></div>}
     {!result.loading && !result.error && (lessons.length
-      ? <div className="g3 tide-results" aria-busy={result.refreshing}>{lessons.map((tide) => <TideCard key={tide.id} tide={tide} completionLabel={progress ? (progress === "completed" ? "Completed" : "Not started") : completions.loading ? "Loading completion…" : completions.error ? "Completion unavailable" : completed.has(tide.id) ? "Completed" : "Not started"} />)}</div>
-      : <div className="tide-empty"><p>{filtered ? "No lessons match these filters." : "No published lessons found."}</p>{filtered && <button type="button" className="btn outline sm" onClick={clear}>Clear filters</button>}</div>)}
+      ? <div className="g3 tide-results" aria-busy={result.refreshing}>{lessons.map((tide) => <TideCard key={tide.id} tide={tide} completionLabel={statusOf(tide)} />)}</div>
+      : <div className="ph archive-empty tide-empty">{filtered ? <><p>No lessons match these filters. Try another search or clear filters.</p><Button type="button" variant="outline" size="sm" onClick={clear}>Clear filters</Button></> : "No published lessons found."}</div>)}
     <Pagination offset={offset} count={lessons.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </div>;
 }

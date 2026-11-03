@@ -393,3 +393,10 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - **Text import:** `.txt`/`.md` into the content box (`api/importText.js`). A file using `# ` titles is moved down one level so they become `##` chapters. Asks before replacing existing content. No `.docx`.
 - Migration: `20261105000100_tide_chapters_images.sql`; SQL checks: `supabase/tests/tide-chapters.sql`.
 - Not done: `.docx` import, per-chapter completion tracking, chapter reordering in the editor, images for slides lessons.
+
+## Saved lesson progress (on `tides-chapters`)
+- Chaptered lessons remember the chapter a member last reached: table `tide_progress` (one row per member and lesson, read-only to members) written only through `save_tide_progress` (migration `20261106000100_tide_progress.sql`, SQL checks in `supabase/tests/tide-progress.sql`).
+- Server: `PUT /tides/:id/progress` `{part,total}`, `GET /tide-progress?tide_ids=`. `/tides?progress=` is now `completed` or `incomplete` (replaces `not_started`; incomplete = not completed, including in progress).
+- Lesson page: opening a lesson without `?part=` jumps to the saved chapter and shows "Continuing from chapter N" with a start-over button. Moving between chapters saves after 400 ms. Nothing is saved on chapter 1 of a new lesson, after completion, or if the saved-state reads fail. Save errors are silent.
+- Tides list: cards say "Completed", "In progress, chapter N of M" or "Not started". The progress filter reads All lessons / Incomplete / Completed.
+- Not covered: single-page lessons and slides lessons (no position is saved), a resume link on the dashboard "next lesson" card.
