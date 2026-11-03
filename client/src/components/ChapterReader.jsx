@@ -24,18 +24,19 @@ export default function ChapterReader({ chapters, part, onPart, images }) {
       <nav aria-label="Chapters">
         <ol>
           {chapters.map((item, index) => <li key={index}>
-            <button type="button" aria-current={index + 1 === current ? "step" : undefined} onClick={() => go(index + 1)}>{item.title}</button>
+            <button type="button" aria-current={index + 1 === current ? "step" : undefined} onClick={() => go(index + 1)}><span className={`chapter-dot${index + 1 < current ? " is-done" : ""}`} aria-hidden="true">{index + 1 < current ? "✓" : index + 1}</span>{item.title}</button>
           </li>)}
         </ol>
       </nav>
     </details>
     <div ref={region} tabIndex={-1} className="chapter-body" aria-label={`Chapter ${current}: ${chapter.title}`} role="region">
+      <p className="chapter-eyebrow">Chapter {current} of {total}</p>
       <LessonBody blocks={chapter.blocks} images={images} />
     </div>
     <div className="chapter-controls">
       <button type="button" className="btn outline sm" disabled={current <= 1} onClick={() => go(current - 1)}>Previous chapter</button>
       <span className="chapter-count" aria-live="polite">Chapter {current} of {total}</span>
-      <button type="button" className="btn outline sm" disabled={current >= total} onClick={() => go(current + 1)}>Next chapter</button>
+      <button type="button" className="btn blue sm" disabled={current >= total} onClick={() => go(current + 1)}>Next chapter</button>
     </div>
   </div>;
 }

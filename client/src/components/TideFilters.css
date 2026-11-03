@@ -24,3 +24,9 @@ html.dark-mode .tide-filters { background: var(--d-surface); box-shadow: none; }
   .tide-filters .chip, .tide-results { transition: none; }
   .tide-results .tcard { animation: none; }
 }
+
+/* Mockup chips: teal active pill, taller. */
+.tide-filters .chip{min-height:40px;padding:0 16px;border-radius:999px;border:1.5px solid #c7dcee;background:#fff;color:#526581;font-weight:600;}
+.tide-filters .chip[aria-pressed="true"]{border-color:#5aa2a8;background:#e2f2f2;color:#2f6a70;font-weight:700;}
+html.dark-mode .tide-filters .chip{background:transparent;border-color:var(--d-border);color:var(--d-muted);}
+html.dark-mode .tide-filters .chip[aria-pressed="true"]{background:#1f3a3d;border-color:#5aa2a8;color:#bfe3e6;}

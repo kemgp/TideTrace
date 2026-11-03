@@ -23,6 +23,7 @@ import RelativeTime from "./RelativeTime.jsx";
 import { OpenInMaps } from "./TraceShareActions.jsx";
 import TraceMenu from "./TraceMenu.jsx";
 import { fullDate } from "../api/relativeTime.js";
+import PageHeader from "./PageHeader.jsx";
 import "./trace-detail.css";
 
 export default function LiveTraceDetail({ contribution = false }) {
@@ -36,17 +37,19 @@ export default function LiveTraceDetail({ contribution = false }) {
   // One request feeds both the buttons beside "Back" and the cards after the comments.
   const neighbors = useRemoteData(contribution ? null : `traces/${encodeURIComponent(id)}/neighbors`, { object: true });
 
-  return <div className={contribution ? "wrap" : "wrap trace-detail"} style={contribution ? { maxWidth: 760 } : undefined}>
+  const back = <Link className="page-hero__back" to={`/user/${base}${contribution ? listSearch : archiveSearch}`} state={{ restoreScroll: true }}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>;
+  const stepper = contribution ? null : <TraceStepper neighbors={neighbors} archiveSearch={archiveSearch} />;
+  if (!result.data) return <div className={contribution ? "wrap" : "wrap trace-detail"} style={contribution ? { maxWidth: 760 } : undefined}>
     <div className="trace-detail__topbar">
       <Link className="btn ghost sm" to={`/user/${base}${contribution ? listSearch : archiveSearch}`} state={{ restoreScroll: true }}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
-      {!contribution && <TraceStepper neighbors={neighbors} archiveSearch={archiveSearch} />}
+      {stepper}
     </div>
     <RemoteState {...result} />
-    {result.data && <TraceContent key={`${profile?.id}:${result.data.id}`} initialTrace={result.data} contribution={contribution} archiveSearch={archiveSearch} neighbors={neighbors} />}
   </div>;
+  return <TraceContent key={`${profile?.id}:${result.data.id}`} initialTrace={result.data} contribution={contribution} archiveSearch={archiveSearch} neighbors={neighbors} back={back} stepper={stepper} />;
 }
 
-function TraceContent({ initialTrace, contribution, archiveSearch, neighbors }) {
+function TraceContent({ initialTrace, contribution, archiveSearch, neighbors, back, stepper }) {
   const { profile } = useApp();
   const [current, setCurrent] = useState(initialTrace);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -65,16 +68,19 @@ function TraceContent({ initialTrace, contribution, archiveSearch, neighbors }) 
     flushSync(() => setCurrent((saved) => ({ ...saved, deleted_at: new Date().toISOString() })));
   };
   const deleteButton = <DeleteTrace trace={current} disabled={submissionLocked} onDeleted={onDeleted} />;
+  const header = <PageHeader back={back} eyebrow={contribution ? "My contribution" : "Trace"} title={trace.title || "Untitled draft"} actions={stepper} />;
   if (!contribution) {
     const posted = current.published_at || current.created_at;
-    return (
+    return (<>
+      {header}
+      <div className="page-body trace-detail">
       <Card className="trace-detail__card trace-detail__card--public">
         <div className="trace-detail__layout">
           <div className="trace-detail__main">
+            <div className="trace-detail__story">
             <TracePhotos trace={current} hero />
             <div className="trace-detail__headline">
               <div className="trace-detail__titlerow">
-                <h2 className="trace-detail__title">{trace.title || "Untitled draft"}</h2>
                 <TraceMenu canReport={!mine} canDelete={mine && !current.deleted_at} deleteDisabled={submissionLocked}
                   onReport={() => setReportOpen(true)} onDelete={() => setDeleteOpen(true)} />
               </div>
@@ -89,8 +95,10 @@ function TraceContent({ initialTrace, contribution, archiveSearch, neighbors }) 
             </div>
             <span className="lbl sr-only">Description</span>
             <p className="trace-detail__description">{trace.description || "No description supplied."}</p>
+            </div>
             <TraceComments traceId={current.id} />
             <TraceNeighbors neighbors={neighbors} archiveSearch={archiveSearch} />
+            <RelatedTraces key={current.id} traceId={current.id} category={trace.category} archiveSearch={archiveSearch} />
           </div>
           <aside className="trace-detail__aside" aria-label="Trace details">
             <section className="trace-detail__panel trace-detail__panel--location">
@@ -112,11 +120,13 @@ function TraceContent({ initialTrace, contribution, archiveSearch, neighbors }) 
             </section>
           </aside>
         </div>
-        <RelatedTraces key={current.id} traceId={current.id} category={trace.category} archiveSearch={archiveSearch} />
       </Card>
-    );
+      </div>
+    </>);
   }
-  return (
+  return (<>
+    {header}
+    <div className="page-body trace-detail trace-detail--contribution">
     <Card className={contribution ? "" : "trace-detail__card"}>
       <div className="row between trace-detail__status">
         <div className="trace-detail__status-main">{!contribution && trace.status === "approved" ? <span className="badge approved">Approved · Published</span> : <TraceStatusBadge status={trace.status} />}{contribution && <span className="hint">{trace.when}</span>}</div>
@@ -126,7 +136,6 @@ function TraceContent({ initialTrace, contribution, archiveSearch, neighbors }) 
         </div>
       </div>
       {!contribution && <TracePhotos trace={current} hero />}
-      <h2 className="trace-detail__title">{trace.title || "Untitled draft"}</h2>
       {fieldError("title")}
       <div className="chiprow trace-detail__tags"><span className="chip on">{trace.category}</span><span className="chip">{!contribution && <span aria-hidden="true">📍 </span>}{trace.location}</span></div>
       {fieldError("category_id")}
@@ -147,5 +156,6 @@ function TraceContent({ initialTrace, contribution, archiveSearch, neighbors }) 
       {fieldError("photo")}
       {contribution && <TracePhotos trace={current} contribution onChange={setCurrent} onLockedChange={setSubmissionLocked} onValidation={setFieldErrors} operationLock={operationLock} />}
     </Card>
-  );
+    </div>
+  </>);
 }

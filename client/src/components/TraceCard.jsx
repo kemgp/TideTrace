@@ -161,6 +161,7 @@ export default function TraceCard({trace,to,linkState}){
         <span className="user-card-location">
           <AdminIcon name="pin" size={13}/>
           {trace.location}
+          {trace.when&&<span className="trace-card-when">, {trace.when}</span>}
         </span>
 
         {trace.status!=="approved"&&(

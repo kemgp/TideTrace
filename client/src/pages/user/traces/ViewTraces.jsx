@@ -9,6 +9,7 @@ import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
 import TraceCard from "../../../components/TraceCard.jsx";
 import CommunityMap from "../../../components/CommunityMap.jsx";
 import Button from "../../../components/Button.jsx";
+import PageHeader from "../../../components/PageHeader.jsx";
 
 export default function ViewTraces() {
   const categoriesResult = useRemoteData("categories", { collection: true });
@@ -50,18 +51,10 @@ export default function ViewTraces() {
 
 
   return (
-    <div className="wrap community-archive">
-      <div className="vhead">
-        <div className="headrow">
-          <div>
-            <span className="eyebrow">Traces</span>
-            <h2>Community archive</h2>
-            <p>Sightings, clean-ups, and stories from coastal communities. Search and filter them.</p>
-          </div>
-          <Button variant="clay" size="sm" onClick={() => navigate("/user/traces/upload")}>New Trace</Button>
-        </div>
-      </div>
-
+    <>
+    <PageHeader eyebrow="Traces" title="Community archive" subtitle="Sightings, clean-ups, and stories from coastal communities. Search and filter them." actions={<button type="button" className="banner-action" onClick={() => navigate("/user/traces/upload")}>New Trace</button>} />
+    <div className="page-body community-archive">
+      <div className="archive-filters">
       <div className="toolbar">
         <div className="search">
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#6b7f9e" strokeWidth={2}>
@@ -83,11 +76,13 @@ export default function ViewTraces() {
         </select>
       </div>
 
-      <div className="chiprow archive-chips" style={{ marginBottom: 20 }}>
+      <div className="chiprow archive-chips" >
         <button aria-pressed={cat === "All"} className={`chip ${cat === "All" ? "on" : ""}`} onClick={() => { pickCategory("All"); }}>All</button>
         {categories.map((c) => (
           <button key={c.id} aria-pressed={cat === c.id} className={`chip ${cat === c.id ? "on" : ""}`} onClick={() => { pickCategory(c.id); }}>{c.name}</button>
         ))}
+      </div>
+
       </div>
 
       <RemoteState compact {...categoriesResult} loading={categoriesResult.loading && !result.loading} />
@@ -113,5 +108,6 @@ export default function ViewTraces() {
       {!(offset === 0 && !result.loading && !result.error && traces.length === 0) && <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={(offset) => update({ page: offsetToPage(offset, PAGE_SIZE) })} loading={result.loading || result.refreshing} />}
       </>}
     </div>
+    </>
   );
 }

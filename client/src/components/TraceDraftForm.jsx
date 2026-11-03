@@ -13,11 +13,13 @@ import TraceMap from "./TraceMap.jsx";
 import TracePhotos from "./TracePhotos.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { PHOTO_TYPES, photoError } from "../api/photos.js";
+import { flushSync } from "react-dom";
+import PageHeader from "./PageHeader.jsx";
 import { useUnsavedChanges } from "./NavigationGuard.jsx";
 
 const draftFields = (trace) => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", is_sensitive: trace?.is_sensitive ?? false, latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null });
 
-export default function TraceDraftForm({ trace = null, onReload, initialLocation = null }) {
+export default function TraceDraftForm({ trace = null, onReload, initialLocation = null, back = null }) {
   const { readData, writeData, showToast, profile } = useApp();
   const navigate = useNavigate();
   const revision = trace?.status === "revision_requested";
@@ -25,9 +27,12 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
   const categories = useRemoteData("categories", { collection: true });
   const [fields, setFields] = useState(() => ({ ...draftFields(trace), ...(!trace && initialLocation ? initialLocation : {}) }));
   const [savedFields, setSavedFields] = useState(() => draftFields(trace));
-  const [activeStep, setActiveStep] = useState("category");
+  const [activeStep, setActiveStep] = useState("story");
+  // A new trace is filled in one step at a time; editing a saved draft shows everything at once.
+  const paged = !trace;
   const jumpToStep = (step) => {
-    setActiveStep(step);
+    // Show the chosen step first so it can take focus.
+    flushSync(() => setActiveStep(step));
     const section = document.getElementById(`trace-step-${step}`);
     section?.scrollIntoView?.({ block: "start" });
     section?.focus({ preventScroll: true });
@@ -93,7 +98,10 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
     setFieldErrors(validation);
     if (Object.keys(validation).length) {
       const name = Object.keys(validation)[0];
+      // Show the step that holds the first problem before focusing it.
+      if (paged) setActiveStep(name === "location_name" ? "place" : "story");
       document.getElementById(name === "category_id" ? "draft-category" : name === "location_name" ? "draft-location" : `draft-${name}`)?.focus();
+      if (paged) setTimeout(() => document.getElementById(name === "category_id" ? "draft-category" : name === "location_name" ? "draft-location" : `draft-${name}`)?.focus(), 0);
       return;
     }
     const controller = new AbortController();
@@ -193,50 +201,23 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
   };
 
   if (savedDraft) return <>
-    <div className="vhead"><h2>{recoveryMessage ? "Trace saved" : intent === "save" ? "Draft details saved" : "Draft saved"}</h2><p>{recoveryMessage || (intent === "save" ? "Your Trace details were saved. Recover the photo below before leaving, or open the saved draft. Saving a draft does not submit it for review." : "Your Trace details are saved. Submit for review below to finish uploading your photo and send this saved draft to the reviewer; you do not need to create another draft.")}</p></div>
+    <PageHeader back={back} eyebrow="Trace draft" title={recoveryMessage ? "Trace saved" : intent === "save" ? "Draft details saved" : "Draft saved"} subtitle={recoveryMessage || (intent === "save" ? "Your Trace details were saved. Recover the photo below before leaving, or open the saved draft. Saving a draft does not submit it for review." : "Your Trace details are saved. Submit for review below to finish uploading your photo and send this saved draft to the reviewer; you do not need to create another draft.")} />
+    <div className="page-body user-upload">
     {!recoveryMessage && <Card><TracePhotos trace={savedDraft} contribution initialUpload={initialUpload} saveOnly={intent === "save"} /></Card>}
     <Link className="btn outline" style={{ marginTop: 16 }} to={`/user/contributions/${encodeURIComponent(savedDraft.id)}`}>{recoveryMessage ? "Open saved Trace" : "Open saved draft"}</Link>
+    </div>
   </>;
 
   return <>
-    <div className="vhead">
-      <span className="eyebrow">{revision ? "Requested revision" : "Trace draft"}</span>
-      <h2>{revision ? "Edit requested revision" : trace ? "Edit your draft" : "Start a trace"}</h2>
-      <p>{revision ? "Address the moderator’s feedback, then save changes (status stays Needs revision) or resubmit for review." : "Save a draft any time with just a category. To submit for review you also need a title, location, description and photo."}</p>
-    </div>
+    <PageHeader back={back} eyebrow={revision ? "Requested revision" : trace ? "Trace draft" : "New trace"} title={revision ? "Edit requested revision" : trace ? "Edit your draft" : "Upload a trace"} subtitle={revision ? "Address the moderator’s feedback, then save changes (status stays Needs revision) or resubmit for review." : "Share what you saw. Save a draft any time with just a category; to submit you also need a title, location, description and photo."} />
+    <div className="page-body user-upload">
     {revision && <TraceFeedback id={trace.id} />}
     <TraceDraftLayout activeStep={activeStep} onSelect={jumpToStep} editing={Boolean(trace)}>
       <form onSubmit={save} noValidate>
         <RemoteState compact {...categories} />
         {!categories.loading && !categories.error && available.length === 0 && <p role="status">No categories are available. A category must be added before you can save a draft.</p>}
         <fieldset disabled={busy || processingPhoto} style={{ border: 0, padding: 0, margin: 0 }}>
-          <TraceDraftSection step="category" onActivate={setActiveStep}>
-          <label className="lbl" htmlFor="draft-category">Category (required)</label>
-          <select className="input" id="draft-category" name="category_id" {...fieldProps("category_id")} required value={fields.category_id} onChange={change} disabled={categories.loading || Boolean(categories.error)}>
-            <option value="">Choose a category</option>
-            {fields.category_id && !validCategory && <option value={fields.category_id} disabled>Previous category unavailable. Choose another.</option>}
-            {available.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-          {fieldError("category_id")}
-          </TraceDraftSection>
-          <TraceDraftSection step="location" onActivate={setActiveStep}>
-          <label className="lbl" htmlFor="draft-location" style={{ marginTop: 16 }}>Location</label>
-          <p className="hint">This location name is public. Use a broad area for sensitive locations.</p>
-          <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
-          {fieldError("location_name")}
-          <label className="row" style={{ gap: 8, marginTop: 12 }}><input type="checkbox" checked={fields.is_sensitive} onChange={(event) => setFields((current) => ({ ...current, is_sensitive: event.target.checked }))} /> Sensitive location</label>
-          <p className="hint">{fields.is_sensitive ? "Your exact pin is restricted to you and active staff. It will not appear on the community map." : "Your pin becomes public when this Trace is approved."} Text and photos may still reveal the location.</p>
-          <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => setFields((current) => ({ ...current, ...point }))} />
-          </TraceDraftSection>
-          <TraceDraftSection step="description" onActivate={setActiveStep}>
-          <label className="lbl" htmlFor="draft-title" style={{ marginTop: 16 }}>Title</label>
-          <input className="input" id="draft-title" required={revision} name="title" {...fieldProps("title")} maxLength={200} value={fields.title} onChange={change} />
-          {fieldError("title")}
-          <label className="lbl" htmlFor="draft-description" style={{ marginTop: 16 }}>Description</label>
-          <textarea className="input" id="draft-description" required={revision} name="description" {...fieldProps("description")} maxLength={20000} rows={6} value={fields.description} onChange={change} />
-          {fieldError("description")}
-          </TraceDraftSection>
-          <TraceDraftSection step="photo" onActivate={setActiveStep}>
+          <TraceDraftSection step="story" active={!paged || activeStep === "story"} onActivate={setActiveStep}>
           {!trace && <TracePhotoSelector id="draft-photo" label="Choose a photo (required for submission)" inputRef={photoInput}
             file={photo} onSelect={selectPhoto} disabled={busy || processingPhoto || blocked} processing={processingPhoto} uploading={uploading}
             invalid={Boolean(fieldErrors.photo || photoValidation)} describedBy={[fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation"].filter(Boolean).join(" ")}
@@ -247,14 +228,39 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
             {photoValidation && <p id="draft-photo-validation" role="alert">{photoValidation}</p>}
           </TracePhotoSelector>}
           {trace && <div><p className="hint">Manage attached photos from the saved Trace's detail page.</p>{fieldError("photo")}{fieldErrors.photo && <Link to={`/user/contributions/${trace.id}`}>Add a photo</Link>}</div>}
+          <label className="lbl" htmlFor="draft-title" style={{ marginTop: 16 }}>Title</label>
+          <input className="input" id="draft-title" required={revision} name="title" {...fieldProps("title")} maxLength={200} value={fields.title} onChange={change} />
+          {fieldError("title")}
+          <label className="lbl" htmlFor="draft-description" style={{ marginTop: 16 }}>Description</label>
+          <textarea className="input" id="draft-description" required={revision} name="description" {...fieldProps("description")} maxLength={20000} rows={6} value={fields.description} onChange={change} />
+          {fieldError("description")}
+          <label className="lbl" htmlFor="draft-category">Category (required)</label>
+          <select className="input" id="draft-category" name="category_id" {...fieldProps("category_id")} required value={fields.category_id} onChange={change} disabled={categories.loading || Boolean(categories.error)}>
+            <option value="">Choose a category</option>
+            {fields.category_id && !validCategory && <option value={fields.category_id} disabled>Previous category unavailable. Choose another.</option>}
+            {available.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+          {fieldError("category_id")}
+          {paged && <div className="trace-draft-nav"><button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>Save for later</button><button className="btn blue" type="button" onClick={() => jumpToStep("place")}>Next: Place &amp; time</button></div>}
           </TraceDraftSection>
-          <TraceDraftSection step="review" onActivate={setActiveStep}>
+          <TraceDraftSection step="place" active={!paged || activeStep === "place"} onActivate={setActiveStep}>
+          <label className="lbl" htmlFor="draft-location" style={{ marginTop: 16 }}>Location</label>
+          <p className="hint">This location name is public. Use a broad area for sensitive locations.</p>
+          <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
+          {fieldError("location_name")}
+          <label className="row" style={{ gap: 8, marginTop: 12 }}><input type="checkbox" checked={fields.is_sensitive} onChange={(event) => setFields((current) => ({ ...current, is_sensitive: event.target.checked }))} /> Sensitive location</label>
+          <p className="hint">{fields.is_sensitive ? "Your exact pin is restricted to you and active staff. It will not appear on the community map." : "Your pin becomes public when this Trace is approved."} Text and photos may still reveal the location.</p>
+          <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => setFields((current) => ({ ...current, ...point }))} />
+          {paged && <div className="trace-draft-nav"><button className="btn outline" type="button" onClick={() => jumpToStep("story")}>Back</button><button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>Save for later</button><button className="btn blue" type="button" onClick={() => jumpToStep("review")}>Next: Review &amp; submit</button></div>}
+          </TraceDraftSection>
+          <TraceDraftSection step="review" active={!paged || activeStep === "review"} onActivate={setActiveStep}>
           {!trace && <TraceDraftSummary fields={fields} categories={available} photo={photo} />}
           {(dirty || photo || processingPhoto) && <p className="hint">You have unsaved changes. Save before leaving this page.</p>}
           {error && <p role="alert">{error}</p>}
           <div className="trace-draft-actions">
             <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "submit" ? stage : revision ? "Resubmit for review" : "Submit Trace"}</button>
             <button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "save" ? stage : saveLabel}</button>
+            {paged && <button className="btn outline" type="button" onClick={() => jumpToStep("place")}>Back</button>}
             {blocked && trace && <button className="btn outline" type="button" onClick={onReload}>{revision ? "Discard local changes and reload Trace" : "Discard local changes and reload saved draft"}</button>}
           </div>
           </TraceDraftSection>
@@ -262,5 +268,6 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
       </form>
     </TraceDraftLayout>
     <Link className="btn ghost sm" style={{ marginTop: 16 }} to="/user/contributions">Back to My Contributions</Link>
+    </div>
   </>;
 }

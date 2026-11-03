@@ -57,7 +57,7 @@ it("shows who posted and when in words, with the full date available", async () 
   setup();
   open();
   const heading = await screen.findByRole("heading", { name: "Coastal observation" });
-  const meta = heading.closest(".trace-detail__headline");
+  const meta = document.querySelector(".trace-detail__headline");
   expect(within(meta).getByText("Other Member")).toBeTruthy();
   const time = meta.querySelector("time");
   expect(time.getAttribute("title")).toMatch(/2026/);

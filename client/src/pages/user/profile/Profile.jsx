@@ -1,6 +1,7 @@
 import DataSaverPreference from "../../../components/DataSaverPreference.jsx";
 import NotificationPreferences from "../../../components/NotificationPreferences.jsx";
 import ProfilePhoto from "../../../components/ProfilePhoto.jsx";
+import PageHeader from "../../../components/PageHeader.jsx";
 import UsageActivity from "../../../components/UsageActivity.jsx";
 import React, { useState } from "react";
 import { useApp } from "../../../context/AppContext.jsx";
@@ -58,18 +59,9 @@ export default function Profile() {
   const [pane, setPane] = useState("account");
 
   return (
-    <div className="wrap user-settings">
-
-      <div className="vhead">
-        <span className="eyebrow">
-          Settings
-        </span>
-
-        <h2>
-          Account &amp; preferences
-        </h2>
-        <p>Manage your profile, appearance, security, and account activity.</p>
-      </div>
+    <>
+    <PageHeader eyebrow="Settings" title="Account &amp; preferences" subtitle="Manage your profile, appearance, security, and account activity." />
+    <div className="page-body user-settings">
 
       <div className="sgrid">
 
@@ -206,5 +198,6 @@ export default function Profile() {
       </div>
 
     </div>
+    </>
   );
 }

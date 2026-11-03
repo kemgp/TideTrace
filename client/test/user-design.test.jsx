@@ -26,12 +26,12 @@ it("moves between upload sections without losing details or saving early", async
   fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: "coral" } });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Reef visit" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Lawis" } });
-  fireEvent.click(screen.getByRole("button", { name: /Review & submit/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Review & submit/ }));
   const review = screen.getByRole("region", { name: "Review submission" });
   expect(document.activeElement).toBe(review);
   expect(within(review).getByText("Reef visit")).toBeTruthy();
   expect(within(review).getByText("Lawis")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /Add description/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Photo & story/ }));
   expect(screen.getByLabelText("Title").value).toBe("Reef visit");
   expect(fetcher.mock.calls.every(([, options]) => !options?.method || options.method === "GET")).toBe(true);
   expect(screen.getByRole("link", { name: "Traces", exact: true }).getAttribute("aria-current")).toBe("page");
@@ -78,6 +78,6 @@ it("offers a Jump to section disclosure that closes after choosing a section", a
   fireEvent.click(toggle);
   expect(toggle.getAttribute("aria-expanded")).toBe("true");
   expect(document.getElementById(toggle.getAttribute("aria-controls"))).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /Add description/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Place & time/ }));
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
 });

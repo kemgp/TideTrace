@@ -410,3 +410,18 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Both pages use `PageHeader` (wave band) and `.page-body`. Dashboard: greeting is the `h1`, the three totals moved into a raised row across the wave (the "Your activity" heading was dropped), "Updated HH:MM" sits under it. "Continue learning" is a deep-water card; if the next lesson has saved chapter progress it shows "Chapter N of M", a bar and "Continue lesson".
 - Tides list: the lessons progress bar lives inside the header; search and filters are in one raised card; lesson covers are taller (150px).
 - Styles: `dashboard.css`, `TideFilters.css`, `TideCard.css`, shared tokens in `ocean.css`.
+
+## Ocean theme, part 3: lesson reader (same branch)
+- The lesson page uses `PageHeader` (title is the page's `h2`, optional summary, "N chapters" chip, back link via the new `back` prop) and a roomier reading card (`.page-body.user-lesson`, 900px). The title is no longer inside the "Lesson content" article, so tests look for the heading on the page, not in the article. Lesson text is 1.125rem.
+- Not done: cover image banner on the lesson page (the single-lesson API route does not return a signed cover URL yet; would need `withCoverUrls` on `GET /tides/:id`), and a chapter sidebar for wide screens.
+
+## Ocean theme, part 4 (remaining member screens)
+
+- Every member page now opens with `PageHeader` (one size: `.page-hero__inner` has `min-height: 340px` on desktop, same padding and wave everywhere) and a `.page-body` of raised cards.
+- Screens: Community archive (`ViewTraces`), Trace details (`LiveTraceDetail`, public layout: story card, comments card, neighbour links, related traces; right column: location and facts), Upload / Edit form (`TraceDraftForm`), My contributions, Settings.
+- Trace cards (dashboard "Recent from the community", archive, related traces) share one look in `ocean.css`: photo fills the cover (`object-fit: cover`, anchored at 30%), category tag, title, "place, date". The author line is hidden on these cards.
+- The new-trace form is three steps (Photo & story, Place & time, Review & submit) with Back / Next and a Save draft button on every step. Editing a saved draft still shows everything on one page (`paged = !trace`). Inactive steps are hidden with CSS (`.is-inactive`), not removed, so validation and tests still see all fields.
+- Buttons: `.btn` is 12px radius, 46px minimum height; outline buttons have the light-blue border.
+- Lesson reader: removed the "N min read" line; "Next chapter" is a filled blue button.
+- Known gaps: lesson header has no cover image or category (not in the API), "Continue learning" shows only the chapter number, newer / older trace links use colour squares instead of photos.
+- Mockups live in the "TideTrace ocean theme mockup" design artifact (boards A, B, C).

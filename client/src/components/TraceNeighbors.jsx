@@ -36,7 +36,7 @@ export default function TraceNeighbors({ neighbors, archiveSearch }) {
   return <nav className="trace-neighbors" aria-label="More traces">
     {["newer", "older"].map((direction) => neighbors.data[direction] && <Link key={direction} className={`trace-neighbors__link trace-neighbors__link--${direction}`}
       to={`/user/traces/${neighbors.data[direction].id}`} state={{ archiveSearch }}>
-      <span aria-hidden="true" className="trace-neighbors__arrow"><ArrowIcon direction={direction} /></span>
+      <span aria-hidden="true" className="trace-neighbors__thumb" />
       <span className="trace-neighbors__text">
         <small>{direction === "newer" ? "Newer trace" : "Older trace"}</small>{" "}
         <span className="trace-neighbors__title" title={neighbors.data[direction].title}>{neighbors.data[direction].title}</span>

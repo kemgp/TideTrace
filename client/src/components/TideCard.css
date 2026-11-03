@@ -37,3 +37,19 @@ html.dark-mode .tides-progress-bar span{background:#5aa2a8;}
 .page-hero .tides-progress-row b{color:#fff;}
 .page-hero .tides-progress-bar{height:10px;background:rgba(255,255,255,.2);}
 .page-hero .tides-progress-bar span{background:#bfe3e6;}
+.app-shell.user-shell .user-lesson-status.is-progress{background:#fbe7db;color:#8a4a20;border-color:#f0cdb8;font-weight:600;}
+html.dark-mode .app-shell.user-shell .user-lesson-status.is-progress{background:#3a2a22;color:#f0c9a8;border-color:#5a4033;}
+
+/* Ocean card: full-width cover with the topic as a pill on the image, text below. */
+.app-shell.user-shell .tcard.user-tide-card{padding:0;border-radius:20px;overflow:hidden;}
+.tide-cover{position:relative;}
+.app-shell.user-shell .tide-cover .tide-thumb{height:170px;margin:0;border-radius:0;}
+.app-shell.user-shell .tide-cover .tide-topic{position:absolute;left:14px;top:14px;z-index:1;background:rgba(255,255,255,.92);color:#203463;opacity:1;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;padding:5px 11px;border-radius:999px;}
+.tide-card-body{display:flex;flex-direction:column;flex:1;padding:16px 20px 20px;}
+.app-shell.user-shell .tcard.user-tide-card .t{font-family:'Poppins',sans-serif;font-size:19px;}
+.app-shell.user-shell .tcard.user-tide-card .tide-card-body .t{margin-top:0;}
+.tide-excerpt{margin-top:8px;}
+html.dark-mode .app-shell.user-shell .tide-cover .tide-topic{background:rgba(20,28,48,.85);color:#e8eefb;}
+
+/* Mockup grid: as many 260px+ columns as fit, 24px apart. */
+.app-shell.user-shell .tide-results.g3{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px;}
