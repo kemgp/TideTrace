@@ -9,12 +9,17 @@ import Card from "../../components/Card.jsx";
 import { useUnsavedChanges } from "../../components/NavigationGuard.jsx";
 import "./EditTide.css";
 import { countPdfPages } from "../../api/pdfDocument.js";
+import { lessonShape } from "../../components/TideLesson.jsx";
+import { MAX_IMPORT_BYTES, MAX_IMPORT_CHARS, prepareImport } from "../../api/importText.js";
+import LessonImages from "./LessonImages.jsx";
 
-const toFields = (lesson) => ({ title: lesson?.title || "", slug: lesson?.slug || "", body: lesson?.body || "", summary: lesson?.summary || "", category_id: lesson?.category_id || "" });
+const toFields = (lesson) => ({ title: lesson?.title || "", slug: lesson?.slug || "", body: lesson?.body || "", summary: lesson?.summary || "", category_id: lesson?.category_id || "", paged: Boolean(lesson?.paged) });
 const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const slugFor = (title) => title.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 200).replace(/-$/, "");
 const validLesson = (lesson) => lesson?.id && typeof lesson.title === "string" && typeof lesson.slug === "string" && typeof lesson.body === "string" && ["draft", "published", "archived"].includes(lesson.status) && typeof lesson.updated_at === "string" && Number.isFinite(Date.parse(lesson.updated_at));
+
+const readText = (file) => typeof file.text === "function" ? file.text() : new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(reader.error); reader.readAsText(file); });
 
 export default function EditTide() {
   const { id } = useParams();
@@ -43,12 +48,20 @@ function Editor({ initial }) {
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [preview, setPreview] = useState(false);
-  const dirty = Object.keys(fields).some(name => fields[name] !== (saved?.[name] || ""));
+  const [previewPart, setPreviewPart] = useState(1);
+  const [importing, setImporting] = useState(null);
+  const [importError, setImportError] = useState("");
+  const bodyRef = useRef(null);
+  const pictures = useRemoteData(saved ? `tides/${encodeURIComponent(saved.id)}/images` : null, { collection: true, keepPrevious: true });
+  const pictureMap = new Map((pictures.data || []).map((image) => [image.id, image]));
+  const shape = lessonShape(fields.body);
+  const dirty = Object.keys(fields).some(name => fields[name] !== (name === "paged" ? Boolean(saved?.paged) : saved?.[name] || ""));
   const request = useRef(null);
   const allowNavigation = useUnsavedChanges(dirty || busy || Boolean(assetBusy) || hasPending, { onDiscard: () => request.current?.abort(), pendingRequest: busy });
   useEffect(() => () => request.current?.abort(), []);
   const change = (event) => {
-    const { name, value } = event.target;
+    const { name, type, checked } = event.target;
+    const value = type === "checkbox" ? checked : event.target.value;
     if (name === "slug") setCustomSlug(true);
     setFields((old) => ({ ...old, [name]: value, ...(name === "title" && !customSlug ? { slug: slugFor(value) } : {}) }));
     setErrors((old) => ({ ...old, [name]: "", ...(name === "title" && !customSlug ? { slug: "" } : {}) }));
@@ -72,11 +85,11 @@ function Editor({ initial }) {
         if (!validLesson(latest) || latest.id !== saved.id) throw new ApiError("Unable to verify the saved lesson.", "INVALID_RESPONSE");
         setSaved(latest); setFields(toFields(latest)); setErrors({}); setBlocked(false); return;
       }
-      const body = { title: fields.title.trim(), slug: fields.slug.trim(), body: fields.body, summary: fields.summary.trim(), category_id: fields.category_id || null, status, ...(saved ? { updated_at: saved.updated_at } : {}) };
+      const body = { title: fields.title.trim(), slug: fields.slug.trim(), body: fields.body, summary: fields.summary.trim(), category_id: fields.category_id || null, paged: fields.paged, status, ...(saved ? { updated_at: saved.updated_at } : {}) };
       writing = true;
       const lesson = await writeData(saved ? `admin/tides/${encodeURIComponent(saved.id)}` : "admin/tides", { method: saved ? "PUT" : "POST", body, signal: controller.signal });
       if (controller.signal.aborted) return;
-      if (!validLesson(lesson) || (saved && lesson.id !== saved.id) || lesson.status !== status || lesson.title !== body.title || lesson.slug !== body.slug || lesson.body !== body.body || (lesson.summary ?? "") !== body.summary || (lesson.category_id ?? null) !== body.category_id) throw new ApiError("The save response could not be verified.", "INVALID_RESPONSE");
+      if (!validLesson(lesson) || (saved && lesson.id !== saved.id) || lesson.status !== status || lesson.title !== body.title || lesson.slug !== body.slug || lesson.body !== body.body || (lesson.summary ?? "") !== body.summary || (lesson.category_id ?? null) !== body.category_id || Boolean(lesson.paged) !== body.paged) throw new ApiError("The save response could not be verified.", "INVALID_RESPONSE");
       allowNavigation();
       let uploadFailed = "";
       if (!saved) {
@@ -142,6 +155,38 @@ function Editor({ initial }) {
     } catch (failure) { setAssetError(failure.message); }
     finally { setAssetBusy(""); }
   };
+  // Put an image reference into the text at the cursor, on its own paragraph.
+  const insertImage = (image) => {
+    const line = `![${String(image.alt).replace(/[\[\]]/g, "")}](image:${image.id})`;
+    const area = bodyRef.current;
+    setFields((old) => {
+      const start = Math.min(area?.selectionStart ?? old.body.length, old.body.length);
+      const end = Math.min(area?.selectionEnd ?? start, old.body.length);
+      const before = old.body.slice(0, start);
+      const after = old.body.slice(end);
+      const lead = before ? (before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n") : "";
+      const tail = after ? (after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n") : "";
+      return { ...old, body: `${before}${lead}${line}${tail}${after}` };
+    });
+  };
+  const forgetImage = (image) => setFields((old) => ({ ...old, body: old.body.split("\n").filter((line) => !line.includes(`(image:${image.id})`)).join("\n") }));
+  const importFile = async (file) => {
+    setImportError("");
+    if (!file) return;
+    if (!/\.(txt|md|markdown)$/i.test(file.name) && !/^text\//.test(file.type)) { setImportError("Choose a .txt or .md file."); return; }
+    if (file.size > MAX_IMPORT_BYTES) { setImportError("That file is too large to import."); return; }
+    const text = prepareImport(await readText(file));
+    if (!text) { setImportError("That file is empty."); return; }
+    if (text.length > MAX_IMPORT_CHARS) { setImportError("That file is longer than the 100,000 character limit."); return; }
+    if (fields.body.trim()) { setImporting({ name: file.name, text }); return; }
+    applyImport(file.name, text);
+  };
+  const applyImport = (name, text) => {
+    setFields((old) => ({ ...old, body: text }));
+    setErrors((old) => ({ ...old, body: "" }));
+    setImporting(null);
+    showToast(`Imported ${name}`);
+  };
   const fieldError = (name) => errors[name] && <p id={`tide-${name}-error`} role="alert" style={{ color: "var(--clay)" }}>{errors[name]}</p>;
   const fieldProps = (name) => ({ name, id: `tide-${name}`, value: fields[name], onChange: change, "aria-invalid": Boolean(errors[name]), "aria-describedby": errors[name] ? `tide-${name}-error` : undefined });
   return <>
@@ -161,7 +206,15 @@ function Editor({ initial }) {
             </div>
           </div>
           <label className="lbl" htmlFor="tide-summary">Summary</label><textarea className="input" rows={2} maxLength={300} {...fieldProps("summary")} />{fieldError("summary")}<p className="hint">Shown on the lesson card. {fields.summary.length}/300</p>
-          <label className="lbl" htmlFor="tide-body">{saved?.slides_path ? "Lesson content (text version of the slides)" : "Lesson content"}</label><textarea className="input" rows={16} maxLength={100000} {...fieldProps("body")} />{fieldError("body")}<p className="hint">Use ## for a heading, - for a bullet, 1. for a step, **bold** for bold.</p>
+          <label className="lbl" htmlFor="tide-body">{saved?.slides_path ? "Lesson content (text version of the slides)" : "Lesson content"}</label><textarea ref={bodyRef} className="input" rows={16} maxLength={100000} {...fieldProps("body")} />{fieldError("body")}<p className="hint">Use ## for a heading, - for a bullet, 1. for a step, **bold** for bold.</p>
+          <div className="tide-import">
+            <label htmlFor="tide-import-file">Import from a file (.txt or .md)</label>
+            <input id="tide-import-file" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" onChange={(event) => { importFile(event.target.files?.[0]); event.target.value = ""; }} />
+          </div>
+          {importError && <p role="alert" style={{ color: "var(--clay)" }}>{importError}</p>}
+          {importing && <p role="alert">Replace the current content with {importing.name}? <button type="button" className="btn outline sm" onClick={() => applyImport(importing.name, importing.text)}>Replace</button> <button type="button" className="btn ghost sm" onClick={() => setImporting(null)}>Cancel</button></p>}
+          <label className="tide-check" htmlFor="tide-paged"><input type="checkbox" id="tide-paged" name="paged" checked={fields.paged} onChange={change} /> Show in chapters</label>
+          <p className="hint">{saved?.slides_path ? "Lessons with slides are not split into chapters." : fields.paged ? (shape.chapters >= 2 ? `Each ## heading starts a chapter. ${shape.chapters} chapters found.` : "Add at least two ## headings to make chapters.") : "Each ## heading will start a new chapter, with a contents list and Previous and Next buttons."}</p>
           <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 16 }}>
             <button type="button" className="btn outline" onClick={() => setPreview((value) => !value)}>{preview ? "Hide preview" : "Preview"}</button>
             <button type="submit" className={saved?.status === "published" ? "btn blue" : "btn outline"}>{saved?.status === "published" ? "Save published changes" : saved?.status === "archived" ? "Save archived changes" : "Save draft"}</button>
@@ -200,9 +253,12 @@ function Editor({ initial }) {
           </div>;
         })}
       </div>
+      {saved
+        ? <LessonImages lessonId={saved.id} images={pictures.data || []} loading={pictures.loading} error={pictures.error} retry={pictures.retry} disabled={busy || Boolean(assetBusy)} onInsert={insertImage} onRemoved={forgetImage} />
+        : <p className="hint" style={{ marginTop: 16 }}>Save the lesson once to add images to its text.</p>}
       {assetBusy && <p role="status">{assetBusy === "cover" ? "Uploading cover image…" : "Uploading slides…"}</p>}
       {assetError && <p role="alert" style={{ color: "var(--clay)" }}>{assetError}</p>}
     </Card>
-    {preview && <section aria-label="Lesson preview" style={{ marginTop: 24 }}><h3>Preview - unsaved content</h3><Card><TideLesson title={fields.title} body={fields.body} /></Card></section>}
+    {preview && <section aria-label="Lesson preview" style={{ marginTop: 24 }}><h3>Preview - unsaved content</h3><Card><TideLesson title={fields.title} body={fields.body} images={pictureMap} paged={fields.paged && !saved?.slides_path} part={previewPart} onPart={setPreviewPart} /></Card></section>}
   </>;
 }

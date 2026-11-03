@@ -1585,3 +1585,77 @@ test("library cards get signed cover image links in one storage call", async () 
   assert.equal(response.body.data[1].image_url, null);
   assert.equal(calls.filter(({ url }) => url.pathname === "/storage/v1/object/sign/tide-assets").length, 1);
 });
+
+const imageId = "70000000-0000-4000-8000-000000000001";
+
+test("admins upload lesson images with a description and the file is stored in the lesson folder", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url, body }) => {
+    if (url.pathname.startsWith("/storage/v1/object/tide-assets/")) return json({ Key: "uploaded" });
+    if (url.pathname === "/rest/v1/tides") return json([{ id: tideId }]);
+    if (url.pathname === "/rest/v1/rpc/add_tide_image") return json({ id: imageId, tide_id: tideId, alt: body.p_alt, object_path: body.p_object_path });
+  } });
+  const response = await bearer(request(app).post(`/api/tides/${tideId}/images?alt=${encodeURIComponent("  A shore at low tide ")}`)).set("Content-Type", "image/png").send(pngFile).expect(201);
+  assert.deepEqual(response.body.data, { id: imageId, tide_id: tideId, alt: "A shore at low tide" });
+  const upload = calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/tide-assets/"));
+  assert.match(upload.url.pathname, new RegExp(`/tide-assets/${tideId}/image-[0-9a-f-]{36}\\.png$`));
+  assert.equal(calls.find(({ url }) => url.pathname === "/rest/v1/rpc/add_tide_image").body.p_tide_id, tideId);
+});
+
+test("lesson image uploads need a description, an image, and an admin, and clean up when attaching fails", async () => {
+  const { app, calls } = fixture({ role: "admin" });
+  await request(app).post(`/api/tides/${tideId}/images?alt=x`).set("Content-Type", "image/png").send(pngFile).expect(401);
+  const member = fixture({ role: "user" });
+  await bearer(request(member.app).post(`/api/tides/${tideId}/images?alt=x`)).set("Content-Type", "image/png").send(pngFile).expect(403);
+  await bearer(request(member.app).delete(`/api/tides/${tideId}/images/${imageId}`)).expect(403);
+  await bearer(request(app).post(`/api/tides/${tideId}/images`)).set("Content-Type", "image/png").send(pngFile).expect(400);
+  await bearer(request(app).post(`/api/tides/${tideId}/images?alt=%20%20`)).set("Content-Type", "image/png").send(pngFile).expect(400);
+  await bearer(request(app).post(`/api/tides/${tideId}/images?alt=${"a".repeat(201)}`)).set("Content-Type", "image/png").send(pngFile).expect(400);
+  await bearer(request(app).post(`/api/tides/${tideId}/images?alt=x`)).set("Content-Type", "application/pdf").send(pdfFile).expect(415);
+  await bearer(request(app).post(`/api/tides/${tideId}/images?alt=x`)).set("Content-Type", "image/png").send(Buffer.alloc(32)).expect(400);
+  await bearer(request(app).post(`/api/tides/${tideId}/images?alt=x`)).set("Content-Type", "image/png").send(Buffer.alloc(5 * 1024 * 1024 + 1)).expect(413);
+  assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+  const failing = fixture({ role: "admin", handler: ({ url }) => {
+    if (url.pathname.startsWith("/storage/v1/object/tide-assets/")) return json({ Key: "uploaded" });
+    if (url.pathname === "/storage/v1/object/tide-assets") return json([]);
+    if (url.pathname === "/rest/v1/tides") return json([{ id: tideId }]);
+    if (url.pathname === "/rest/v1/rpc/add_tide_image") return json({ code: "P0001", message: "A lesson can have up to 40 images" }, 400);
+  } });
+  await bearer(request(failing.app).post(`/api/tides/${tideId}/images?alt=x`)).set("Content-Type", "image/png").send(pngFile).expect((res) => assert.ok(res.status >= 400));
+  assert.ok(failing.calls.some(({ method, url }) => method === "DELETE" && url.pathname === "/storage/v1/object/tide-assets"));
+});
+
+test("deleting a lesson image removes the row and its file, and only for the lesson in the URL", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/rpc/remove_tide_image") return json({ id: imageId, tide_id: tideId, object_path: `${tideId}/image-a.png` });
+    if (url.pathname === "/storage/v1/object/tide-assets") return json([]);
+  } });
+  await bearer(request(app).delete(`/api/tides/${tideId}/images/${imageId}`)).expect(204);
+  assert.deepEqual(calls.find(({ method, url }) => method === "DELETE" && url.pathname === "/storage/v1/object/tide-assets").body.prefixes, [`${tideId}/image-a.png`]);
+  await bearer(request(app).delete(`/api/tides/${olderTideId}/images/${imageId}`)).expect(404);
+  await bearer(request(app).delete(`/api/tides/${tideId}/images/not-a-uuid`)).expect(400);
+});
+
+test("a lesson's images come back with signed links, and a signing failure keeps the descriptions", async () => {
+  const rows = [{ id: imageId, alt: "A shore", object_path: `${tideId}/image-a.png` }];
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/tide_images") return json(rows);
+    if (url.pathname === "/storage/v1/object/sign/tide-assets") return json([{ path: rows[0].object_path, signedURL: "/object/sign/tide-assets/a?token=t", error: null }]);
+  } });
+  const response = await request(app).get(`/api/tides/${tideId}/images`).expect(200);
+  assert.equal(response.body.data[0].alt, "A shore");
+  assert.match(response.body.data[0].url, /token=t/);
+  assert.equal(businessCalls(calls).find(({ url }) => url.pathname === "/rest/v1/tide_images").url.searchParams.get("tide_id"), `eq.${tideId}`);
+  const outage = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/tide_images") return json(rows);
+    if (url.pathname === "/storage/v1/object/sign/tide-assets") return json({ message: "Unavailable" }, 503);
+  } });
+  assert.equal((await request(outage.app).get(`/api/tides/${tideId}/images`).expect(200)).body.data[0].url, null);
+  await request(app).get("/api/tides/not-a-uuid/images").expect(400);
+});
+
+test("the lesson schema accepts the chapters switch and rejects other values", async () => {
+  const { app } = fixture({ role: "admin", handler: ({ url, body, method }) => url.pathname === "/rest/v1/tides" && method === "POST" ? json([{ ...body, id: tideId, updated_at: "2026-11-05T00:00:00.000Z" }], 201) : undefined });
+  const created = await bearer(request(app).post("/api/admin/tides")).send({ ...lesson, paged: true }).expect(201);
+  assert.equal(created.body.data.paged, true);
+  await bearer(request(app).post("/api/admin/tides")).send({ ...lesson, paged: "yes" }).expect(400);
+});

@@ -27,3 +27,23 @@ html.dark-mode .asset-chip{background:var(--d-surface);border-color:var(--d-bord
 html.dark-mode .lesson-asset{background:var(--d-surface-2);border-color:var(--d-border-strong);}
 html.dark-mode .lesson-asset input[type="file"]::file-selector-button{background:var(--d-surface);color:var(--d-text);border-color:var(--d-border-strong);}
 @media(max-width:640px){.tide-form .tide-row,.lesson-assets{grid-template-columns:1fr;}}
+
+/* Chapters switch, text import and the image manager. */
+.tide-form .tide-check{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:var(--fs-label);font-weight:600;cursor:pointer;}
+.tide-form .tide-check input{width:18px;height:18px;margin:0;}
+.tide-import{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:var(--fs-label);}
+.tide-import input[type="file"]{font-size:var(--fs-label);color:var(--soft);}
+.tide-import input[type="file"]::file-selector-button{margin-right:10px;padding:6px 12px;border:1px solid var(--blue);border-radius:var(--r-sm);background:#fff;color:var(--blue);font:inherit;font-weight:600;cursor:pointer;}
+.lesson-images{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);}
+.lesson-images h4{margin:0 0 4px;font-size:var(--fs-card);}
+.lesson-images__add{display:grid;gap:6px;justify-items:start;max-width:520px;}
+.lesson-images__add .input{width:100%;}
+.lesson-images__add .lbl{margin:8px 0 0;font-weight:600;}
+.lesson-images__add .btn{margin-top:10px;}
+.lesson-images__error{color:var(--clay);font-size:var(--fs-label);margin:8px 0 0;}
+.lesson-images__list{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px;}
+.lesson-images__list li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px;border:1px solid var(--line);border-radius:var(--r-sm);}
+.lesson-images__list img,.lesson-images__blank{width:56px;height:56px;object-fit:cover;border-radius:var(--r-sm);background:var(--bg);flex:none;}
+.lesson-images__alt{flex:1 1 160px;min-width:0;font-size:var(--fs-label);overflow-wrap:anywhere;}
+html.dark-mode .tide-import input[type="file"]::file-selector-button{background:var(--d-surface);color:var(--d-text);border-color:var(--d-border-strong);}
+html.dark-mode .lesson-images,html.dark-mode .lesson-images__list li{border-color:var(--d-border);}
