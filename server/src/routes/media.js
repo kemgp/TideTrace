@@ -129,5 +129,47 @@ export function mediaRoutes(gateway) {
       res.json({ data: { url: data.signedUrl, expires_in: 600, ...(kind === "slides" ? { pages: tide.slides_pages } : {}) } });
     });
   }
+  // Images placed inside lesson text. Admins upload with a description (alt text); everyone reads signed links.
+  const imageTypes = ["image/jpeg", "image/png", "image/webp"];
+  router.post("/tides/:id/images", admin, uploadLimit, (req, res, next) => {
+    req.mediaType = req.get("Content-Type")?.split(";")[0].toLowerCase();
+    if (!imageTypes.includes(req.mediaType)) throw new HttpError(415, "UNSUPPORTED_MEDIA", "Choose a JPEG, PNG or WebP image.");
+    next();
+  }, raw({ type: () => true, limit: "5mb" }), async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    const { alt } = z.object({ alt: z.string().trim().min(1, "Describe the image.").max(200) }).strict().parse(req.query);
+    if (!matchesFileType(req.body, req.mediaType)) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
+    first(await result(req.db.from("tides").select("id").eq("id", id).limit(1)));
+    const path = `${id}/image-${randomUUID()}.${formats[req.mediaType]}`;
+    await result(req.db.storage.from("tide-assets").upload(path, req.body, { contentType: req.mediaType, upsert: false }));
+    let saved;
+    try {
+      saved = await result(req.db.rpc("add_tide_image", { p_tide_id: id, p_object_path: path, p_alt: alt }));
+    } catch (error) {
+      await req.db.storage.from("tide-assets").remove([path]).catch(() => {});
+      throw error;
+    }
+    res.status(201).json({ data: { id: saved.id, tide_id: saved.tide_id, alt: saved.alt } });
+  });
+  router.delete("/tides/:id/images/:imageId", admin, uploadLimit, async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    const removed = await result(req.db.rpc("remove_tide_image", { p_image_id: uuid.parse(req.params.imageId) }));
+    if (removed.tide_id !== id) throw new HttpError(404, "NOT_FOUND", "Record not found.");
+    await req.db.storage.from("tide-assets").remove([removed.object_path]).catch(() => {});
+    res.sendStatus(204);
+  });
+  router.get("/tides/:id/images", async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    // Table RLS limits this to published lessons (or admins).
+    const rows = await result(req.db.from("tide_images").select("id,alt,object_path").eq("tide_id", uuid.parse(req.params.id)).order("created_at").order("id").limit(100));
+    let urls = new Map();
+    if (rows.length) {
+      try {
+        const { data, error } = await req.db.storage.from("tide-assets").createSignedUrls(rows.map((row) => row.object_path), 3600);
+        if (!error) urls = new Map((data || []).filter((item) => !item.error && item.signedUrl).map((item) => [item.path, item.signedUrl]));
+      } catch { /* the lesson shows the descriptions instead */ }
+    }
+    res.json({ data: rows.map((row) => ({ id: row.id, alt: row.alt, url: urls.get(row.object_path) || null })) });
+  });
   return router;
 }
