@@ -91,7 +91,7 @@ export function contentRoutes(gateway) {
     const query = page.extend({
       category_id: uuid.optional(),
       q: z.string().trim().max(80).optional(),
-      progress: z.enum(["completed", "not_started"]).optional(),
+      progress: z.enum(["completed", "incomplete"]).optional(),
     }).parse(req.query);
     let tides = req.db.from("tides").select("*,category:categories(id,name)").eq("status", "published");
     if (query.category_id) tides = tides.eq("category_id", query.category_id);
@@ -130,6 +130,19 @@ export function contentRoutes(gateway) {
     let records = req.db.from("tide_completions").select("tide_id,completed_at").eq("user_id", req.user.id);
     if (query.tide_ids) records = records.in("tide_id", query.tide_ids);
     send(res, await result(paginate(records.order("completed_at", { ascending: false }).order("tide_id"), query)));
+  });
+  // Where the signed-in member last stopped in a chaptered lesson.
+  router.get("/tide-progress", member, async (req, res) => {
+    const query = page.extend({ tide_ids: z.string().transform((value) => value.split(",")).pipe(z.array(uuid).min(1).max(25)).optional() }).parse(req.query);
+    let records = req.db.from("tide_progress").select("tide_id,part,total,updated_at").eq("user_id", req.user.id);
+    if (query.tide_ids) records = records.in("tide_id", query.tide_ids);
+    send(res, await result(paginate(records.order("updated_at", { ascending: false }).order("tide_id"), query)));
+  });
+  router.put("/tides/:id/progress", member, async (req, res) => {
+    const tideId = uuid.parse(req.params.id);
+    const body = z.object({ part: z.number().int().min(1).max(500), total: z.number().int().min(2).max(500) }).strict()
+      .refine((value) => value.part <= value.total, { message: "The chapter is outside the lesson." }).parse(req.body);
+    send(res, await result(req.db.rpc("save_tide_progress", { p_tide_id: tideId, p_part: body.part, p_total: body.total })));
   });
   router.put("/tides/:id/completion", member, async (req, res) => {
     const tideId = uuid.parse(req.params.id);

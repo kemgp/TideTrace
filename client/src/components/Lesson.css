@@ -45,3 +45,4 @@ html.dark-mode .chapter-contents{background:var(--d-surface);border-color:var(--
 html.dark-mode .lesson-figure img{border-color:var(--d-border);}
 html.dark-mode .chapter-contents li button{color:#8fb2ff;}
 html.dark-mode .chapter-contents li button[aria-current="step"]{color:var(--d-text);}
+.chapter-resume{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0;color:var(--soft);font-size:var(--fs-badge);}

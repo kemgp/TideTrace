@@ -11,12 +11,15 @@ const ok = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
 const body = `Welcome to the lesson.\n\n## First chapter\nText of the first chapter.\n\n![A shore at low tide](image:${imageId})\n\n## Second chapter\nText of the second chapter.\n\n## Third chapter\nText of the third chapter.`;
 const lesson = (extra = {}) => ({ id, title: "Reading the shoreline", slug: "reading-the-shoreline", body, status: "published", published_at: "2026-10-01T00:00:00Z", paged: true, slides_path: null, ...extra });
 
-function setup({ tide = lesson(), images = [{ id: imageId, alt: "A shore at low tide", url: "https://files.example.test/a.png?token=t" }] } = {}, path = `/user/tides/${id}`) {
+function setup({ tide = lesson(), images = [{ id: imageId, alt: "A shore at low tide", url: "https://files.example.test/a.png?token=t" }], progress = [], completions = [] } = {}, path = `/user/tides/${id}`) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "access", refresh_token: "refresh", expires_at: Date.now() / 1000 + 3600 }));
-  const calls = vi.fn(async (url) => {
+  const calls = vi.fn(async (url, options = {}) => {
     if (url === "/api/auth/me") return ok({ id: "me", display_name: "Member", role: "user", status: "active" });
     if (url === `/api/tides/${id}`) return ok(tide);
     if (url === `/api/tides/${id}/images`) return ok(images);
+    if (url.startsWith("/api/tide-progress?")) return ok(progress);
+    if (url.startsWith("/api/tide-completions?")) return ok(completions);
+    if (url === `/api/tides/${id}/progress`) return ok({ tide_id: id, ...JSON.parse(options.body), updated_at: "2026-11-06T00:00:00Z" });
     if (url === `/api/tides/${id}/neighbors`) return ok({ id, previous: null, next: null });
     return ok([]);
   });
@@ -104,4 +107,43 @@ it("only asks for images when the text uses some", async () => {
   const calls = setup({ tide: lesson({ body: "## A\ntext\n\n## B\ntext" }) });
   await screen.findByRole("article", { name: "Lesson content" });
   expect(calls.mock.calls.some(([url]) => String(url).endsWith("/images"))).toBe(false);
+});
+
+const saves = (calls) => calls.mock.calls.filter(([url, options]) => url === `/api/tides/${id}/progress` && options?.method === "PUT").map(([, options]) => JSON.parse(options.body));
+
+it("saves the chapter a member reaches, but nothing while they are still on chapter 1", async () => {
+  const calls = setup();
+  const article = await screen.findByRole("article", { name: "Lesson content" });
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  expect(saves(calls)).toEqual([]);
+  fireEvent.click(within(article).getByRole("button", { name: "Next chapter" }));
+  await waitFor(() => expect(saves(calls)).toEqual([{ part: 2, total: 4 }]));
+  fireEvent.click(within(article).getByRole("button", { name: "Next chapter" }));
+  await waitFor(() => expect(saves(calls)).toEqual([{ part: 2, total: 4 }, { part: 3, total: 4 }]));
+});
+
+it("carries on from the saved chapter, and lets the member start again", async () => {
+  const calls = setup({ progress: [{ tide_id: id, part: 3, total: 4 }] });
+  const article = await screen.findByRole("article", { name: "Lesson content" });
+  await within(article).findByText("Chapter 3 of 4: Second chapter");
+  const note = await screen.findByText(/Continuing from chapter 3/);
+  expect(saves(calls)).toEqual([]);
+  fireEvent.click(within(note.closest("p")).getByRole("button", { name: "Start from the beginning" }));
+  await within(article).findByText("Chapter 1 of 4: Introduction");
+  await waitFor(() => expect(saves(calls)).toEqual([{ part: 1, total: 4 }]));
+  expect(screen.queryByText(/Continuing from chapter/)).toBeNull();
+});
+
+it("does not jump to the saved chapter when the link names a chapter, or once the lesson is completed", async () => {
+  setup({ progress: [{ tide_id: id, part: 3, total: 4 }] }, `/user/tides/${id}?part=2`);
+  expect(await screen.findByText("Chapter 2 of 4: First chapter")).toBeTruthy();
+  expect(screen.queryByText(/Continuing from chapter/)).toBeNull();
+  cleanup();
+  const calls = setup({ progress: [{ tide_id: id, part: 3, total: 4 }], completions: [{ tide_id: id, completed_at: "2026-11-06T00:00:00Z" }] });
+  const article = await screen.findByRole("article", { name: "Lesson content" });
+  await within(article).findByText("Chapter 1 of 4: Introduction");
+  fireEvent.click(within(article).getByRole("button", { name: "Next chapter" }));
+  await within(article).findByText("Chapter 2 of 4: First chapter");
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  expect(saves(calls)).toEqual([]);
 });

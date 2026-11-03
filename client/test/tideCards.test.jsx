@@ -1,6 +1,6 @@
 import React, { StrictMode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
@@ -11,7 +11,7 @@ const summary = (extra = {}) => ({ id: "me", role: "user", as_of: "2026-11-03T01
 const words = (count) => Array.from({ length: count }, (_, index) => `word${index}`).join(" ");
 const lesson = (id, title, body) => ({ id, title, body, slug: title.toLowerCase(), status: "published", published_at: "2026-10-01T00:00:00Z" });
 
-function setup({ lessons, completions = [], finished = 3, published = 12 }) {
+function setup({ lessons, completions = [], progress = [], finished = 3, published = 12 }) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "access", refresh_token: "refresh", expires_at: Date.now() / 1000 + 3600 }));
   vi.stubGlobal("fetch", vi.fn(async (url) => {
     if (url === "/api/auth/me") return ok({ id: "me", display_name: "Member", role: "user", status: "active" });
@@ -19,6 +19,7 @@ function setup({ lessons, completions = [], finished = 3, published = 12 }) {
     if (url === "/api/community-summary") return ok({ id: "community", published_tides: published, published_traces: 0, contributors: 0, tides_completed: 0, as_of: "2026-11-03T01:00:00Z" });
     if (url.startsWith("/api/tides?")) return ok(lessons);
     if (url.startsWith("/api/tide-completions")) return ok(completions);
+    if (url.startsWith("/api/tide-progress")) return ok(progress);
     return ok([]);
   }));
   render(<StrictMode><MemoryRouter initialEntries={["/user/tides"]}><App /></MemoryRouter></StrictMode>);
@@ -68,4 +69,16 @@ it("shows a preview, reading time and overall progress, with one heading block",
 it("never reports more finished lessons than there are published ones", async () => {
   setup({ lessons: [lesson("l1", "Seagrass basics", "Text.")], finished: 9, published: 4 });
   expect((await screen.findByRole("progressbar", { name: "Lessons completed" })).getAttribute("aria-valuenow")).toBe("4");
+});
+
+it("labels an unfinished chaptered lesson with the chapter reached, and filters by Incomplete", async () => {
+  setup({ lessons: [lesson("l1", "Seagrass basics", "Text"), lesson("l2", "Reading the tide", "Text"), lesson("l3", "Mangrove roots", "Text")], completions: [{ tide_id: "l1", completed_at: "2026-11-01T00:00:00Z" }], progress: [{ tide_id: "l2", part: 3, total: 5 }, { tide_id: "l1", part: 4, total: 4 }] });
+  expect(await within(await screen.findByRole("link", { name: /Reading the tide/ })).findByText("In progress, chapter 3 of 5")).toBeTruthy();
+  expect(within(screen.getByRole("link", { name: /Seagrass basics/ })).getByText("Completed")).toBeTruthy();
+  expect(within(screen.getByRole("link", { name: /Mangrove roots/ })).getByText("Not started")).toBeTruthy();
+  const group = screen.getByRole("group", { name: "Filter by progress" });
+  expect(within(group).getAllByRole("button").map((button) => button.textContent)).toEqual(["All lessons", "Incomplete", "Completed"]);
+  fireEvent.click(within(group).getByRole("button", { name: "Incomplete" }));
+  expect(within(group).getByRole("button", { name: "Incomplete" }).getAttribute("aria-pressed")).toBe("true");
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("progress=incomplete"))).toBe(true);
 });
