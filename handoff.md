@@ -405,3 +405,8 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - New `client/src/ocean.css` (imported after `responsive.css`): sea-wash background on member pages, soft card shadows, hover lift on `.tcard`, rounder buttons with a glow on blue/clay, pill nav links, and dark-mode equivalents. Tokens: `--r-lg`, `--ocean-*`, `--sea-wash`, `--wave-fill`, `--shadow-card`, `--shadow-lift`.
 - New `PageHeader` component (`components/PageHeader.jsx`): deep-water band with eyebrow, title, subtitle, actions and a wave edge. Follow it with `<div className="page-body">` (pulls up 64px over the wave). Not used by any page yet; the Dashboard and Tides list adopt it next.
 - Plan: 2 Dashboard and Tides list, 3 lesson reader, 4 Archive/trace details/drafts/form, 5 Contributions/Settings/profile. One PR each.
+
+## Ocean theme, part 2: Dashboard and Tides list (branch `ocean-dashboard-tides`)
+- Both pages use `PageHeader` (wave band) and `.page-body`. Dashboard: greeting is the `h1`, the three totals moved into a raised row across the wave (the "Your activity" heading was dropped), "Updated HH:MM" sits under it. "Continue learning" is a deep-water card; if the next lesson has saved chapter progress it shows "Chapter N of M", a bar and "Continue lesson".
+- Tides list: the lessons progress bar lives inside the header; search and filters are in one raised card; lesson covers are taller (150px).
+- Styles: `dashboard.css`, `TideFilters.css`, `TideCard.css`, shared tokens in `ocean.css`.

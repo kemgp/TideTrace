@@ -5,6 +5,7 @@ import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
 import Button from "../../../components/Button.jsx";
 import TideCard from "../../../components/TideCard.jsx";
 import TidesProgress from "../../../components/TidesProgress.jsx";
+import PageHeader from "../../../components/PageHeader.jsx";
 import "../../../components/TideFilters.css";
 
 const PROGRESS = [["", "All lessons"], ["incomplete", "Incomplete"], ["completed", "Completed"]];
@@ -47,9 +48,9 @@ export default function Tides() {
   const filtered = Boolean(topic || progress || search);
   const choose = (setter) => (value) => { setter(value); setOffset(0); };
   const clear = () => { setTopic(""); setProgress(""); setTyped(""); setSearch(""); applied.current = ""; setOffset(0); };
-  return <div className="wrap">
-    <div className="vhead"><span className="eyebrow">Tides</span><h2>Learn the sea in your own language</h2><p>Explore published lessons and learn about your coastal community.</p></div>
-    <TidesProgress />
+  return <>
+    <PageHeader eyebrow="Tides" title="Learn the sea in your own language" subtitle="Explore published lessons and learn about your coastal community."><TidesProgress /></PageHeader>
+    <div className="page-body">
     <div className="tide-filters">
       <div className="toolbar">
         <div className="search">
@@ -73,5 +74,6 @@ export default function Tides() {
       ? <div className="g3 tide-results" aria-busy={result.refreshing}>{lessons.map((tide) => <TideCard key={tide.id} tide={tide} completionLabel={statusOf(tide)} />)}</div>
       : <div className="ph archive-empty tide-empty">{filtered ? <><p>No lessons match these filters. Try another search or clear filters.</p><Button type="button" variant="outline" size="sm" onClick={clear}>Clear filters</Button></> : "No published lessons found."}</div>)}
     <Pagination offset={offset} count={lessons.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
-  </div>;
+    </div>
+  </>;
 }

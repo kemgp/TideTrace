@@ -13,7 +13,7 @@ const row = (id, status, extra = {}) => ({ id, title: `Trace ${id}`, author_id: 
 const note = (id, message, read_at = null) => ({ id, message, type: "trace_approved", read_at, created_at: "2026-11-02T10:00:00Z" });
 const lesson = (id) => ({ id, title: `Lesson ${id}`, status: "published" });
 
-function setup({ totals = summary(), revisions = [], drafts = [], lessons = [], completions = [], notifications = [] } = {}) {
+function setup({ totals = summary(), revisions = [], drafts = [], lessons = [], completions = [], notifications = [], progress = [] } = {}) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "access", refresh_token: "refresh", expires_at: Date.now() / 1000 + 3600 }));
   const fetch = vi.fn(async (url) => {
     if (url === "/api/auth/me") return ok({ id: "me", display_name: "Member", role: "user", status: "active", data_saver: true });
@@ -24,6 +24,7 @@ function setup({ totals = summary(), revisions = [], drafts = [], lessons = [], 
     if (url.startsWith("/api/notifications?")) return ok(notifications);
     if (url.startsWith("/api/tides?")) return ok(lessons);
     if (url.startsWith("/api/tide-completions")) return ok(completions);
+    if (url.startsWith("/api/tide-progress")) return ok(progress);
     return ok([]);
   });
   vi.stubGlobal("fetch", fetch);
@@ -121,4 +122,21 @@ it("shows nothing for notifications when everything is read", async () => {
   setup({ notifications: [note("n3", "Old news", "2026-11-02T11:00:00Z")] });
   await screen.findByText("You're all caught up.");
   expect(screen.queryByText("What's new")).toBeNull();
+});
+
+it("shows the chapter reached on the continue card, and offers to continue", async () => {
+  setup({ lessons: [lesson("a"), lesson("b")], completions: [{ tide_id: "a", completed_at: "2026-11-01T00:00:00Z" }], progress: [{ tide_id: "b", part: 3, total: 5 }] });
+  expect(await screen.findByText("Chapter 3 of 5")).toBeTruthy();
+  const bar = screen.getByRole("progressbar", { name: "Lesson progress" });
+  expect(bar.getAttribute("aria-valuenow")).toBe("3");
+  expect(bar.getAttribute("aria-valuemax")).toBe("5");
+  expect(screen.getByRole("link", { name: "Continue lesson →" }).getAttribute("href")).toBe("/user/tides/b");
+});
+
+it("puts the totals under the page header and does not repeat an activity heading", async () => {
+  setup();
+  const region = await screen.findByRole("region", { name: "Dashboard totals" });
+  expect(region.closest(".page-body")).toBeTruthy();
+  expect(document.querySelector(".page-hero")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Your activity" })).toBeNull();
 });

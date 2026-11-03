@@ -11,6 +11,7 @@ import TraceCard from "../../components/TraceCard.jsx";
 import NeedsAttention from "../../components/NeedsAttention.jsx";
 import NextLesson from "../../components/NextLesson.jsx";
 import WhatsNew from "../../components/WhatsNew.jsx";
+import PageHeader from "../../components/PageHeader.jsx";
 import { attentionLine, STAT_LINKS } from "../../api/dashboardText.js";
 import "./dashboard.css";
 
@@ -23,13 +24,27 @@ export default function Dashboard() {
   const recent = (recentResult.data || []).map(displayTrace);
 
   return (
-    <div className="wrap">
-      <div className="banner">
-        <div>
-          <h1 className="banner-title">Kumusta, {profile?.display_name}</h1>
-          <div className="s">{attentionLine(totals.data)}</div>
-        </div>
-        <Link className="banner-action" to="/user/traces/upload">Upload trace</Link>
+    <>
+      <PageHeader
+        as="h1"
+        eyebrow="Your dashboard"
+        title={`Kumusta, ${profile?.display_name ?? ""}`}
+        subtitle={attentionLine(totals.data)}
+        actions={<Link className="banner-action" to="/user/traces/upload">Upload trace</Link>}
+      />
+      <div className="page-body">
+      <div className="dash-stats">
+        <DashboardStats
+          flush
+          showMeta={false}
+          result={totals}
+          items={[
+            ["traces", "Your Traces", STAT_LINKS.traces],
+            ["approved", "Approved", STAT_LINKS.approved],
+            ["pending", "In review", STAT_LINKS.pending],
+          ]}
+        />
+        {totals.data && <p className="dash-meta dash-stats__meta">Updated {new Date(totals.data.as_of).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</p>}
       </div>
 
       <div className="dash-grid">
@@ -41,22 +56,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="dash-side">
-          <div className="dash-activity">
-            <div className="dash-head">
-              <h2 className="sec-t">Your activity</h2>
-              {totals.data && <span className="dash-meta">Updated {new Date(totals.data.as_of).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>}
-            </div>
-            <DashboardStats
-              flush
-              showMeta={false}
-              result={totals}
-              items={[
-                ["traces", "Your Traces", STAT_LINKS.traces],
-                ["approved", "Approved", STAT_LINKS.approved],
-                ["pending", "In review", STAT_LINKS.pending],
-              ]}
-            />
-          </div>
           <WhatsNew />
         </div>
       </div>
@@ -81,6 +80,7 @@ export default function Dashboard() {
           />
         ))}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

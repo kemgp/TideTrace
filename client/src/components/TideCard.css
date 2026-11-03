@@ -1,5 +1,5 @@
 /* Lesson card: picture, title, short preview, then reading time and completion. */
-.tide-thumb{position:relative;flex:none;display:grid;place-items:center;height:96px;margin-bottom:12px;border-radius:var(--r-sm);color:rgba(255,255,255,.92);overflow:hidden;background:linear-gradient(135deg,var(--tone),color-mix(in srgb,var(--tone) 68%,#000));}
+.tide-thumb{position:relative;flex:none;display:grid;place-items:center;height:150px;margin-bottom:14px;border-radius:var(--r-sm);color:rgba(255,255,255,.92);overflow:hidden;background:linear-gradient(135deg,var(--tone),color-mix(in srgb,var(--tone) 68%,#000));}
 .tide-thumb[data-tone="0"]{--tone:var(--navy);}
 .tide-thumb[data-tone="1"]{--tone:var(--blue);}
 .tide-thumb[data-tone="2"]{--tone:var(--teal-strong);}
@@ -30,3 +30,10 @@ html.dark-mode .tides-progress-row{color:var(--d-muted);}
 html.dark-mode .tides-progress-bar{background:var(--d-border);}
 html.dark-mode .tides-progress-bar span{background:#5aa2a8;}
 .tide-topic { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+
+/* Progress inside the ocean page header: light on deep water. */
+.page-hero .tides-progress{margin:24px 0 0;max-width:460px;}
+.page-hero .tides-progress-row{color:#dbe7f7;}
+.page-hero .tides-progress-row b{color:#fff;}
+.page-hero .tides-progress-bar{height:10px;background:rgba(255,255,255,.2);}
+.page-hero .tides-progress-bar span{background:#bfe3e6;}
