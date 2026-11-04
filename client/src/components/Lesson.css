@@ -87,3 +87,8 @@ html.dark-mode .chapter-contents li button:hover,html.dark-mode .chapter-content
   .page-body.user-lesson.is-chaptered .chapter-contents ol{padding:0;list-style:none;}
 }
 html.dark-mode .page-body.user-lesson.is-chaptered .chapter-contents{background:var(--d-surface);}
+.chapter-body .lesson-body ol > li > :is(p,div){margin:0;}
+@media(max-width:640px){
+  .chapter-body .lesson-body ol > li{padding:14px 14px 14px 54px;}
+  .chapter-body .lesson-body ol > li::before{left:14px;top:14px;width:28px;height:28px;font-size:14px;}
+}
