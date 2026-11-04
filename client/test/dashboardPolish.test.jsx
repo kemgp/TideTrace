@@ -52,7 +52,7 @@ it("shows the attention sentence and lists revisions before drafts", async () =>
   setup({ totals: summary({ drafts: 1, needs_revision: 1 }), revisions: [row("r", "revision_requested", { note: "Add a clearer photo" })], drafts: [row("d", "draft")] });
   expect(await screen.findByText("1 revision request and 1 draft need your attention.")).toBeTruthy();
   const section = await screen.findByRole("region", { name: "Needs your attention" });
-  const links = within(section).getAllByRole("link");
+  const links = await within(section).findAllByRole("link");
   expect(links.map((link) => link.getAttribute("href"))).toEqual(["/user/contributions/r", "/user/contributions/d/edit"]);
   expect(within(section).getByText("Reviewer: Add a clearer photo")).toBeTruthy();
   expect(within(section).getByText("Not submitted yet")).toBeTruthy();

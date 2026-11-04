@@ -224,3 +224,6 @@ html.dark-mode .community-grid .user-category-label,html.dark-mode .community-ar
 html.dark-mode .community-grid .user-trace-card .m,html.dark-mode .community-archive .g3 .user-trace-card .m{color:#9fb0cc;}
 html.dark-mode .community-grid .user-trace-card .m svg,html.dark-mode .community-archive .g3 .user-trace-card .m svg{stroke:#9fb0cc;}
 html.dark-mode .community-grid .user-trace-card .t,html.dark-mode .community-archive .g3 .user-trace-card .t{color:var(--d-text);}
+
+/* Upload form is paged: only the active step shows. The sections stay mounted so validation still sees every field. */
+.app-shell .trace-draft-section.is-inactive{display:none;}
