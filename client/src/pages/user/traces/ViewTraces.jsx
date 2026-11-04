@@ -63,8 +63,8 @@ export default function ViewTraces() {
           <input aria-label="Search traces" maxLength={200} placeholder="Search all traces, people, places…" value={draft} onChange={(e) => { setDraft(e.target.value); update({ query: e.target.value }, { replace: true }); }} />
         </div>
         <div className="archive-view-switch" role="group" aria-label="Archive view">
-          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "list"} onClick={() => update({ view: "list" })}>List</Button>
-          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "map"} onClick={() => update({ view: "map" })}>Map</Button>
+          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "list"} onClick={() => update({ view: "list" })}><svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>List</Button>
+          <Button type="button" variant="ghost" size="sm" aria-pressed={view === "map"} onClick={() => update({ view: "map" })}><svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z" /><path d="M9 4v14M15 6v14" /></svg>Map</Button>
         </div>
       </div>
 
