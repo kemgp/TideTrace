@@ -51,8 +51,8 @@ export default function Dashboard() {
         className="page-hero--dash"
         eyebrow="Your dashboard"
         title={`Kumusta, ${profile?.display_name ?? ""}`}
-        subtitle={fix ? <a className="hero-link" href="#needs-attention" onClick={jumpToAttention}>{fix}</a> : attentionLine(totals.data)}
-        actions={<Link className="btn clay" to="/user/traces/upload">Upload trace</Link>}
+        subtitle={<>{attentionLine(totals.data)}{fix && <> <a className="hero-link" href="#needs-attention" onClick={jumpToAttention}>{fix}</a></>}</>}
+        actions={<Link className="btn clay" to="/user/traces/upload">New Trace</Link>}
       />
       <div className="page-body">
       <div className="dash-grid">
