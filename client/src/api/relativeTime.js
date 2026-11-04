@@ -12,6 +12,12 @@ export function relativeTime(value, now = Date.now()) {
   return "just now";
 }
 
+// "24 Oct 2026" for cards.
+export function shortDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export function fullDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString(undefined, { dateStyle: "long" });

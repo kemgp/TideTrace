@@ -10,11 +10,12 @@ const ok = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
 const row = (id, status, extra = {}) => ({ id, title: `Trace ${id}`, author_id: "me", status, category: { id: "c", name: "Pollution" },
   location_name: "Coast", description: "x", created_at: "2026-10-20T00:00:00Z", updated_at: "2026-10-24T00:00:00Z", trace_media: [], version: 1, ...extra });
 function Where() { const location = useLocation(); return <output data-testid="url">{location.pathname}{location.search}</output>; }
-function setup(rows, path = "/user/contributions") {
+function setup(rows, path = "/user/contributions", totals = null) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "access", refresh_token: "refresh", expires_at: Date.now() / 1000 + 3600 }));
   const fetch = vi.fn(async (url, options = {}) => {
     if (url === "/api/auth/me") return ok({ id: "me", display_name: "Member", role: "user", status: "active", data_saver: true });
     if (options.method === "POST" && url === "/api/contributions/photo-cleanup") return { ok: true, status: 204 };
+    if (totals && url === "/api/dashboard") return ok({ id: "me", role: "user", as_of: "2026-11-03T01:00:00Z", member_since: "2026-08-10T00:00:00Z", comments_posted: 0, tides_finished: 0, ...totals });
     if (url.startsWith("/api/contributions?")) return ok(typeof rows === "function" ? rows(url) : rows);
     return ok([]);
   });
@@ -34,23 +35,57 @@ it("shows where each trace stands and how recently it changed", async () => {
   expect(document.querySelectorAll(".contrib-state time").length).toBe(3);
 });
 
-it("opens a draft in the editor and everything else on the trace page", async () => {
-  setup([row("d", "draft"), row("r", "revision_requested"), row("a", "approved"), row("p", "pending")]);
+it("shows one primary action per state, and each row has just that one link", async () => {
+  setup([row("d", "draft"), row("r", "revision_requested"), row("a", "approved"), row("p", "pending"), row("x", "rejected")]);
   await screen.findByText("Trace d");
-  const href = (title) => screen.getByText(title).closest("a").getAttribute("href");
-  expect(href("Trace d")).toBe("/user/contributions/d/edit");
-  expect(href("Trace r")).toBe("/user/contributions/r");
-  expect(href("Trace a")).toBe("/user/contributions/a");
-  expect(href("Trace p")).toBe("/user/contributions/p");
-  expect(screen.getAllByText("Continue editing")).toHaveLength(1);
+  const href = (name) => screen.getByRole("link", { name }).getAttribute("href");
+  expect(href("Continue editing: Trace d")).toBe("/user/contributions/d/edit");
+  expect(href("Revise: Trace r")).toBe("/user/contributions/r/edit");
+  expect(href("View: Trace a")).toBe("/user/contributions/a");
+  expect(href("View: Trace p")).toBe("/user/contributions/p");
+  expect(href("View: Trace x")).toBe("/user/contributions/x");
+  document.querySelectorAll(".contrib-row").forEach((rowElement) => expect(rowElement.querySelectorAll("a")).toHaveLength(1));
   expect(screen.queryByRole("link", { name: "Edit and resubmit" })).toBeNull();
 });
 
-it("keeps Delete as a quiet button outside the row link", async () => {
+it("moves Delete into a ⋯ menu that opens the existing confirmation", async () => {
   setup([row("d", "draft")]);
-  const button = await screen.findByRole("button", { name: "Delete", exact: true });
-  expect(button.classList.contains("contrib-delete")).toBe(true);
-  expect(button.closest("a")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Delete", exact: true })).toBeNull();
+  const more = await screen.findByRole("button", { name: "More actions for Trace d" });
+  expect(more.getAttribute("aria-expanded")).toBe("false");
+  expect(more.closest("a")).toBeNull();
+  fireEvent.click(more);
+  expect(more.getAttribute("aria-expanded")).toBe("true");
+  const item = screen.getByRole("menuitem", { name: "Delete" });
+  fireEvent.click(item);
+  expect(screen.getByRole("dialog", { name: "Delete this trace?" })).toBeTruthy();
+  expect(screen.queryByRole("menu")).toBeNull();
+});
+
+it("closes the ⋯ menu with Escape and returns focus to its button", async () => {
+  setup([row("d", "draft")]);
+  const more = await screen.findByRole("button", { name: "More actions for Trace d" });
+  fireEvent.click(more);
+  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+  expect(screen.queryByRole("menu")).toBeNull();
+  expect(document.activeElement).toBe(more);
+});
+
+it("adds a count to each filter chip from the dashboard totals", async () => {
+  setup([row("d", "draft")], "/user/contributions", { traces: 21, drafts: 7, pending: 4, approved: 6, needs_revision: 2, rejected: 2 });
+  expect(await screen.findByRole("button", { name: "Draft 7" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "All 21" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Pending 4" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Approved 6" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Needs revision 2" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Rejected 2" })).toBeTruthy();
+});
+
+it("links New Trace instead of using a button", async () => {
+  setup([row("d", "draft")]);
+  await screen.findByText("Trace d");
+  expect(screen.getByRole("link", { name: "New Trace" }).getAttribute("href")).toBe("/user/traces/upload");
+  expect(screen.queryByRole("button", { name: "New Trace" })).toBeNull();
 });
 
 it("keeps the status filter and page in the URL", async () => {
@@ -71,7 +106,7 @@ it("opens the bookmarked status and page", async () => {
 it("returns to the same filter after opening a trace", async () => {
   // A pending trace opens the trace page (a draft would open the editor instead).
   setup([row("p", "pending")], "/user/contributions?status=pending");
-  fireEvent.click(await screen.findByRole("link", { name: /Trace p/ }));
+  fireEvent.click(await screen.findByRole("link", { name: "View: Trace p" }));
   fireEvent.click(await screen.findByRole("link", { name: /Back to My Contributions/ }));
   await waitFor(() => expect(url()).toBe("/user/contributions?status=pending"));
 });

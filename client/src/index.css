@@ -36,7 +36,7 @@ button{font:inherit;cursor:pointer;}
 .badge.approved{background:#e2f2f2;color:var(--teal-strong);}
 .badge.revision{background:#fbe7db;color:#8a4a20;}
 .badge.rejected{background:var(--danger-bg);color:var(--danger-dark);}
-.badge.draft{background:var(--bg);color:var(--soft);border:1px solid var(--line);}
+.badge.draft{background:var(--bg);color:var(--navy);border:1px solid var(--soft);}
 .badge.suspended{background:var(--danger-bg);color:var(--danger);}
 .badge.active{background:#e2f2f2;color:var(--teal-strong);}
 .badge.open{background:#f8ecdd;color:#8a5a28;}
@@ -110,7 +110,7 @@ textarea.input{height:110px;padding:10px 12px;resize:vertical;}
 .brand svg{stroke:var(--navy);}
 .brand span{font-weight:600;font-size:var(--fs-card);font-family:'Poppins',-apple-system,Segoe UI,sans-serif;color:var(--navy);}
 .nav-links{display:flex;gap:2px;list-style:none;justify-self:center;}
-.nav-links a{font-size:var(--fs-meta);font-weight:600;color:var(--soft);padding:7px 10px;border-radius:var(--r-sm);display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.nav-links a{font-size:var(--fs-label);font-weight:600;color:var(--soft);padding:7px 10px;border-radius:var(--r-sm);display:flex;align-items:center;gap:6px;white-space:nowrap;}
 .nav-links a:hover{color:var(--blue);}
 .nav-links a.on{color:var(--blue);background:#e3ecfa;}
 .nav-links a svg{flex:none;}
@@ -270,7 +270,7 @@ main{min-height:70vh;flex:1;}
 .tcard .thumb{height:62px;border-radius:var(--r-sm);margin-bottom:9px;}
 .tcard .t{font-size:var(--fs-badge);font-weight:600;line-height:1.4;}
 .tcard .m{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px;}
-.tcard .m span{font-size:var(--fs-badge);color:var(--soft);}
+.tcard .m span{font-size:var(--fs-meta);color:var(--soft);}
 .shortcut{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px solid var(--bg);font-size:var(--fs-meta);font-weight:600;color:var(--navy);width:100%;background:none;border-left:none;border-right:none;border-top:none;}
 .shortcut:last-child{border-bottom:none;}
 .shortcut:hover{color:var(--blue);}

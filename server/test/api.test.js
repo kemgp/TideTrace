@@ -1277,6 +1277,42 @@ test("contribution status filters are validated and applied with owner scope bef
   assert.equal(businessCalls(calls).length, before);
 });
 
+test("a revision request in the contributions list carries the reviewer's latest note", async () => {
+  const revision = { id: traceId, author_id: userId, status: "revision_requested", title: "Coral survey", category: { id: categoryId, name: "Coral" }, trace_media: [] };
+  const approved = { ...revision, id: "20000000-0000-4000-8000-000000000002", status: "approved" };
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([revision, approved]);
+    if (url.pathname === "/rest/v1/moderation_actions") return json([
+      { trace_id: traceId, reason: "Add a clearer photo", created_at: "2026-10-01T00:00:00Z" },
+      { trace_id: traceId, reason: "Older note", created_at: "2026-09-01T00:00:00Z" },
+    ]);
+  } });
+  const response = await bearer(request(app).get("/api/contributions")).expect(200);
+  const [first, second] = response.body.data;
+  assert.equal(first.reviewer_note, "Add a clearer photo");
+  assert.equal(first.revision_requested_at, "2026-10-01T00:00:00Z");
+  assert.equal(second.reviewer_note, undefined);
+  const lookups = businessCalls(calls).filter((call) => call.url.pathname === "/rest/v1/moderation_actions");
+  assert.equal(lookups.length, 1);
+  assert.equal(lookups[0].url.searchParams.get("trace_id"), `in.(${traceId})`);
+  assert.equal(lookups[0].url.searchParams.get("action"), "eq.review_trace");
+  assert.equal(lookups[0].url.searchParams.get("to_state"), "eq.revision_requested");
+});
+
+test("the contributions list still loads when the reviewer note lookup fails, and skips it without revision requests", async () => {
+  const revision = { id: traceId, author_id: userId, status: "revision_requested", title: "Coral survey", category: { id: categoryId, name: "Coral" }, trace_media: [] };
+  const failing = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([revision]);
+    if (url.pathname === "/rest/v1/moderation_actions") return json({ message: "Unavailable" }, 503);
+  } });
+  const response = await bearer(request(failing.app).get("/api/contributions")).expect(200);
+  assert.equal(response.body.data[0].id, traceId);
+  assert.equal(response.body.data[0].reviewer_note, undefined);
+  const plain = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([{ ...revision, status: "draft" }]) : undefined });
+  await bearer(request(plain.app).get("/api/contributions")).expect(200);
+  assert.equal(businessCalls(plain.calls).some((call) => call.url.pathname === "/rest/v1/moderation_actions"), false);
+});
+
 test("notification preferences require an active account and accept only one supported boolean setting", async () => {
   const prefs = { submission_updates: true, trace_comments: true, new_tides: true };
   const { app, calls, state } = fixture({ handler: ({ url, body }) => {

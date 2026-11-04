@@ -7,7 +7,7 @@ import useRemoteData from "../hooks/useRemoteData.js";
 import { ApiError } from "../api/auth.js";
 import RemoteState from "./RemoteState.jsx";
 import TraceFeedback from "./TraceFeedback.jsx";
-import TraceDraftLayout, { TraceDraftSection, TraceDraftSummary } from "./TraceDraftLayout.jsx";
+import TraceDraftLayout, { FieldHead, RequiredTag, TraceDraftChecklist, TraceDraftSection, TraceDraftSummary } from "./TraceDraftLayout.jsx";
 import Card from "./Card.jsx";
 import TraceMap from "./TraceMap.jsx";
 import TracePhotos from "./TracePhotos.jsx";
@@ -17,6 +17,7 @@ import { flushSync } from "react-dom";
 import PageHeader from "./PageHeader.jsx";
 import { useUnsavedChanges } from "./NavigationGuard.jsx";
 
+const FIELD_IDS = { title: "draft-title", description: "draft-description", category_id: "draft-category", location_name: "draft-location" };
 const draftFields = (trace) => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", is_sensitive: trace?.is_sensitive ?? false, latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null });
 
 export default function TraceDraftForm({ trace = null, onReload, initialLocation = null, back = null }) {
@@ -65,8 +66,15 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
     requireDetails: action === "submit" || revision,
     requirePhoto: action === "submit", hasPhoto: Boolean(selectedPhoto) || hasAttachedPhoto(trace || {}),
   });
-  const fieldProps = (name) => ({ "aria-invalid": Boolean(fieldErrors[name]), "aria-describedby": fieldErrors[name] ? `draft-${name}-error` : undefined });
-  const fieldError = (name) => fieldErrors[name] ? <p id={`draft-${name}-error`} role="alert" style={{ color: "var(--clay)" }}>{fieldErrors[name]}</p> : null;
+  const fieldProps = (name) => ({ "aria-invalid": Boolean(fieldErrors[name]), "aria-describedby": [`${FIELD_IDS[name]}-req`, fieldErrors[name] && `draft-${name}-error`].filter(Boolean).join(" ") });
+  const fieldError = (name) => fieldErrors[name] ? <p id={`draft-${name}-error`} role="alert" className="err">{fieldErrors[name]}</p> : null;
+  // What is still missing to submit, shown as a live checklist beside the buttons.
+  const checklist = <TraceDraftChecklist items={[
+    ["Photo", Boolean(photo) || hasAttachedPhoto(trace || {})],
+    ["Title", Boolean(fields.title.trim())],
+    ["Description", Boolean(fields.description.trim())],
+    ["Location", Boolean(fields.location_name.trim())],
+  ]} />;
   const change = (event) => {
     const next = { ...fields, [event.target.name]: event.target.value };
     setFields(next);
@@ -177,7 +185,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
         return;
       }
       allowNavigation();
-      showToast(revision ? "Changes saved. This Trace still needs revision until you resubmit it." : "Draft saved. You can continue from My Contributions.");
+      showToast(revision ? "Changes saved. This Trace still needs revision until you resubmit it." : "Draft saved");
       navigate(`/user/contributions/${encodeURIComponent(saved.id)}`, { replace: true });
     } catch (failure) {
       if (controller.signal.aborted || failure.code === "CANCELLED") return;
@@ -209,7 +217,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
   </>;
 
   return <>
-    <PageHeader back={back} eyebrow={revision ? "Requested revision" : trace ? "Trace draft" : "New trace"} title={revision ? "Edit requested revision" : trace ? "Edit your draft" : "Upload a trace"} subtitle={revision ? "Address the moderator’s feedback, then save changes (status stays Needs revision) or resubmit for review." : "Share what you saw. Save a draft any time with just a category; to submit you also need a title, location, description and photo."} />
+    <PageHeader className="page-hero--form" back={back} eyebrow={revision ? "Requested revision" : trace ? "Trace draft" : "New trace"} title={revision ? "Edit requested revision" : trace ? "Edit your draft" : "Upload a trace"} subtitle={revision ? "Address the moderator’s feedback, then save changes (status stays Needs revision) or resubmit for review." : "Share what you saw. You can save a draft with just a category."} />
     <div className="page-body user-upload">
     {revision && <TraceFeedback id={trace.id} />}
     <TraceDraftLayout activeStep={activeStep} onSelect={jumpToStep} editing={Boolean(trace)}>
@@ -218,48 +226,49 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
         {!categories.loading && !categories.error && available.length === 0 && <p role="status">No categories are available. A category must be added before you can save a draft.</p>}
         <fieldset disabled={busy || processingPhoto} style={{ border: 0, padding: 0, margin: 0 }}>
           <TraceDraftSection step="story" active={!paged || activeStep === "story"} onActivate={setActiveStep}>
-          {!trace && <TracePhotoSelector id="draft-photo" label="Choose a photo (required for submission)" inputRef={photoInput}
+          {!trace && <TracePhotoSelector id="draft-photo" label="Choose a photo" tag={<RequiredTag id="draft-photo-req" kind="submit" />} inputRef={photoInput}
             file={photo} onSelect={selectPhoto} disabled={busy || processingPhoto || blocked} processing={processingPhoto} uploading={uploading}
-            invalid={Boolean(fieldErrors.photo || photoValidation)} describedBy={[fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation"].filter(Boolean).join(" ")}
+            invalid={Boolean(fieldErrors.photo || photoValidation)} describedBy={["draft-photo-req", fieldErrors.photo && "draft-photo-error", photoValidation && "draft-photo-validation"].filter(Boolean).join(" ")}
             onRemove={() => { setPhoto(null); if (validating) setFieldErrors(validate(fields, intent, null)); if (photoInput.current) photoInput.current.value = ""; }}
-            helper="JPEG, PNG or WebP, up to 20 MB. Required to submit; optional for a draft.">
+            helper="JPEG, PNG or WebP, up to 20 MB.">
             {profile.data_saver && <p className="hint">Data saver is on. Preview your prepared photo before saving or submitting.</p>}
             {fieldError("photo")}
-            {photoValidation && <p id="draft-photo-validation" role="alert">{photoValidation}</p>}
+            {photoValidation && <p id="draft-photo-validation" role="alert" className="err">{photoValidation}</p>}
           </TracePhotoSelector>}
           {trace && <div><p className="hint">Manage attached photos from the saved Trace's detail page.</p>{fieldError("photo")}{fieldErrors.photo && <Link to={`/user/contributions/${trace.id}`}>Add a photo</Link>}</div>}
-          <label className="lbl" htmlFor="draft-title" style={{ marginTop: 16 }}>Title</label>
+          <FieldHead htmlFor="draft-title" label="Title" kind="submit" style={{ marginTop: 16 }} />
           <input className="input" id="draft-title" required={revision} name="title" {...fieldProps("title")} maxLength={200} value={fields.title} onChange={change} />
           {fieldError("title")}
-          <label className="lbl" htmlFor="draft-description" style={{ marginTop: 16 }}>Description</label>
+          <FieldHead htmlFor="draft-description" label="Description" kind="submit" style={{ marginTop: 16 }} />
           <textarea className="input" id="draft-description" required={revision} name="description" {...fieldProps("description")} maxLength={20000} rows={6} value={fields.description} onChange={change} />
           {fieldError("description")}
-          <label className="lbl" htmlFor="draft-category">Category (required)</label>
+          <FieldHead htmlFor="draft-category" label="Category" kind="save" style={{ marginTop: 16 }} />
           <select className="input" id="draft-category" name="category_id" {...fieldProps("category_id")} required value={fields.category_id} onChange={change} disabled={categories.loading || Boolean(categories.error)}>
             <option value="">Choose a category</option>
             {fields.category_id && !validCategory && <option value={fields.category_id} disabled>Previous category unavailable. Choose another.</option>}
             {available.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
           {fieldError("category_id")}
-          {paged && <div className="trace-draft-nav"><button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>Save for later</button><button className="btn blue" type="button" onClick={() => jumpToStep("place")}>Next: Place &amp; time</button></div>}
+          {paged && <>{checklist}<div className="trace-draft-nav"><button className="btn outline trace-draft-save" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>Save for later</button><button className="btn blue" type="button" onClick={() => jumpToStep("place")}>Next: Place &amp; time</button></div></>}
           </TraceDraftSection>
           <TraceDraftSection step="place" active={!paged || activeStep === "place"} onActivate={setActiveStep}>
-          <label className="lbl" htmlFor="draft-location" style={{ marginTop: 16 }}>Location</label>
+          <FieldHead htmlFor="draft-location" label="Location" kind="submit" style={{ marginTop: 16 }} />
           <p className="hint">This location name is public. Use a broad area for sensitive locations.</p>
           <input className="input" id="draft-location" required={revision} name="location_name" {...fieldProps("location_name")} maxLength={300} placeholder="e.g. Lawis shoreline" value={fields.location_name} onChange={change} />
           {fieldError("location_name")}
           <label className="row" style={{ gap: 8, marginTop: 12 }}><input type="checkbox" checked={fields.is_sensitive} onChange={(event) => setFields((current) => ({ ...current, is_sensitive: event.target.checked }))} /> Sensitive location</label>
           <p className="hint">{fields.is_sensitive ? "Your exact pin is restricted to you and active staff. It will not appear on the community map." : "Your pin becomes public when this Trace is approved."} Text and photos may still reveal the location.</p>
           <TraceMap latitude={fields.latitude} longitude={fields.longitude} disabled={busy || blocked} onChange={(point) => setFields((current) => ({ ...current, ...point }))} />
-          {paged && <div className="trace-draft-nav"><button className="btn outline" type="button" onClick={() => jumpToStep("story")}>Back</button><button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>Save for later</button><button className="btn blue" type="button" onClick={() => jumpToStep("review")}>Next: Review &amp; submit</button></div>}
+          {paged && <>{checklist}<div className="trace-draft-nav"><button className="btn outline" type="button" onClick={() => jumpToStep("story")}>Back</button><button className="btn outline trace-draft-save" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>Save for later</button><button className="btn blue" type="button" onClick={() => jumpToStep("review")}>Next: Review &amp; submit</button></div></>}
           </TraceDraftSection>
           <TraceDraftSection step="review" active={!paged || activeStep === "review"} onActivate={setActiveStep}>
           {!trace && <TraceDraftSummary fields={fields} categories={available} photo={photo} />}
           {(dirty || photo || processingPhoto) && <p className="hint">You have unsaved changes. Save before leaving this page.</p>}
           {error && <p role="alert">{error}</p>}
+          {checklist}
           <div className="trace-draft-actions">
             <button className="btn clay" type="submit" value="submit" disabled={busy || blocked || categories.loading || Boolean(categories.error)}>{busy && intent === "submit" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "submit" ? stage : revision ? "Resubmit for review" : "Submit Trace"}</button>
-            <button className="btn outline" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "save" ? stage : saveLabel}</button>
+            <button className="btn outline trace-draft-save" type="submit" value="save" disabled={busy || blocked || !validCategory || Boolean(categories.error)}>{busy && intent === "save" && <span className="button-spinner" aria-hidden="true" />}{busy && intent === "save" ? stage : saveLabel}</button>
             {paged && <button className="btn outline" type="button" onClick={() => jumpToStep("place")}>Back</button>}
             {blocked && trace && <button className="btn outline" type="button" onClick={onReload}>{revision ? "Discard local changes and reload Trace" : "Discard local changes and reload saved draft"}</button>}
           </div>

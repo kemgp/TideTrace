@@ -131,7 +131,7 @@ html.dark-mode .app-shell.user-shell .user-settings__body > .card{box-shadow:non
 .community-archive .g3 .user-trace-card > a:not(.trace-card-photo){display:block;padding:14px 16px 16px;color:inherit;text-decoration:none;}
 .community-archive .g3 .user-trace-card .t{font-size:16px;line-height:1.35;}
 .community-archive .g3 .trace-card-author{display:none;}
-.community-archive .g3 .user-category-label{display:inline-block;background:#e3ecfa;color:#314e9d;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;}
+.community-archive .g3 .user-category-label{display:inline-block;background:#e3ecfa;color:#314e9d;font-size:var(--fs-meta);font-weight:700;padding:4px 10px;border-radius:999px;}
 .community-archive .g3 .trace-card-when{display:inline;}
 .community-archive .g3 .user-trace-card > a:not(.trace-card-photo){display:flex;flex-direction:column;gap:6px;}
 .community-archive .g3 .user-trace-card > a:not(.trace-card-photo) > .m:first-of-type{order:-1;justify-content:flex-start;margin:0 0 4px;}

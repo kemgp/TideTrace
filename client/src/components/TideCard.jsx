@@ -4,12 +4,12 @@ import { readingMinutes, tideExcerpt } from "../api/tideText.js";
 import TideThumb from "./TideThumb.jsx";
 import "./TideCard.css";
 
-export default function TideCard({ tide, completionLabel }) {
+export default function TideCard({ tide, completionLabel, priority = false }) {
   const excerpt = (typeof tide.summary === "string" && tide.summary.trim()) || tideExcerpt(tide.body);
   const minutes = readingMinutes(tide.body);
   return <Link className="tcard user-tide-card" to={`/user/tides/${encodeURIComponent(tide.id)}`}>
     <div className="tide-cover">
-      <TideThumb tide={tide} />
+      <TideThumb tide={tide} priority={priority} />
       {tide.category?.name && <span className="tide-topic">{tide.category.name}</span>}
     </div>
     <div className="tide-card-body">

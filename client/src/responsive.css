@@ -215,15 +215,16 @@ body:has(.modal), body:has(dialog[open]) { overflow: hidden; }
 
 /* Account menu: the profile photo opens a dropdown at every width. */
 .app-shell .account-menu { position: relative; display: block; }
-.app-shell .account-menu__toggle { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
-.app-shell .account-menu__toggle .avatar-btn { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
-.app-shell .account-menu__toggle:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: 2px; }
-/* A small round chevron on the photo's corner marks it as a menu. */
-.app-shell .account-menu__chevron { position: absolute; right: -3px; bottom: -1px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: var(--navy); color: #fff; box-shadow: 0 0 0 2px #fff; pointer-events: none; }
+.app-shell .account-menu__toggle { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+/* The round chevron badge sits on the photo's corner. It is inside the button, so photo and badge are one 44px target. */
+.app-shell .account-menu__chevron { position: absolute; right: -4px; bottom: -2px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; box-shadow: 0 0 0 2px #fff; pointer-events: none; }
 .app-shell .account-menu__chevron svg { transition: transform .18s ease; }
 .app-shell .account-menu__toggle[aria-expanded="true"] .account-menu__chevron svg { transform: rotate(180deg); }
 html.dark-mode .app-shell .account-menu__chevron { background: var(--d-surface-2); box-shadow: 0 0 0 2px var(--d-surface); }
 @media (prefers-reduced-motion: reduce) { .app-shell .account-menu__chevron svg { transition: none; } }
+.app-shell .account-menu__toggle .avatar-btn { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
+.app-shell .account-menu__toggle:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: 2px; }
+/* The dropdown with the account name, Settings or Change profile, and Log out. */
 .app-shell .account-menu__panel {
   display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 60;
   flex-direction: column; gap: 2px; min-width: 200px; padding: 6px;

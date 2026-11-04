@@ -1,6 +1,6 @@
 import { PAGE_SIZE } from "../../../api/pagination.js";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { scrollToWhenReady } from "../../../components/ScrollManager.jsx";
 import { readArchiveParams, writeArchiveParams, archiveSearch, pageToOffset, offsetToPage } from "../../../api/archiveParams.js";
 import useRemoteData from "../../../hooks/useRemoteData.js";
@@ -21,7 +21,6 @@ export default function ViewTraces() {
   const { query, page, view } = state;
   const cat = categories.some((category) => category.id === state.category) ? state.category : "All";
   const offset = pageToOffset(page, PAGE_SIZE);
-  const navigate = useNavigate();
   const [draft, setDraft] = useState(query);
   useEffect(() => setDraft(query), [params.toString()]);
   const update = (next, { replace = false } = {}) => {
@@ -52,7 +51,7 @@ export default function ViewTraces() {
 
   return (
     <>
-    <PageHeader eyebrow="Traces" title="Community archive" subtitle="Sightings, clean-ups, and stories from coastal communities. Search and filter them." actions={<button type="button" className="banner-action" onClick={() => navigate("/user/traces/upload")}>New Trace</button>} />
+    <PageHeader eyebrow="Traces" title="Community archive" subtitle="Sightings, clean-ups, and stories from coastal communities. Search and filter them." actions={<Link className="banner-action" to="/user/traces/upload">New Trace</Link>} />
     <div className="page-body community-archive">
       <div className="archive-filters">
       <div className="toolbar">
@@ -96,7 +95,7 @@ export default function ViewTraces() {
           <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>Clear all filters</Button>
         </div>}
         <div className={`g3${result.refreshing ? " is-refreshing" : ""}`} aria-busy={result.refreshing || undefined} onClickCapture={rememberScroll}>
-          {traces.map((t) => <TraceCard key={t.id} trace={t} to={`/user/traces/${t.id}`} linkState={{ archiveSearch: archiveSearch(state) }} />)}
+          {traces.map((t, index) => <TraceCard key={t.id} trace={t} priority={index < 3} to={`/user/traces/${t.id}`} linkState={{ archiveSearch: archiveSearch(state) }} />)}
         </div>
         </>
       ) : (

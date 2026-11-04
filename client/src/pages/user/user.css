@@ -19,7 +19,7 @@
 .app-shell.user-shell .tcard .thumb { height: 68px; border-radius: var(--r-sm); }
 .app-shell.user-shell .tcard .t { font-size:var(--fs-label); line-height: 1.5; }
 .app-shell.user-shell .tcard .m { flex-wrap: wrap; gap: 8px; }
-.app-shell.user-shell .tcard .m span { font-size:var(--fs-badge); }
+.app-shell.user-shell .tcard .m span { font-size:var(--fs-meta); }
 .app-shell.user-shell .user-category-label { border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; }
 .user-card-location { display: flex; align-items: center; gap: 4px; }
 .user-card-location svg { flex: none; }

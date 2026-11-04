@@ -283,7 +283,7 @@ export default function Navbar(){
                 onClick={()=>setAccountOpen(previous=>!previous)}
               >
                 <span className={avatarClass}><ProfileAvatar /></span>
-                <span className="account-menu__chevron" aria-hidden="true"><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg></span>
+                <span className="account-menu__chevron" aria-hidden="true"><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg></span>
               </button>
 
               <div id="account-menu-panel" className="account-menu__panel">

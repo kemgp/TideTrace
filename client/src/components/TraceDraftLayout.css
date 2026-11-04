@@ -123,3 +123,32 @@
   .app-shell .trace-draft-steps ol { display: grid; margin: 0; }
   .app-shell .trace-draft-actions > button { flex: 0 1 auto; }
 }
+
+/* ---- UX audit fixes: requirement markers, checklist, buttons ---- */
+/* The intro under the title is never cut off. */
+.page-hero--form .page-hero__sub{display:block;-webkit-line-clamp:unset;overflow:visible;}
+.field-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px;margin:0 0 8px;}
+.app-shell .trace-draft-section .field-head .lbl,.field-head .lbl{margin:0;}
+.req-tag{font-size:var(--fs-meta);font-weight:600;color:var(--soft);}
+.app-shell .trace-draft-summary dt .req-tag{display:block;margin-top:2px;font-weight:500;}
+.trace-draft-checklist{display:flex;flex-wrap:wrap;gap:4px 0;list-style:none;margin:24px 0 0;padding:0;font-size:var(--fs-label);font-weight:600;color:var(--soft);}
+.trace-draft-checklist li + li::before{content:"·" / "";margin:0 8px;}
+.trace-draft-checklist li.is-done{color:var(--teal-strong);}
+.app-shell .trace-draft-nav{display:flex;flex-direction:column-reverse;gap:12px;margin-top:12px;}
+.app-shell .trace-draft-nav > .btn{width:100%;min-height:46px;}
+.app-shell .trace-draft-actions{margin-top:12px;}
+/* "Save for later" stays visible as a secondary action: strong border, full-contrast text. */
+.app-shell .btn.trace-draft-save{background:#fff;border:2px solid var(--blue);color:var(--blue);font-weight:600;}
+.app-shell .btn.trace-draft-save:hover:not(:disabled){background:#e3ecfa;border-color:var(--blue-dark);color:var(--blue-dark);}
+@media (max-width: 639px) {
+  .app-shell .trace-draft-actions { flex-direction: column; }
+  .app-shell .trace-draft-actions > button { flex: 0 0 auto; width: 100%; }
+}
+@media (min-width: 640px) {
+  .app-shell .trace-draft-nav { flex-direction: row; flex-wrap: wrap; }
+  .app-shell .trace-draft-nav > .btn { width: auto; }
+}
+html.dark-mode .req-tag,html.dark-mode .trace-draft-checklist{color:var(--d-muted);}
+html.dark-mode .trace-draft-checklist li.is-done{color:#9fd8d3;}
+html.dark-mode .app-shell .btn.trace-draft-save{background:transparent;border-color:#a9b8ff;color:#a9b8ff;}
+html.dark-mode .app-shell .btn.trace-draft-save:hover:not(:disabled){background:var(--d-surface-2);color:#fff;}

@@ -105,11 +105,11 @@ it.each(["Save draft", "Submit Trace"])("prepares the preview before %s sends th
   useApp.mockReturnValue({ profile: { id: "viewer", data_saver: true }, readData, writeData, showToast: vi.fn() });
   render(<MemoryRouter><TraceDraftForm /></MemoryRouter>);
   await screen.findByRole("option", { name: "Seagrass" });
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Coast" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Shore" } });
   fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Observation" } });
-  fireEvent.change(screen.getByLabelText("Choose a photo (required for submission)"), { target: { files: [new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" })] } });
+  fireEvent.change(screen.getByLabelText("Choose a photo"), { target: { files: [new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" })] } });
   await screen.findByAltText("Selected photo preview");
   expect(writeData).not.toHaveBeenCalled();
   const processed = URL.createObjectURL.mock.calls.at(-1)[0];

@@ -143,11 +143,13 @@ it("quietly asks the server to finish pending photo removal when contributions o
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
-it("deletes from contributions without nesting the button in a link and refreshes the list", async () => {
+it("deletes from the contributions ⋯ menu after confirming, and refreshes the list", async () => {
   setup(); open("/user/contributions");
-  const trigger = await screen.findByRole("button", { name: "Delete", exact: true });
-  expect(trigger.closest("a")).toBeNull();
-  const modal = await dialog();
+  const more = await screen.findByRole("button", { name: `More actions for ${trace.title}` });
+  expect(more.closest("a")).toBeNull();
+  fireEvent.click(more);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+  const modal = screen.getByRole("dialog", { name: "Delete this trace?" });
   fireEvent.click(within(modal).getByRole("button", { name: "Delete", exact: true }));
   await screen.findByText("Trace deleted.");
   await screen.findByText("You haven't submitted any traces yet.");

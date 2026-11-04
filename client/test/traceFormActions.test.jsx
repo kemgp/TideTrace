@@ -1,6 +1,6 @@
 import React, { StrictMode } from "react";
 import { expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
@@ -38,7 +38,7 @@ const file = () => new File([new Uint8Array(12)], "coast.png", { type: "image/pn
 const revision = (overrides = {}) => trace({ title: "Coast visit", description: "Updated evidence", location_name: "Lawis", latitude: null, longitude: null, trace_media: [photo], status: "revision_requested", version: 4, ...overrides });
 async function fillForm({ addPhoto = true } = {}) {
   await screen.findByRole("option", { name: "Seagrass" });
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Coast visit" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Lawis" } });
   fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Updated evidence" } });
@@ -97,7 +97,7 @@ it("uses Submit Trace as primary, validates inline without writes, and clears co
   expect(screen.getAllByRole("alert")).toHaveLength(5);
   const title = screen.getByLabelText("Title");
   expect(title.getAttribute("aria-invalid")).toBe("true");
-  expect(document.getElementById(title.getAttribute("aria-describedby")).textContent).toBe("Enter a title.");
+  expect(document.getElementById(title.getAttribute("aria-describedby").split(" ").pop()).textContent).toBe("Enter a title.");
   fireEvent.change(title, { target: { value: "My observation" } });
   expect(title.getAttribute("aria-invalid")).toBe("false");
   expect(screen.queryByText("Enter a title.")).toBeNull();
@@ -109,7 +109,7 @@ it("allows an incomplete draft to be saved after a failed submit validation", as
   open("/user/traces/upload");
   await screen.findByRole("option", { name: "Seagrass" });
   fireEvent.click(screen.getByRole("button", { name: "Submit Trace" }));
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
   await screen.findByRole("heading", { name: "Untitled draft" });
   expect(calls.mock.calls.filter(([, options]) => options.method === "POST").map(([url]) => url)).toEqual(["/api/traces"]);
@@ -213,7 +213,7 @@ it.each(["new", "saved"])("uses the shared selector for %s Traces with picker, d
   expect(picker).toHaveBeenCalledTimes(2);
   expect(browse.getAttribute("aria-controls")).toBe(input.id);
   expect(input.accept).toBe("image/jpeg,image/png,image/webp");
-  expect(document.getElementById(input.getAttribute("aria-describedby"))).toBeTruthy();
+  expect(document.getElementById(input.getAttribute("aria-describedby").split(" ")[0])).toBeTruthy();
   const selected = file();
   fireEvent.change(input, { target: { files: [selected] } });
   await screen.findByAltText("Selected photo preview");
@@ -295,4 +295,55 @@ it("locks the saved draft selector against drops, picks and removal while upload
   expect(calls.mock.calls.filter(([url]) => url === media)).toHaveLength(1);
   await act(async () => finish(response(photo)));
   await screen.findByText(/Your Trace is awaiting a reviewer/);
+});
+
+const requirement = (field) => field.getAttribute("aria-describedby").split(" ").map((id) => document.getElementById(id)?.textContent).filter(Boolean).join(" ");
+
+it("marks what is required to submit and what is required to save, the same on every step", async () => {
+  setup(() => undefined);
+  open("/user/traces/upload");
+  await screen.findByRole("option", { name: "Seagrass" });
+  expect(requirement(screen.getByLabelText("Title"))).toContain("Required to submit");
+  expect(requirement(screen.getByLabelText("Description"))).toContain("Required to submit");
+  expect(requirement(screen.getByLabelText("Location"))).toContain("Required to submit");
+  expect(requirement(screen.getByLabelText("Choose a photo"))).toContain("Required to submit");
+  expect(requirement(screen.getByLabelText("Category"))).toContain("Required to save");
+  // The review step repeats the same markers beside each value.
+  const summary = document.querySelector(".trace-draft-summary");
+  expect(summary.querySelectorAll("dt .req-tag--submit")).toHaveLength(4);
+  expect(summary.querySelectorAll("dt .req-tag--save")).toHaveLength(1);
+});
+
+it("keeps a live checklist of what is still missing to submit", async () => {
+  setup(() => undefined);
+  open("/user/traces/upload");
+  await screen.findByRole("option", { name: "Seagrass" });
+  const items = () => within(screen.getAllByRole("list", { name: "Submission checklist" })[0]).getAllByRole("listitem").map((item) => item.textContent);
+  expect(items()).toEqual(["Photo, still needed", "Title, still needed", "Description, still needed", "Location, still needed"]);
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Coast visit" } });
+  fireEvent.change(screen.getByLabelText("Choose a photo"), { target: { files: [file()] } });
+  await waitFor(() => expect(items()).toEqual(["Photo ✓, done", "Title ✓, done", "Description, still needed", "Location, still needed"]));
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "  " } });
+  expect(items()[1]).toBe("Title, still needed");
+});
+
+it("shows Save for later as a visible secondary button on the first two steps, and Browse files as a primary button", async () => {
+  setup(() => undefined);
+  open("/user/traces/upload");
+  await screen.findByRole("option", { name: "Seagrass" });
+  const saves = screen.getAllByRole("button", { name: "Save for later" });
+  expect(saves).toHaveLength(2);
+  saves.forEach((button) => { expect(button.className).toContain("trace-draft-save"); expect(button.className).toContain("outline"); });
+  expect(screen.getByRole("button", { name: "Browse files" }).className).toContain("blue");
+  expect(screen.getByRole("button", { name: "Next: Place & time" }).className).toContain("blue");
+});
+
+it("confirms a saved draft with one 'Draft saved' toast on the page it lands on", async () => {
+  flowSetup();
+  open("/user/traces/upload");
+  await screen.findByRole("option", { name: "Seagrass" });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
+  fireEvent.click(screen.getAllByRole("button", { name: "Save for later" })[0]);
+  await screen.findByRole("heading", { name: "Untitled draft" });
+  expect(await screen.findAllByText("Draft saved")).toHaveLength(1);
 });

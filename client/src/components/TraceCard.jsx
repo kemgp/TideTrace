@@ -1,12 +1,13 @@
-import React,{useEffect,useState} from "react";
+import React,{useEffect,useId,useState} from "react";
 import {Link} from "react-router-dom";
 import TraceStatusBadge from "./TraceStatusBadge.jsx";
 import AdminIcon from "./AdminIcon.jsx";
 import {useApp} from "../context/AppContext.jsx";
 import {PHOTO_TYPES} from "../api/photos.js";
 import AuthorAvatar from "./AuthorAvatar.jsx";
+import {relativeTime} from "../api/relativeTime.js";
 
-function TraceCardPhoto({trace,to,linkState}){
+function TraceCardPhoto({trace,priority=false}){
   const {readData,profile}=useApp();
   const [requested,setRequested]=useState(false);
   const deferred=profile?.data_saver&&!requested;
@@ -69,20 +70,23 @@ function TraceCardPhoto({trace,to,linkState}){
   if(deferred)return <div className="trace-card-photo trace-card-photo-saver"><span>Data saver is on</span><button type="button" className="btn outline sm" onClick={()=>setRequested(true)}>Load photo</button></div>;
 
   if(url){
-    const PhotoTag=to?Link:"div";
+    // The photo is not a link of its own: the card has one link (the title), stretched over the whole card.
     return(
-      <PhotoTag className={`trace-card-photo${loaded?"":" trace-card-photo-loading"}`} {...(to?{to,state:linkState}:{})}>
+      <div className={`trace-card-photo${loaded?"":" trace-card-photo-loading"}`}>
         <img
           src={url}
           alt={trace?.title?`${trace.title} photo`:"Trace photo"}
           referrerPolicy="no-referrer"
           decoding="async"
+          // Photos at the top of the page load straight away; the rest wait until they are near the screen.
+          loading={priority?"eager":"lazy"}
+          fetchPriority={priority?"high":"auto"}
           // Hidden (over the shimmer) until fully downloaded and decoded, so it appears whole instead of painting top to bottom.
           onLoad={(event)=>{const image=event.currentTarget;(image.decode?image.decode().catch(()=>{}):Promise.resolve()).then(()=>setLoaded(true));}}
           onError={()=>{setUrl("");setStatus("unavailable");}}
           style={{opacity:loaded?1:0,transition:"opacity .25s ease"}}
         />
-      </PhotoTag>
+      </div>
     );
   }
 
@@ -95,16 +99,20 @@ function TraceCardPhoto({trace,to,linkState}){
   );
 }
 
-export default function TraceCard({trace,to,linkState}){
+export default function TraceCard({trace,to,linkState,priority=false}){
   const {profile}=useApp();
   const Tag=to?Link:"article";
+  const uid=useId();
+  // A trace titled with just its category says little, so the location takes the title's place.
+  const generic=String(trace.title||"").trim().toLowerCase()===String(trace.category||"").trim().toLowerCase();
+  const heading=generic&&trace.location?trace.location:trace.title;
 
   return(
     <article className="tcard user-trace-card">
       <style>{`
         .trace-card-photo{
           width:100%;
-          height:220px;
+          aspect-ratio:16/10;
           border-radius:10px;
           background:#eef3f8;
           overflow:hidden;
@@ -134,22 +142,22 @@ export default function TraceCard({trace,to,linkState}){
         html.dark-mode .trace-card-photo-saver{
           color:#a9b8cc;
         }
-        @media(max-width:640px){
-          .trace-card-photo{
-            height:200px;
-          }
-        }
+        .user-trace-card{position:relative;}
+        .user-trace-card .trace-card-link::after{content:"";position:absolute;inset:0;border-radius:inherit;}
+        .user-trace-card .trace-card-link:focus-visible{outline:none;}
+        .user-trace-card .trace-card-link:focus-visible::after{outline:var(--focus-width) solid var(--focus-ring);outline-offset:2px;}
+        .user-trace-card .trace-card-photo-saver button{position:relative;z-index:2;}
       `}</style>
 
-      <TraceCardPhoto key={`${trace.id}:${Boolean(profile?.data_saver)}`} trace={trace} to={to} linkState={linkState}/>
-      <Tag {...(to?{to,state:linkState}:{})}>
+      <TraceCardPhoto key={`${trace.id}:${Boolean(profile?.data_saver)}`} trace={trace} priority={priority}/>
+      <Tag className="trace-card-link" {...(to?{to,state:linkState,"aria-labelledby":`${uid}-t`,"aria-describedby":`${uid}-m`}:{})}>
 
-      <div className="t">{trace.title}</div>
+      <div className="t" id={`${uid}-t`}>{heading}</div>
 
-      <div className="m">
+      <div className="m" id={`${uid}-m`}>
         <span className="trace-card-author">
           <AuthorAvatar authorId={trace.author_id} name={trace.author} url={trace.author_avatar_url} />
-          <span>{trace.author}{trace.when&&` · ${trace.when}`}</span>
+          <span>{trace.author}{trace.posted&&<> · <time dateTime={trace.posted_iso} title={relativeTime(trace.posted_iso)}>{trace.posted}</time></>}</span>
         </span>
 
         <span className="user-category-label">
@@ -158,11 +166,10 @@ export default function TraceCard({trace,to,linkState}){
       </div>
 
       <div className="m">
-        <span className="user-card-location">
+        {!(generic&&trace.location)&&<span className="user-card-location">
           <AdminIcon name="pin" size={13}/>
           {trace.location}
-          {trace.when&&<span className="trace-card-when">, {trace.when}</span>}
-        </span>
+        </span>}
 
         {trace.status!=="approved"&&(
           <TraceStatusBadge status={trace.status}/>

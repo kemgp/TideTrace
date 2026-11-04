@@ -25,6 +25,27 @@ export default function TraceDraftLayout({ activeStep, onSelect, editing, childr
   </div>;
 }
 
+const REQUIRED = { submit: "Required to submit", save: "Required to save" };
+
+// "Required to submit" / "Required to save" marker. Fields point to it with aria-describedby, so the label text stays the field name.
+export function RequiredTag({ id, kind }) {
+  return <span id={id} className={`req-tag req-tag--${kind}`}>{REQUIRED[kind]}</span>;
+}
+
+// Label plus its requirement marker, the same on every step. The marker id is `${htmlFor}-req`.
+export function FieldHead({ htmlFor, label, kind, style }) {
+  return <div className="field-head" style={style}><label className="lbl" htmlFor={htmlFor}>{label}</label><RequiredTag id={`${htmlFor}-req`} kind={kind} /></div>;
+}
+
+// Live list of what is still missing to submit, e.g. "Photo ✓ · Title ✓ · Description · Location". `items` are [label, done].
+export function TraceDraftChecklist({ items }) {
+  return <ul className="trace-draft-checklist" role="list" aria-label="Submission checklist">
+    {items.map(([label, done]) => <li key={label} className={done ? "is-done" : ""}>
+      {label}{done && <span aria-hidden="true"> ✓</span>}<span className="sr-only">{done ? ", done" : ", still needed"}</span>
+    </li>)}
+  </ul>;
+}
+
 export function TraceDraftSection({ step, onActivate, active = true, children }) {
   const index = STEPS.findIndex((item) => item.key === step);
   const title = STEPS[index].label;
@@ -37,13 +58,13 @@ export function TraceDraftSection({ step, onActivate, active = true, children })
 
 export function TraceDraftSummary({ fields, categories, photo }) {
   const entries = [
-    ["Category", categories.find((category) => category.id === fields.category_id)?.name || "Not selected"],
-    ["Title", fields.title || "Not written"],
-    ["Location", fields.location_name || "Not set"],
-    ["Description", fields.description || "Not written"],
-    ["Photo", photo?.name || "Not selected"],
+    ["Category", "save", categories.find((category) => category.id === fields.category_id)?.name || "Not selected"],
+    ["Title", "submit", fields.title || "Not written"],
+    ["Location", "submit", fields.location_name || "Not set"],
+    ["Description", "submit", fields.description || "Not written"],
+    ["Photo", "submit", photo?.name || "Not selected"],
   ];
-  return <dl className="trace-draft-summary">{entries.map(([label, value]) =>
-    <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+  return <dl className="trace-draft-summary">{entries.map(([label, kind, value]) =>
+    <div key={label}><dt>{label}<RequiredTag kind={kind} /></dt><dd>{value}</dd></div>
   )}</dl>;
 }
