@@ -1,30 +1,51 @@
 .contrib-thumb{position:relative;display:block;flex:none;width:56px;height:56px;border-radius:var(--r-sm);background:var(--thumb-color,var(--teal));overflow:hidden;}
 .contrib-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .25s ease;}
 
-/* Each contribution is one card: [ photo | details | status ] then [ actions ]. */
+/* Each contribution is one card: [ photo | details | status | actions ].
+   The primary action (Continue editing, Revise or View) is the card's only link: its box is stretched over the whole card. */
 .user-contributions{display:grid;gap:12px;}
-.app-shell .contrib-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);transition:border-color .15s ease,box-shadow .15s ease;}
+.app-shell .contrib-row{position:relative;display:grid;grid-template-columns:56px minmax(0,1fr) auto auto;align-items:center;gap:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);transition:border-color .15s ease,box-shadow .15s ease;}
 .app-shell .contrib-row:hover{border-color:var(--blue);box-shadow:var(--shadow-sm);}
-.app-shell .contrib-row .user-contribution.lrow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:16px;padding:0;border:0;border-radius:var(--r-sm);min-width:0;}
-.app-shell .contrib-row .user-contribution .t{font-size:var(--fs-label);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.app-shell .contrib-row .user-contribution .m{margin-top:2px;}
-.app-shell .contrib-row .user-contribution .contrib-state{margin-top:1px;}
-.contrib-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px;}
-.app-shell .contrib-row .contrib-next{color:var(--blue);font-weight:600;}
-html.dark-mode .app-shell .contrib-row .contrib-next{color:#a9b8ff;}
-.app-shell /* Quiet destructive action: grey until hovered or focused, so it does not compete with the row. */
-.app-shell .contrib-delete.btn{background:transparent;border:0;color:var(--soft);min-height:36px;padding:6px 10px;font-size:var(--fs-meta);font-weight:500;}
-.app-shell .contrib-delete.btn:hover:not(:disabled),.app-shell .contrib-delete.btn:focus-visible{background:transparent;color:var(--danger);}
+.contrib-text{min-width:0;}
+.app-shell .contrib-row .t{font-size:var(--fs-label);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.app-shell .contrib-row .m{margin-top:2px;font-size:var(--fs-meta);color:var(--soft);}
+.app-shell .contrib-row .contrib-state{margin-top:1px;}
+.contrib-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;}
+.contrib-row .contrib-primary{position:static;white-space:nowrap;}
+.contrib-row .contrib-primary::after{content:"";position:absolute;inset:0;border-radius:inherit;}
+.contrib-row .contrib-primary:focus-visible{outline:none;}
+.contrib-row .contrib-primary:focus-visible::after{outline:var(--focus-width) solid var(--focus-ring);outline-offset:2px;}
+.chip-count{font-weight:700;}
 
+/* The "⋯" menu holds the less common actions (Delete). It sits above the stretched link. */
+.row-menu{position:relative;z-index:2;}
+.row-menu__btn{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--soft);cursor:pointer;}
+.row-menu__btn:hover,.row-menu__btn[aria-expanded="true"]{background:var(--bg);color:var(--navy);}
+.row-menu__list{position:absolute;right:0;top:calc(100% + 4px);z-index:30;display:grid;gap:2px;min-width:160px;padding:6px;border:1px solid var(--line);border-radius:var(--r-md);background:#fff;box-shadow:var(--shadow-md);}
+.row-menu__item{display:flex;align-items:center;min-height:44px;padding:0 12px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--navy);font:inherit;font-size:var(--fs-label);font-weight:600;text-align:left;cursor:pointer;}
+.row-menu__item:hover,.row-menu__item:focus-visible{background:var(--bg);}
+.row-menu__item--danger{color:var(--danger);}
+.row-menu__item--danger:hover,.row-menu__item--danger:focus-visible{background:var(--danger-bg);}
+
+/* Phones: a compact card. Two lines (title, category and place), then the status chip with the action. */
 @media(max-width:760px){
-  .app-shell .contrib-row{grid-template-columns:minmax(0,1fr);gap:12px;}
-  .app-shell .contrib-row .user-contribution.lrow{grid-template-columns:56px minmax(0,1fr);}
-  .app-shell .contrib-row .user-contribution.lrow > :last-child{grid-column:2;justify-self:start;}
-  .contrib-actions{margin-top:-6px;}
+  .app-shell .contrib-row{grid-template-columns:48px minmax(0,1fr) auto;grid-template-areas:"thumb text menu" ". chip action";gap:8px 12px;padding:12px;align-items:center;}
+  .app-shell .contrib-row .contrib-thumb{grid-area:thumb;width:48px;height:48px;align-self:start;}
+  .app-shell .contrib-row .contrib-text{grid-area:text;}
+  .app-shell .contrib-row .contrib-actions{display:contents;}
+  .app-shell .contrib-row .row-menu{grid-area:menu;align-self:start;margin:-6px -6px 0 0;}
+  .app-shell .contrib-row > .badge{grid-area:chip;justify-self:start;}
+  .app-shell .contrib-row .contrib-primary{grid-area:action;justify-self:end;}
+  .app-shell .contrib-row .contrib-state,.app-shell .contrib-row .flag{display:none;}
 }
 @media(prefers-reduced-motion:reduce){.contrib-thumb img,.app-shell .contrib-row{transition:none;}}
 
 html.dark-mode .app-shell .contrib-row{background:var(--d-surface);border-color:var(--d-border);}
 html.dark-mode .app-shell .contrib-row:hover{border-color:#a9b8ff;box-shadow:none;}
-html.dark-mode .app-shell .contrib-delete.btn{color:var(--d-muted);}
-html.dark-mode .app-shell .contrib-delete.btn:hover:not(:disabled),html.dark-mode .app-shell .contrib-delete.btn:focus-visible{color:#f2a29b;}
+html.dark-mode .app-shell .contrib-row .m{color:var(--d-muted);}
+html.dark-mode .row-menu__btn{color:var(--d-muted);}
+html.dark-mode .row-menu__btn:hover,html.dark-mode .row-menu__btn[aria-expanded="true"]{background:var(--d-surface-2);color:var(--d-text);}
+html.dark-mode .row-menu__list{background:var(--d-surface-2);border-color:var(--d-border-strong);}
+html.dark-mode .row-menu__item{color:var(--d-text);}
+html.dark-mode .row-menu__item:hover,html.dark-mode .row-menu__item:focus-visible{background:var(--d-surface);}
+html.dark-mode .row-menu__item--danger{color:#f2a29b;}

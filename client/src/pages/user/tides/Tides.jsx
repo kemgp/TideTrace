@@ -71,7 +71,7 @@ export default function Tides() {
     <RemoteState {...result} />
     {completions.error && <div><p>Completion status could not be loaded.</p><RemoteState {...completions} /></div>}
     {!result.loading && !result.error && (lessons.length
-      ? <div className="g3 tide-results" aria-busy={result.refreshing}>{lessons.map((tide) => <TideCard key={tide.id} tide={tide} completionLabel={statusOf(tide)} />)}</div>
+      ? <div className="g3 tide-results" aria-busy={result.refreshing}>{lessons.map((tide, index) => <TideCard key={tide.id} tide={tide} priority={index < 3} completionLabel={statusOf(tide)} />)}</div>
       : <div className="ph archive-empty tide-empty">{filtered ? <><p>No lessons match these filters. Try another search or clear filters.</p><Button type="button" variant="outline" size="sm" onClick={clear}>Clear filters</Button></> : "No published lessons found."}</div>)}
     <Pagination offset={offset} count={lessons.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
     </div>

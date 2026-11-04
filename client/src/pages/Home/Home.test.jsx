@@ -22,6 +22,19 @@ it('shows the completed reduced-motion page and live totals',()=>{
  expect(screen.getAllByRole('main')).toHaveLength(1);
  expect(document.querySelectorAll('.tt-pending')).toHaveLength(0);
 });
+it('shows the signed-out header and hero actions',()=>{
+ open();
+ expect(screen.getByRole('link',{name:'Join TideTrace'})).toBeTruthy();
+ expect(screen.queryByRole('link',{name:'Go to dashboard'})).toBeNull();
+});
+it('shows Go to dashboard and Add a Trace once signed in, and keeps the label non-interactive',()=>{
+ session.role='user';open();
+ expect(screen.getByRole('link',{name:'Go to dashboard'}).getAttribute('href')).toBe('/user/dashboard');
+ expect(screen.getByRole('link',{name:'Add a Trace',exact:true}).getAttribute('href')).toBe('/user/traces/upload');
+ expect(screen.queryByRole('link',{name:'Make Your First Trace'})).toBeNull();
+ const label=screen.getByText('Explore · Contribute · Learn');
+ expect(label.closest('a,button')).toBeNull();
+});
 it('closes navigation with Escape and returns focus to the toggle',()=>{
  open();const toggle=screen.getByRole('button',{name:'Open menu'});fireEvent.click(toggle);
  expect(toggle.getAttribute('aria-expanded')).toBe('true');fireEvent.keyDown(toggle,{key:'Escape'});
@@ -29,7 +42,7 @@ it('closes navigation with Escape and returns focus to the toggle',()=>{
 });
 it('routes authenticated contributors to upload and restores scroll preferences on unmount',()=>{
  session.role='user';const previous=document.documentElement.style.scrollBehavior;const page=open();
- expect(screen.getByRole('link',{name:'Make Your First Trace',exact:true}).getAttribute('href')).toBe('/user/traces/upload');
+ expect(screen.getByRole('link',{name:'Add a Trace',exact:true}).getAttribute('href')).toBe('/user/traces/upload');
  expect(document.documentElement.style.scrollBehavior).toBe('auto');page.unmount();expect(document.documentElement.style.scrollBehavior).toBe(previous);
 });
 it('shows real headline text, the drawn quote underline and wave edges between sections',()=>{

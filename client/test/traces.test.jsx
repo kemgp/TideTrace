@@ -139,8 +139,48 @@ it("restores a contribution detail directly using the owner-scoped endpoint", as
 it("handles inaccessible contribution details without showing a mock submission", async () => {
   setup((url) => (url.startsWith("/api/contributions/") && !url.includes("/reviews?")) ? failure(404) : undefined);
   open(`/user/contributions/${trace().id}`);
-  expect((await screen.findByRole("alert")).textContent).toMatch(/could not be found/);
+  expect((await screen.findByRole("alert")).textContent).toMatch(/This Trace was removed or never existed/);
   expect(screen.queryByText("Saved description")).toBeNull();
+});
+
+it("shows a calm not-found page for a removed Trace: header kept, one way back, no retry", async () => {
+  setup((url) => url === "/api/traces/20000000-0000-4000-8000-0000000000aa" ? failure(404) : undefined);
+  open("/user/traces/20000000-0000-4000-8000-0000000000aa");
+  expect((await screen.findByRole("alert")).textContent).toMatch(/This Trace was removed or never existed/);
+  expect(screen.getByRole("heading", { name: "Trace not found" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to Traces" }).getAttribute("href")).toMatch(/^\/user\/traces/);
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  // The navigation stays available.
+  expect(screen.getAllByRole("link", { name: /Traces/ }).length).toBeGreaterThan(1);
+});
+
+it("keeps Try again for a Trace that failed to load for another reason", async () => {
+  setup((url) => url === "/api/traces/20000000-0000-4000-8000-0000000000ab" ? failure(503) : undefined);
+  open("/user/traces/20000000-0000-4000-8000-0000000000ab");
+  expect(await screen.findByRole("button", { name: "Try again" })).toBeTruthy();
+  expect(screen.queryByText(/removed or never existed/)).toBeNull();
+});
+
+it("gives each Trace card one link named by its title, with the author and a dated byline", async () => {
+  setup((url) => url.startsWith("/api/traces?") ? response([trace({ created_at: "2026-10-24T09:00:00Z" })]) : undefined);
+  open();
+  const link = await screen.findByRole("link", { name: "Saved seagrass survey" });
+  expect(link.getAttribute("href")).toBe(`/user/traces/${trace().id}`);
+  expect(screen.getAllByRole("link", { name: /Saved seagrass survey/ })).toHaveLength(1);
+  expect(link.textContent).toMatch(/24 Oct 2026/);
+});
+
+it("shows the location instead of a title that only repeats the category", async () => {
+  setup((url) => url.startsWith("/api/traces?") ? response([trace({ title: "Seagrass", location_name: "Guimaras Strait" })]) : undefined);
+  open();
+  expect(await screen.findByRole("link", { name: "Guimaras Strait" })).toBeTruthy();
+});
+
+it("offers New Trace as a link to the upload page", async () => {
+  setup((url) => url.startsWith("/api/traces?") ? response([trace()]) : undefined);
+  open();
+  expect((await screen.findByRole("link", { name: "New Trace" })).getAttribute("href")).toBe("/user/traces/upload");
+  expect(screen.queryByRole("button", { name: "New Trace" })).toBeNull();
 });
 
 it("ignores a late response after switching category filters", async () => {

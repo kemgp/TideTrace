@@ -39,6 +39,16 @@ export default function LiveTraceDetail({ contribution = false }) {
 
   const back = <Link className="page-hero__back" to={`/user/${base}${contribution ? listSearch : archiveSearch}`} state={{ restoreScroll: true }}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>;
   const stepper = contribution ? null : <TraceStepper neighbors={neighbors} archiveSearch={archiveSearch} />;
+  // A removed or unknown Trace keeps the page header and nav, says what happened, and offers one way back (no "Try again").
+  if (!result.data && result.notFound) return <>
+    <PageHeader eyebrow={contribution ? "My contribution" : "Trace"} title="Trace not found" />
+    <div className="page-body">
+      <div className="missing-state" role="alert">
+        <p>This Trace was removed or never existed.</p>
+        <Link className="btn blue" to={`/user/${base}${contribution ? listSearch : archiveSearch}`} state={{ restoreScroll: true }}>Back to {contribution ? "My Contributions" : "Traces"}</Link>
+      </div>
+    </div>
+  </>;
   if (!result.data) return <div className={contribution ? "wrap" : "wrap trace-detail"} style={contribution ? { maxWidth: 760 } : undefined}>
     <div className="trace-detail__topbar">
       <Link className="btn ghost sm" to={`/user/${base}${contribution ? listSearch : archiveSearch}`} state={{ restoreScroll: true }}>← Back to {contribution ? "My Contributions" : "Traces"}</Link>
@@ -53,7 +63,7 @@ function TraceContent({ initialTrace, contribution, archiveSearch, neighbors, ba
   const { profile } = useApp();
   const [current, setCurrent] = useState(initialTrace);
   const [fieldErrors, setFieldErrors] = useState({});
-  const fieldError = (name) => fieldErrors[name] ? <p id={name === "photo" ? "trace-photo-validation" : undefined} role="alert" style={{ color: "var(--clay)" }}>{fieldErrors[name]}</p> : null;
+  const fieldError = (name) => fieldErrors[name] ? <p id={name === "photo" ? "trace-photo-validation" : undefined} role="alert" style={{ color: "var(--danger)" }}>{fieldErrors[name]}</p> : null;
   const [submissionLocked, setSubmissionLocked] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

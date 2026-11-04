@@ -1,6 +1,17 @@
-# TideTrace — Handoff (updated 2026-11-02, UI/UX plan added)
+# TideTrace — Handoff (updated 2026-11-04, UX audit fixes)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### UX audit fixes — `ux-audit-fixes` (2026-11-04, uncommitted, tests and builds NOT run)
+
+- **Dashboard**: shorter hero, "Fix N revisions →" link scrolls/focuses `#needs-attention`, single clay "Upload trace" beside the greeting, attention first on mobile. One stat card per status (Total Traces, Drafts, Needs revision, In review, Approved; Rejected only when `/dashboard` returns `rejected`), each linking to `/user/contributions?status=…`. `NeedsAttention` rows: revisions first, reviewer-note snippet, "Revise"/"Finish draft" link, "Waiting on you for N days". `NextLesson` uses `continueLesson` (most recently opened in-progress lesson, else "Start learning") with "Chapter X of Y" and a progress bar. `client/.parked-dashboard-polish/` is a stale snapshot; nothing reused.
+- **Upload form**: "Required to submit/save" markers (sibling elements, labels unchanged), live checklist, bordered "Save for later", stacked full-width buttons on mobile, "Browse files" in primary blue.
+- **My Contributions**: Delete in a "⋯" `RowMenu` with the existing confirm dialog, one primary action per state, counts on filter chips, compact mobile cards.
+- **Browse**: `TraceCard` has one link (the title, stretched), author + "24 Oct 2026" date, location replaces a title that equals the category, 16:10 placeholder, first 3 cards load eagerly. `TideCard`/`TideThumb` get `priority`. Missing Trace shows "This Trace was removed or never existed." + "Back to Traces" (no Try again) via `useRemoteData().notFound`. "New Trace" is a link.
+- **Accessibility**: metadata text 13px (`--fs-meta`), nav labels 14px, avatar toggle is a 44x44 target and the chevron badge is gone, landing shows "Go to dashboard" / "Add a Trace" when signed in, rotating pill replaced by a plain label.
+- **API change made (pre-approved)**: `GET /contributions` adds `reviewer_note` from `moderation_actions` (`withReviewerNotes` in `server/src/routes/content.js`), with server tests.
+- **Left / needs approval**: sort control ("Newest"/"Most viewed") needs a server `sort` param on `GET /traces`; Rejected/hidden counts need `/dashboard` to return `rejected` for totals to reconcile; test-content hiding needs a staff-only flag (see the data audit in the session summary; nothing deleted).
+- **Run on the Mac**: `cd client && npm test && npm run build`, then `cd ../server && npm test`. Then check 390px and 1440px per fix.
 
 ### Focus ring consistency — `focus-ring-consistency` (2026-11-03, uncommitted)
 

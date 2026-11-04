@@ -20,7 +20,7 @@ function setup(role = "user", handler = () => undefined) {
   return fetch;
 }
 const open = (path) => render(<StrictMode><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></StrictMode>);
-it.each([["user", "user", "Your Traces", "52"], ["moderator", "moderator", "Open reports", "39"], ["admin", "admin", "Registered accounts", "201"]])("shows database totals for %s rather than paginated list lengths", async (role, prefix, label, count) => {
+it.each([["user", "user", "Total Traces", "52"], ["moderator", "moderator", "Open reports", "39"], ["admin", "admin", "Registered accounts", "201"]])("shows database totals for %s rather than paginated list lengths", async (role, prefix, label, count) => {
   setup(role); open(`/${prefix}/dashboard`);
   const region = await screen.findByRole("region", { name: "Dashboard totals" });
   await waitFor(() => expect(within(region).getByText(label).closest(".stat").textContent).toContain(count));
@@ -42,14 +42,14 @@ it("shows skeletons, preserves real zero, and rejects another account's response
   let first = true;
   setup("user", (url) => url === "/api/dashboard" ? first ? pending : ok(data) : undefined);
   open("/user/dashboard");
-  await screen.findByLabelText("Loading Your Traces");
+  await screen.findByLabelText("Loading Total Traces");
   await act(async () => finish(ok(data)));
   const region = screen.getByRole("region", { name: "Dashboard totals" });
-  await waitFor(() => expect(within(region).getByText("Your Traces").closest(".stat").querySelector("b").textContent).toBe("0"));
+  await waitFor(() => expect(within(region).getByText("Total Traces").closest(".stat").querySelector("b").textContent).toBe("0"));
   first = false; data = { ...data, id: "other-account" };
   fireEvent(window, new Event("focus"));
   await within(region).findByRole("alert");
-  expect(within(region).getByText("Your Traces").closest(".stat").querySelector("b").textContent).toContain("—");
+  expect(within(region).getByText("Total Traces").closest(".stat").querySelector("b").textContent).toContain("—");
 });
 it("refreshes on focus and every 30 seconds, pauses when hidden and stops on logout", async () => {
   let approved = 10;

@@ -1,5 +1,6 @@
 import { ApiError } from "./auth.js";
 import { apiUrl } from "./url.js";
+import { shortDate } from "./relativeTime.js";
 
 export function getData(path, options) {
   return requestData(path, options);
@@ -40,5 +41,6 @@ export function displayTrace(row) {
     author_avatar_url: row.author?.avatar_url || null,
     author_id: row.author_id || row.author?.id,
     location: row.location_name || "Location not supplied", when: Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString(),
+    posted: Number.isNaN(date.getTime()) ? "" : shortDate(date), posted_iso: Number.isNaN(date.getTime()) ? "" : date.toISOString(),
     status: row.status === "revision_requested" ? "revision" : row.status };
 }

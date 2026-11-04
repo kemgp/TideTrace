@@ -7,8 +7,7 @@
 .attention-text{display:block;min-width:0;}
 .attention-text .t,.attention-text .m{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .attention-text .t{font-size:var(--fs-label);font-weight:600;}
-.attention-text .m{font-size:var(--fs-badge);color:var(--soft);margin-top:2px;}
-@media(max-width:560px){.attention-item{grid-template-columns:56px minmax(0,1fr);}.attention-item > :last-child{grid-column:2;justify-self:start;}}
+.attention-text .m{font-size:var(--fs-meta);color:var(--soft);margin-top:2px;}
 @media(prefers-reduced-motion:reduce){.attention-item,.app-shell.user-shell .stat-link{transition:none;}}
 html.dark-mode .attention-item{background:var(--d-surface);border-color:var(--d-border);}
 html.dark-mode .attention-item:hover{border-color:#a9b8ff;box-shadow:none;}
@@ -23,7 +22,7 @@ html.dark-mode .app-shell.user-shell .stat-link:hover{border-color:#a9b8ff;box-s
 /* Every block starts with a heading row of the same height: title on the left, a quiet link or caption on the right. */
 .dash-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin:16px 0 6px;}
 .app-shell .dash-grid .dash-head .sec-t{margin:0;}
-.dash-meta{font-size:var(--fs-badge);color:var(--soft);white-space:nowrap;}
+.dash-meta{font-size:var(--fs-meta);color:var(--soft);white-space:nowrap;}
 .dash-head .sec-link{min-height:44px;}
 
 /* Two columns on wide screens: attention and learning on the left, totals and news on the right.
@@ -61,7 +60,7 @@ html.dark-mode .banner-action{background:var(--d-surface);color:var(--d-text);}
 .news-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:var(--r-sm);background:#d5eeeb;color:var(--teal-strong);}
 .news-text{display:block;min-width:0;}
 .news-message{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:var(--fs-label);font-weight:500;}
-.news-text .m{display:block;font-size:var(--fs-badge);color:var(--soft);margin-top:2px;}
+.news-text .m{display:block;font-size:var(--fs-meta);color:var(--soft);margin-top:2px;}
 .news-skeleton{min-height:64px;}
 .news-skeleton .sk{display:block;grid-column:1 / -1;width:100%;height:40px;border-radius:var(--r-sm);}
 @media(prefers-reduced-motion:reduce){.news-item{transition:none;}}
@@ -113,7 +112,7 @@ html.dark-mode .attention-item{box-shadow:none;}
 .app-shell.user-shell .news-item:hover .news-message{text-decoration:underline;}
 .app-shell.user-shell .news-icon{width:36px;height:36px;border-radius:999px;background:#e2f2f2;color:#2f6a70;}
 .app-shell.user-shell .news-message{font-size:14px;font-weight:600;}
-.app-shell.user-shell .news-text .m{font-size:12px;}
+.app-shell.user-shell .news-text .m{font-size:var(--fs-meta);}
 .app-shell.user-shell .user-learning-callout{display:block;padding:24px;border-radius:20px;}
 .app-shell.user-shell .user-learning-callout .btn.blue{margin-top:20px;min-height:0;padding:12px 20px;font-size:14px;}
 .app-shell.user-shell .user-learning-callout .learning-title{font-size:22px;line-height:1.25;margin-top:8px;}
@@ -127,7 +126,7 @@ html.dark-mode .app-shell.user-shell .news-icon{background:#1f3a3d;color:#9fd8d3
 .community-grid .user-trace-card > a:not(.trace-card-photo){display:block;padding:14px 16px 16px;color:inherit;text-decoration:none;}
 .community-grid .user-trace-card .t{font-size:16px;line-height:1.35;}
 .community-grid .trace-card-author{display:none;}
-.community-grid .user-category-label{display:inline-block;background:#e3ecfa;color:#314e9d;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;}
+.community-grid .user-category-label{display:inline-block;background:#e3ecfa;color:#314e9d;font-size:var(--fs-meta);font-weight:700;padding:4px 10px;border-radius:999px;}
 .trace-card-when{display:none;}
 .community-grid .trace-card-when{display:inline;}
 .community-grid .user-trace-card > a:not(.trace-card-photo){display:flex;flex-direction:column;gap:6px;}
@@ -142,3 +141,69 @@ html.dark-mode .app-shell.user-shell .news-icon{background:#1f3a3d;color:#9fd8d3
 .app-shell.user-shell .community-grid .user-trace-card{padding:0;}
 .app-shell.user-shell .attention-item{padding:14px 18px;}
 .app-shell.user-shell .dash-stats .stat{padding:22px 24px;}
+
+/* ---- UX audit fixes ---- */
+
+/* Hero: shorter, with the one clay action beside the greeting instead of at the far right. */
+.page-hero.page-hero--dash .page-hero__inner{min-height:0;padding:24px 32px 80px;justify-content:flex-start;align-items:center;gap:12px 28px;}
+.page-hero--dash .page-hero__eyebrow{margin-bottom:6px;}
+.page-hero--dash .page-hero__sub{display:block;margin-top:8px;}
+.page-hero--dash .page-hero__actions .btn.clay{min-height:44px;}
+.hero-link{display:inline-flex;align-items:center;min-height:44px;color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:3px;}
+.hero-link:hover{text-decoration-thickness:2px;}
+.hero-link:focus-visible{outline-color:#fff;}
+@media(max-width:640px){.page-hero.page-hero--dash .page-hero__inner{padding:20px 20px 80px;}}
+/* The totals row overlaps the wave on wide screens. Below that "Needs your attention" comes first and starts under the wave. */
+.page-hero--dash + .page-body{margin-top:8px;}
+@media(min-width:960px){.page-hero--dash + .page-body{margin-top:-64px;}}
+
+/* One column: attention, totals, learning, news, community. Wide screens put the totals across the top. */
+.dash-main > .dash-attention{order:1;}
+.dash-stats{order:2;}
+.dash-side > .dash-learning{order:3;}
+.dash-side > section:not(.dash-learning){order:4;}
+.dash-main > .dash-community{order:5;}
+.dash-attention:focus{outline:none;}
+.dash-attention:focus-visible .sec-t{outline:var(--focus-width) solid var(--focus-ring);outline-offset:4px;border-radius:4px;}
+.dash-attention{scroll-margin-top:84px;}
+@media(min-width:960px){.dash-stats{grid-column:1 / -1;order:-1;margin-bottom:12px;}}
+
+/* Totals: one card per status. Three compact tiles per row on phones, one row of cards on wide screens. */
+.app-shell.user-shell .dash-stats .stat-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.app-shell.user-shell .dash-stats .stat-row .stat{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:64px;padding:10px 26px 10px 12px;border-radius:14px;box-shadow:var(--shadow-card);text-align:left;}
+.app-shell.user-shell .dash-stats .stat-row .stat b{font-size:1.5rem;line-height:1.1;}
+.app-shell.user-shell .dash-stats .stat-row .stat span:not(.stat-placeholder){font-size:var(--fs-meta);line-height:1.25;color:var(--soft);overflow-wrap:anywhere;}
+.dash-stats .stat-icon{display:none;}
+.dash-stats .stat-chevron{position:absolute;top:10px;right:8px;color:var(--soft);transition:transform .15s ease,color .15s ease;}
+.app-shell.user-shell .dash-stats .stat-link:hover .stat-chevron,.app-shell.user-shell .dash-stats .stat-link:focus-visible .stat-chevron{color:var(--blue);transform:translateX(2px);}
+.app-shell.user-shell .dash-stats .stat-link:focus-visible{border-color:var(--blue);box-shadow:0 0 0 3px var(--focus-halo);}
+.app-shell.user-shell .dash-stats .stat-row .stat .stat-icon{background:#e3ecfa;color:var(--blue);}
+.app-shell.user-shell .dash-stats .stat-row .stat[data-stat="approved"] .stat-icon{background:#e2f2f2;color:var(--teal-strong);}
+@media(min-width:640px){
+  .app-shell.user-shell .dash-stats .stat-row{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;}
+  .app-shell.user-shell .dash-stats .stat-row .stat{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"icon value" "icon label";align-items:center;column-gap:14px;row-gap:2px;padding:16px 36px 16px 16px;border-radius:var(--r-lg);}
+  .dash-stats .stat-icon{display:grid;grid-area:icon;place-items:center;width:44px;height:44px;border-radius:12px;}
+  .app-shell.user-shell .dash-stats .stat-row .stat b{grid-area:value;align-self:end;font-size:1.75rem;}
+  .app-shell.user-shell .dash-stats .stat-row .stat span:not(.stat-placeholder){grid-area:label;align-self:start;}
+  .dash-stats .stat-chevron{top:50%;right:12px;margin-top:-8px;}
+}
+.dash-stats__meta{margin:10px 2px 0;text-align:right;}
+@media(prefers-reduced-motion:reduce){.dash-stats .stat-chevron{transition:none;}.app-shell.user-shell .dash-stats .stat-link:hover .stat-chevron{transform:none;}}
+html.dark-mode .dash-stats .stat-chevron{color:var(--d-muted);}
+html.dark-mode .app-shell.user-shell .dash-stats .stat-row .stat span:not(.stat-placeholder){color:var(--d-muted);}
+html.dark-mode .app-shell.user-shell .dash-stats .stat-link:hover .stat-chevron,html.dark-mode .app-shell.user-shell .dash-stats .stat-link:focus-visible .stat-chevron{color:#a9b8ff;}
+
+/* Needs-attention rows: thumbnail, text with the reviewer's note, status, then one visible action.
+   The action's box is stretched over the row, so the whole row is one link. */
+.attention-item{position:relative;grid-template-columns:56px minmax(0,1fr) auto auto;}
+.attention-item .attention-action{position:static;white-space:nowrap;}
+.attention-item .attention-action::after{content:"";position:absolute;inset:0;border-radius:inherit;}
+.attention-item .attention-action:focus-visible{outline:none;}
+.attention-item .attention-action:focus-visible::after{outline:var(--focus-width) solid var(--focus-ring);outline-offset:2px;}
+.attention-text .attention-note{color:var(--navy);font-weight:500;}
+html.dark-mode .attention-text .attention-note{color:var(--d-text);}
+@media(max-width:640px){
+  .attention-item{grid-template-columns:56px minmax(0,1fr);}
+  .attention-item > .badge{grid-column:2;justify-self:start;}
+  .attention-item > .attention-action{grid-column:1 / -1;justify-self:stretch;}
+}

@@ -22,6 +22,23 @@ async function withCoverUrls(db, rows) {
   return rows.map((row) => ({ ...row, image_url: urls.get(row.cover_path) || null }));
 }
 
+// A revision request carries the reviewer's note. The list adds the latest one (and when it was sent) to each
+// revision_requested row as `reviewer_note` and `revision_requested_at`. If the lookup fails the list still loads without them.
+export async function withReviewerNotes(db, rows) {
+  const ids = rows.filter((row) => row.status === "revision_requested").map((row) => row.id);
+  if (!ids.length) return rows;
+  const latest = new Map();
+  try {
+    const actions = await result(db.from("moderation_actions").select("trace_id,reason,created_at").in("trace_id", ids)
+      .eq("action", "review_trace").eq("to_state", "revision_requested").order("created_at", { ascending: false }).order("id", { ascending: false }));
+    for (const action of actions) if (!latest.has(action.trace_id)) latest.set(action.trace_id, action);
+  } catch { /* the rows are still useful without the note */ }
+  return rows.map((row) => {
+    const action = latest.get(row.id);
+    return action ? { ...row, reviewer_note: action.reason || "", revision_requested_at: action.created_at } : row;
+  });
+}
+
 export function contentRoutes(gateway) {
   const router = Router();
   const member = authenticate(gateway);
@@ -171,7 +188,7 @@ export function contentRoutes(gateway) {
     let contributions = req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).is("deleted_at", null);
     if (query.status) contributions = contributions.eq("status", query.status);
     const rows = await result(paginate(contributions.order("created_at", { ascending: false }).order("id"), query));
-    send(res, await withAuthorPhotos(req.db, rows));
+    send(res, await withReviewerNotes(req.db, await withAuthorPhotos(req.db, rows)));
   });
   router.get("/contributions/:id", member, async (req, res) => {
     const row = first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).is("deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));

@@ -1,6 +1,7 @@
 import { PAGE_SIZE } from "../../../api/pagination.js";
-import React, { useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import useDashboard from "../../../hooks/useDashboard.js";
 import useRemoteData from "../../../hooks/useRemoteData.js";
 import { displayTrace } from "../../../api/data.js";
 import { CONTRIBUTION_FILTERS, contributionSearch, readContributionParams, writeContributionParams } from "../../../api/contributionParams.js";
@@ -12,12 +13,15 @@ import EmptyState from "../../../components/EmptyState.jsx";
 import { scrollToWhenReady } from "../../../components/ScrollManager.jsx";
 import PageHeader from "../../../components/PageHeader.jsx";
 import DeleteTrace from "../../../components/DeleteTrace.jsx";
+import RowMenu from "../../../components/RowMenu.jsx";
 import { useApp } from "../../../context/AppContext.jsx";
 import "./contributions.css";
 
 const FILTER_LABELS = { All: "All", draft: "Draft", pending: "Pending", approved: "Approved", revision: "Needs revision", rejected: "Rejected" };
 // One line under each trace saying where it stands.
 const STATUS_HINTS = { draft: "Not submitted yet", pending: "Waiting for a reviewer", approved: "Published", rejected: "Not published" };
+// Which dashboard total backs each filter chip. "Rejected" has a count only when the totals report it.
+const COUNT_KEYS = { All: "traces", draft: "drafts", pending: "pending", approved: "approved", revision: "needs_revision", rejected: "rejected" };
 const EMPTY_FILTERED = { draft: "No drafts.", pending: "Nothing is waiting for review.", approved: "No approved traces yet.", revision: "Nothing needs revision.", rejected: "No rejected traces." };
 
 export default function MyContributions() {
@@ -25,9 +29,12 @@ export default function MyContributions() {
   const { status: filter, page } = readContributionParams(params);
   const offset = (page - 1) * PAGE_SIZE;
   const update = (next, { replace = false } = {}) => setParams(writeContributionParams({ status: filter, page, ...next }), { replace });
-  const navigate = useNavigate();
   const location = useLocation();
   const { writeData } = useApp();
+  const totals = useDashboard();
+  const countOf = (name) => Number.isSafeInteger(totals.data?.[COUNT_KEYS[name]]) ? totals.data[COUNT_KEYS[name]] : null;
+  // The row whose delete confirmation is open (from its "⋯" menu).
+  const [deleting, setDeleting] = useState(null);
   const swept = useRef(false);
   // Quietly finish any photo removal that an earlier delete could not complete. Failures are
   // ignored here; the next visit tries again.
@@ -59,11 +66,11 @@ export default function MyContributions() {
 
   return (
     <>
-    <PageHeader eyebrow="My contributions" title="Your traces &amp; their status" subtitle="Your saved submissions, including drafts. Filter by status across all your contributions." actions={<button type="button" className="banner-action" onClick={() => navigate("/user/traces/upload")}>New Trace</button>} />
+    <PageHeader eyebrow="My contributions" title="Your traces &amp; their status" subtitle="Your saved submissions, including drafts. Filter by status across all your contributions." actions={<Link className="banner-action" to="/user/traces/upload">New Trace</Link>} />
     <div className="page-body contributions-page">
       <div className="chiprow contrib-filters">
         {CONTRIBUTION_FILTERS.map((f) => (
-          <button key={f} className={`chip ${filter === f ? "on" : ""}`} aria-pressed={filter === f} onClick={() => update({ status: f, page: 1 })}>{FILTER_LABELS[f]}</button>
+          <button key={f} className={`chip ${filter === f ? "on" : ""}`} aria-pressed={filter === f} onClick={() => update({ status: f, page: 1 })}>{FILTER_LABELS[f]}{countOf(f) !== null && <>{" "}<span className="chip-count">{countOf(f)}</span></>}</button>
         ))}
       </div>
 
@@ -71,34 +78,37 @@ export default function MyContributions() {
       {!result.loading && !result.error && (mine.length > 0 ? (
         <div className="user-contributions" onClickCapture={rememberScroll}>
           {mine.map((t) => {
-            // A draft has nothing to read yet, so its row opens the editor. Every other row opens the
-            // trace page (a revision request shows the reviewer's feedback and the edit link there).
+            // One primary action per row, and it is the row's only link (its box is stretched over the card).
+            // Drafts and revision requests open the editor; everything else opens the trace page.
             const id = encodeURIComponent(t.id);
-            const opensEditor = t.status === "draft" && !t.is_hidden && !t.deleted_at;
+            const editable = !t.is_hidden && !t.deleted_at;
+            const primary = t.status === "draft" && editable ? { label: "Continue editing", to: `/user/contributions/${id}/edit`, variant: "blue" }
+              : t.status === "revision" && editable ? { label: "Revise", to: `/user/contributions/${id}/edit`, variant: "blue" }
+              : { label: "View", to: `/user/contributions/${id}`, variant: "outline" };
+            const note = (t.reviewer_note || t.note || "").trim();
             return (
-              <div className="row contrib-row" key={t.id}>
-                <Link className="lrow user-contribution grow" to={`/user/contributions/${id}${opensEditor ? "/edit" : ""}`} state={{ listSearch: search }}>
-                  <TraceThumb trace={t} />
-                  <div className="grow">
-                    <div className="t">{t.title}</div>
-                    <div className="m">
-                      <span>{t.category}</span> · <span>{t.location}</span>
-                    </div>
-                    <div className="m contrib-state">
-                      {STATUS_HINTS[t.status] && <span>{STATUS_HINTS[t.status]}</span>}
-                      {opensEditor && <><span aria-hidden="true">·</span><span className="contrib-next">Continue editing</span></>}
-                      {STATUS_HINTS[t.status] && (t.updated_at || t.created_at) && <span aria-hidden="true">·</span>}
-                      {(t.updated_at || t.created_at) && <span>Updated <RelativeTime value={t.updated_at || t.created_at} /></span>}
-                    </div>
-                    {t.status === "revision" && t.note && (
-                      <div className="flag"><b>Feedback</b>{t.note}</div>
-                    )}
+              <div className="contrib-row" key={t.id}>
+                <TraceThumb trace={t} />
+                <div className="contrib-text">
+                  <div className="t">{t.title}</div>
+                  <div className="m">
+                    <span>{t.category}</span> · <span>{t.location}</span>
                   </div>
-                  <TraceStatusBadge status={t.status} />
-                </Link>
-                <div className="contrib-actions">
-                  <DeleteTrace trace={t} quiet onDeleted={result.retry} />
+                  <div className="m contrib-state">
+                    {STATUS_HINTS[t.status] && <span>{STATUS_HINTS[t.status]}</span>}
+                    {STATUS_HINTS[t.status] && (t.updated_at || t.created_at) && <span aria-hidden="true">·</span>}
+                    {(t.updated_at || t.created_at) && <span>Updated <RelativeTime value={t.updated_at || t.created_at} /></span>}
+                  </div>
+                  {t.status === "revision" && note && (
+                    <div className="flag"><b>Feedback</b>{note}</div>
+                  )}
                 </div>
+                <TraceStatusBadge status={t.status} />
+                <div className="contrib-actions">
+                  <Link className={`btn ${primary.variant} sm contrib-primary`} to={primary.to} state={{ listSearch: search }} aria-label={`${primary.label}: ${t.title}`}>{primary.label}</Link>
+                  <RowMenu label={`More actions for ${t.title}`} items={[{ label: "Delete", danger: true, onSelect: () => setDeleting(t.id) }]} />
+                </div>
+                <DeleteTrace trace={t} open={deleting === t.id} onOpenChange={(next) => setDeleting(next ? t.id : null)} onDeleted={() => { result.retry(); totals.refresh(); }} />
               </div>
             );
           })}

@@ -23,7 +23,7 @@ function setup(path) {
 it("moves between upload sections without losing details or saving early", async () => {
   const fetcher = setup("/user/traces/upload");
   await screen.findByRole("option", { name: "Coral condition" });
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: "coral" } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: "coral" } });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Reef visit" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Lawis" } });
   fireEvent.click(screen.getByRole("button", { name: /^Review & submit/ }));

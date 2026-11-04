@@ -123,7 +123,7 @@ it("saves a picked pin through the real draft form, restores it and persists cle
   vi.stubGlobal("fetch", fetch);
   render(<StrictMode><MemoryRouter initialEntries={[{ pathname: "/user/traces/upload", state: { traceLocation: { latitude: 10.1, longitude: 124.2 } } }]}><App /></MemoryRouter></StrictMode>);
   await screen.findByRole("option", { name: "Seagrass" });
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: categoryId } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: categoryId } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Lawis shoreline" } });
   await openMap();
   expect(screen.getByText("Selected coordinates: 10.100000, 124.200000")).toBeTruthy();

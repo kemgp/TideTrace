@@ -46,7 +46,7 @@ it("saves an unfinished draft, reopens it from contributions, and persists an ed
   open("/user/traces/upload");
   await screen.findByRole("option", { name: "Seagrass" });
   expect(screen.getByRole("button", { name: "Save draft" }).disabled).toBe(true);
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
   await screen.findByRole("heading", { name: "Untitled draft" });
   const create = calls.mock.calls.find(([url, options]) => url === "/api/traces" && options.method === "POST")[1];
@@ -122,7 +122,7 @@ it("blocks double saves and never automatically retries an uncertain create", as
   const calls = setup((url, options) => options.method === "POST" ? pending : undefined);
   open("/user/traces/upload");
   await screen.findByRole("option", { name: "Seagrass" });
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Keep this text" } });
   const button = screen.getByRole("button", { name: "Save draft" });
   fireEvent.click(button);
@@ -159,7 +159,7 @@ it("does not show a save success after logout while the write is pending", async
   setup((url, options) => url === "/api/traces" && options.method === "POST" ? pending : undefined);
   open("/user/traces/upload");
   await screen.findByRole("option", { name: "Seagrass" });
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
   fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
   await screen.findByRole("heading", { name: "Welcome to TideTrace" });

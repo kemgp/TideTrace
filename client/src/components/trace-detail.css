@@ -182,3 +182,9 @@
 @media(max-width:539px){.trace-neighbors{grid-template-columns:minmax(0,1fr);}.trace-neighbors__link--older{grid-column:1;}.trace-neighbors__link--newer{grid-row:1;}.trace-neighbors__link--older{grid-row:2;}}
 @media(max-width:480px){.trace-stepper__label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}.app-shell .trace-stepper__btn{min-width:44px;justify-content:center;padding-inline:10px;}}
 @media(max-width:900px){.trace-detail__layout .trace-neighbors{order:8;width:100%;}}
+
+/* Trace not found: a plain card under the page header with one way back. */
+.missing-state{display:grid;justify-items:start;gap:16px;padding:28px;background:#fff;border-radius:20px;box-shadow:var(--shadow-lift);}
+.missing-state p{margin:0;font-size:var(--fs-card);font-weight:600;color:var(--navy);}
+html.dark-mode .missing-state{background:var(--d-surface);box-shadow:none;}
+html.dark-mode .missing-state p{color:var(--d-text);}

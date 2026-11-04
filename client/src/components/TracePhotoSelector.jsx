@@ -4,14 +4,14 @@ import { PHOTO_TYPES } from "../api/photos.js";
 import "./TracePhotoUpload.css";
 
 export default function TracePhotoSelector({ id, label, inputRef, file, onSelect, onRemove, disabled = false, removeDisabled = disabled,
-  removeLabel = "Remove selected photo", processing = false, uploading = false, helper, invalid = false, describedBy, children }) {
+  removeLabel = "Remove selected photo", processing = false, uploading = false, helper, invalid = false, describedBy, tag = null, children }) {
   const [dragging, setDragging] = useState(false);
   const select = (files) => {
     if (!disabled && files?.length) onSelect(files);
   };
   const description = [`${id}-hint`, describedBy].filter(Boolean).join(" ");
   return <div className="trace-photo-upload">
-    <label className="lbl" htmlFor={id}>{label}</label>
+    {tag ? <div className="field-head"><label className="lbl" htmlFor={id}>{label}</label>{tag}</div> : <label className="lbl" htmlFor={id}>{label}</label>}
     <div className="trace-photo-upload__card">
       <div className={`trace-photo-upload__drop${dragging && !disabled ? " is-dragging" : ""}${disabled ? " is-disabled" : ""}`}
         onDragOver={(event) => { event.preventDefault(); if (!disabled) setDragging(true); }}
@@ -25,7 +25,7 @@ export default function TracePhotoSelector({ id, label, inputRef, file, onSelect
         <input className="trace-photo-upload__input" ref={inputRef} id={id} type="file" accept={PHOTO_TYPES.join(",")}
           disabled={disabled} tabIndex={-1} aria-invalid={invalid} aria-describedby={description}
           onChange={(event) => select(event.target.files)} />
-        <button className="trace-photo-upload__browse" type="button" disabled={disabled} aria-controls={id} aria-describedby={description}
+        <button className="btn blue trace-photo-upload__browse" type="button" disabled={disabled} aria-controls={id} aria-describedby={description}
           onClick={() => inputRef.current?.click()}>Browse files</button>
       </div>
       {processing && <p role="status">Preparing smaller photo…</p>}

@@ -59,7 +59,7 @@ function open(path = newTrace, { initialEntries = [path], initialIndex, browser 
 }
 async function fillTrace() {
   await screen.findByRole("option", { name: category.name });
-  for (const [label, value] of [["Category (required)", category.id], ["Title", "Coast visit"], ["Description", "Observed seagrass"], ["Location", "Lawis"]]) {
+  for (const [label, value] of [["Category", category.id], ["Title", "Coast visit"], ["Description", "Observed seagrass"], ["Location", "Lawis"]]) {
     fireEvent.change(screen.getByLabelText(label), { target: { value } });
   }
 }

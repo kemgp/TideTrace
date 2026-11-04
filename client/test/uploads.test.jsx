@@ -185,7 +185,7 @@ async function prepareInitialPhoto(file = png()) {
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: trace().title } });
   fireEvent.change(screen.getByLabelText("Description"), { target: { value: trace().description } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: trace().location_name } });
-  fireEvent.change(screen.getByLabelText("Category (required)"), { target: { value: category.id } });
+  fireEvent.change(screen.getByLabelText("Category"), { target: { value: category.id } });
   fireEvent.change(screen.getByLabelText(/^Choose a photo/), { target: { files: [file] } });
 }
 
@@ -329,7 +329,7 @@ it("reopens the photo saved with a draft and later submits its current version w
   expect(saved.status).toBe("draft");
   fireEvent.click(screen.getByRole("link", { name: /Back to My Contributions/ }));
   // A draft row opens the editor, so reopen the saved trace page directly to submit it.
-  expect((await screen.findByText(saved.title)).closest("a").getAttribute("href")).toBe(`/user/contributions/${saved.id}/edit`);
+  expect((await screen.findByRole("link", { name: new RegExp(saved.title) })).getAttribute("href")).toBe(`/user/contributions/${saved.id}/edit`);
   cleanup();
   open(`/user/contributions/${saved.id}`);
   await screen.findByAltText("Trace photo 1");

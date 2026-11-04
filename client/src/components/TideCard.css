@@ -44,7 +44,7 @@ html.dark-mode .app-shell.user-shell .user-lesson-status.is-progress{background:
 .app-shell.user-shell .tcard.user-tide-card{padding:0;border-radius:20px;overflow:hidden;}
 .tide-cover{position:relative;}
 .app-shell.user-shell .tide-cover .tide-thumb{height:170px;margin:0;border-radius:0;}
-.app-shell.user-shell .tide-cover .tide-topic{position:absolute;left:14px;top:14px;z-index:1;background:rgba(255,255,255,.92);color:#203463;opacity:1;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;padding:5px 11px;border-radius:999px;}
+.app-shell.user-shell .tide-cover .tide-topic{position:absolute;left:14px;top:14px;z-index:1;background:rgba(255,255,255,.92);color:#203463;opacity:1;font-size:var(--fs-meta);font-weight:700;letter-spacing:0;text-transform:none;padding:5px 11px;border-radius:999px;}
 .tide-card-body{display:flex;flex-direction:column;flex:1;padding:16px 20px 20px;}
 .app-shell.user-shell .tcard.user-tide-card .t{font-family:'Poppins',sans-serif;font-size:19px;}
 .app-shell.user-shell .tcard.user-tide-card .tide-card-body .t{margin-top:0;}
