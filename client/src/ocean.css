@@ -183,3 +183,44 @@ html.dark-mode .trace-detail__story,html.dark-mode .trace-detail__card--public .
 .app-shell .trace-neighbors__text small{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;}
 .app-shell .trace-neighbors__title{display:block;margin-top:2px;font-size:15px;}
 .page-hero__actions .trace-stepper__btn{border-radius:12px;min-height:44px;font-weight:600;font-size:14px;}
+
+/* Segmented control (archive List/Map, Tides progress): white pill, soft shadow, hover, focus. */
+.app-shell .archive-view-switch{display:inline-flex;gap:4px;padding:4px;border:1px solid #c7dcee;border-radius:14px;background:#edf7ff;}
+.app-shell .archive-view-switch .btn{min-height:44px;min-width:68px;padding:0 22px;border-radius:10px;border:0;background:transparent;box-shadow:none;color:#526581;font-weight:600;gap:8px;transition:background-color .18s ease,color .18s ease,box-shadow .18s ease;}
+.app-shell .archive-view-switch .btn:hover:not([aria-pressed="true"]){background:#e3ecfa;color:#203463;}
+.app-shell .archive-view-switch .btn[aria-pressed="true"]{background:#fff;color:#203463;font-weight:700;box-shadow:0 2px 6px rgba(32,52,99,.16);}
+.app-shell .archive-view-switch .btn:focus-visible{outline:2px solid #314e9d;outline-offset:2px;}
+.app-shell .archive-view-switch .btn svg{flex:none;}
+@media(max-width:640px){.app-shell .archive-view-switch{display:flex;width:100%;box-sizing:border-box;}.app-shell .archive-view-switch .btn{flex:1;padding:0 12px;}}
+@media(prefers-reduced-motion:reduce){.app-shell .archive-view-switch .btn{transition:none;}}
+html.dark-mode .app-shell .archive-view-switch{background:var(--d-bg);border-color:var(--d-border);}
+html.dark-mode .app-shell .archive-view-switch .btn{color:var(--d-muted);}
+html.dark-mode .app-shell .archive-view-switch .btn:hover:not([aria-pressed="true"]){background:var(--d-surface);color:var(--d-text);}
+html.dark-mode .app-shell .archive-view-switch .btn[aria-pressed="true"]{background:var(--d-surface-2);color:var(--d-text);box-shadow:none;}
+html.dark-mode .app-shell .archive-view-switch .btn:focus-visible{outline-color:#8fb2ff;}
+
+/* Dark mode: buttons and icons that kept their light-mode colours. */
+html.dark-mode .app-shell.user-shell .user-learning-callout .btn.blue{background:#8fb2ff;color:#0d1626;}
+html.dark-mode .app-shell.user-shell .user-learning-callout .btn.blue:hover:not(:disabled){background:#aec7ff;}
+html.dark-mode .btn.outline{color:var(--d-text);}
+html.dark-mode .btn.outline:hover:not(:disabled){background:var(--d-surface-2);border-color:#8fb2ff;}
+
+/* Dark mode, round 2: account dropdown, settings rail, tide status pill, trace-card pill and meta. */
+html.dark-mode .app-shell .account-menu__panel .btn{color:var(--d-text);background:transparent;}
+html.dark-mode .app-shell .account-menu__panel .btn:hover:not(:disabled){background:var(--d-surface-2);color:#fff;}
+html.dark-mode .app-shell .account-menu__panel .btn:focus-visible{outline-color:#8fb2ff;}
+
+html.dark-mode .app-shell.user-shell .rail .ri{color:#b4c2da;}
+html.dark-mode .app-shell.user-shell .rail .ri small{color:var(--d-muted);}
+html.dark-mode .app-shell.user-shell .rail .ri:hover:not(.on){background:var(--d-surface-2);color:var(--d-text);}
+html.dark-mode .app-shell.user-shell .user-settings .rail .ri.on,html.dark-mode .app-shell.user-shell .user-settings .rail .ri[aria-current]{background:var(--d-surface-2);border-color:#6f91df;color:#cfdcff;}
+html.dark-mode .app-shell.user-shell .rail .ri .n,html.dark-mode .app-shell.user-shell .rail .ri span:first-child{background:var(--d-bg);border-color:var(--d-border-strong);color:#b4c2da;}
+html.dark-mode .app-shell.user-shell .rail .ri.on .n,html.dark-mode .app-shell.user-shell .rail .ri.on span:first-child{border-color:#6f91df;color:#cfdcff;}
+
+html.dark-mode .app-shell.user-shell .user-lesson-status.is-complete{background:#1f3a3d;border-color:#3d6e72;color:#bfe3e6;}
+html.dark-mode .app-shell.user-shell .user-tide-card .m,html.dark-mode .tide-card-body .m{color:var(--d-muted);}
+
+html.dark-mode .community-grid .user-category-label,html.dark-mode .community-archive .g3 .user-category-label{background:#1f2f52;color:#bcd0ff;border:1px solid #33497c;}
+html.dark-mode .community-grid .user-trace-card .m,html.dark-mode .community-archive .g3 .user-trace-card .m{color:#9fb0cc;}
+html.dark-mode .community-grid .user-trace-card .m svg,html.dark-mode .community-archive .g3 .user-trace-card .m svg{stroke:#9fb0cc;}
+html.dark-mode .community-grid .user-trace-card .t,html.dark-mode .community-archive .g3 .user-trace-card .t{color:var(--d-text);}
