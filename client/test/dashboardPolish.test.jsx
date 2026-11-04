@@ -166,14 +166,16 @@ it("falls back to browsing when there are no lessons", async () => {
   expect(screen.getByText("Coastal lessons from your community.")).toBeTruthy();
 });
 
-it("puts the greeting in the page heading with a single upload action", async () => {
+it("puts the greeting in the page heading with a single clay New Trace action in the header", async () => {
   setup();
   const heading = await screen.findByRole("heading", { level: 1, name: /Kumusta, Member/ });
   expect(heading).toBeTruthy();
-  const upload = screen.getByRole("link", { name: "Upload trace" });
+  const upload = screen.getByRole("link", { name: "New Trace" });
   expect(upload.getAttribute("href")).toBe("/user/traces/upload");
   expect(upload.classList.contains("clay")).toBe(true);
+  expect(upload.closest(".page-hero__actions")).toBeTruthy();
   expect(document.querySelectorAll(".btn.clay")).toHaveLength(1);
+  expect(screen.queryByRole("link", { name: "Upload trace" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Refresh totals" })).toBeNull();
   expect(screen.queryByText("Go to")).toBeNull();
   expect(screen.getByRole("link", { name: "See all traces" }).getAttribute("href")).toBe("/user/traces");

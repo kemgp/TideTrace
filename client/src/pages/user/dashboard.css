@@ -144,15 +144,12 @@ html.dark-mode .app-shell.user-shell .news-icon{background:#1f3a3d;color:#9fd8d3
 
 /* ---- UX audit fixes ---- */
 
-/* Hero: shorter, with the one clay action beside the greeting instead of at the far right. */
-.page-hero.page-hero--dash .page-hero__inner{min-height:0;padding:24px 32px 80px;justify-content:flex-start;align-items:center;gap:12px 28px;}
-.page-hero--dash .page-hero__eyebrow{margin-bottom:6px;}
-.page-hero--dash .page-hero__sub{display:block;margin-top:8px;}
-.page-hero--dash .page-hero__actions .btn.clay{min-height:44px;}
-.hero-link{display:inline-flex;align-items:center;min-height:44px;color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:3px;}
+/* Hero: uses the standard page header, like Traces, Tides and Contributions. Only the jump link inside the sentence is dashboard-specific. */
+/* Clay version of the header action: same size and position as the white banner-action on the other pages. */
+.page-hero__actions .btn.clay{min-height:48px;padding:0 26px;border-radius:12px;font-weight:700;font-size:15px;white-space:nowrap;}
+.hero-link{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;}
 .hero-link:hover{text-decoration-thickness:2px;}
-.hero-link:focus-visible{outline-color:#fff;}
-@media(max-width:640px){.page-hero.page-hero--dash .page-hero__inner{padding:20px 20px 80px;}}
+.hero-link:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:2px;}
 /* The totals row overlaps the wave on wide screens. Below that "Needs your attention" comes first and starts under the wave. */
 .page-hero--dash + .page-body{margin-top:8px;}
 @media(min-width:960px){.page-hero--dash + .page-body{margin-top:-64px;}}
