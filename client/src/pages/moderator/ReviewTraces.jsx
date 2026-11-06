@@ -17,6 +17,7 @@ import TraceMap from "../../components/TraceMap.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
 import {PHOTO_TYPES} from "../../api/photos.js";
 import { categoryLabel } from "./TraceMarker.jsx";
+import { ReviewSwitch } from "../../components/StaffSwitches.jsx";
 import { AuthorCard, QueueBadges, ConfirmDialog, REVIEW_REASONS, ReasonPicker, shortcutBlocked, useReasonTemplates, waitLabel, waitTone } from "./modTools.jsx";
 const labels={approved: "Approved", revision_requested: "Needs revision", rejected: "Rejected" };
 // What a saved decision means for the Trace, shown under the outcome banner.
@@ -80,7 +81,7 @@ export default function ReviewTraces(){
   if (!id) {
     const actions = role === "admin" ? <Link className="btn banner-secondary" to={`${base}/history`}>Moderation history</Link> : role === "mod" ? <Link className="btn banner-secondary" to={`${base}/history`}>My decisions</Link> : null;
     return <>
-      <PageHeader eyebrow="Review Traces" title="Pending submissions" subtitle="Review the saved details and photos before approving, requesting changes, or rejecting a Trace." actions={actions} />
+      <PageHeader eyebrow="Review Traces" title="Pending submissions" subtitle="Review the saved details and photos before approving, requesting changes, or rejecting a Trace." actions={actions}><ReviewSwitch /></PageHeader>
       <div className="page-body mod-queue-page"><ReviewQueue key={profile.id} base={base} /></div>
     </>;
   }
@@ -121,7 +122,7 @@ function ModWorkspace({id,base}){
   });
   const chips=[["all",`All (${traces.length})`],["flagged",`Flagged (${flagged.length})`],...categories.map((label)=>[label,label])];
   return <>
-    <PageHeader eyebrow="Review traces" title="Pending submissions" subtitle="Flagged first, then longest waiting. After you decide, the next trace opens on its own." actions={<Link className="btn banner-secondary" to={`${base}/history`}>My decisions</Link>} />
+    <PageHeader eyebrow="Review traces" title="Pending submissions" subtitle="Flagged first, then longest waiting. After you decide, the next trace opens on its own." actions={<Link className="btn banner-secondary" to={`${base}/history`}>My decisions</Link>}><ReviewSwitch /></PageHeader>
     <div className="page-body mod-workspace">
       <aside className="card mod-queue-pane" aria-label="Pending queue">
         <div className="chiprow" role="group" aria-label="Filter traces">{chips.map(([value,label])=><button type="button" key={value} className={`chip ${filter===value?"on":""}`} aria-pressed={filter===value} onClick={()=>setFilter(value)}>{label}</button>)}</div>

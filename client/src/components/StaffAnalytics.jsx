@@ -3,6 +3,7 @@ import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState from "./RemoteState.jsx";
 import PageHeader from "./PageHeader.jsx";
+import { InsightsSwitch } from "./StaffSwitches.jsx";
 
 function Bars({ title, rows }) {
   const max = Math.max(1, ...rows.map(row => row.value));
@@ -20,7 +21,7 @@ export default function StaffAnalytics() {
     (!admin || (count(data.users) && count(data.active_users) && rows(data.reviewers)));
   const error = result.error || (data && !valid ? "Unable to verify analytics. Refresh to try again." : "");
   return <>
-    <PageHeader eyebrow="View analytics" title={admin ? "Platform analytics" : "Moderation analytics"} subtitle="All-time saved activity. Trace totals exclude drafts, hidden content, and deleted content." />
+    <PageHeader eyebrow="View analytics" title={admin ? "Platform analytics" : "Moderation analytics"} subtitle="All-time saved activity. Trace totals exclude drafts, hidden content, and deleted content.">{admin && <InsightsSwitch />}</PageHeader>
     <div className="page-body staff-analytics">
     <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>Refresh analytics</button>
     <RemoteState {...result} error={error} />

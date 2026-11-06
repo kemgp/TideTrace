@@ -7,6 +7,7 @@ import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
+import { ReviewSwitch } from "../../components/StaffSwitches.jsx";
 import { ConfirmDialog, REPORT_REASONS, ReasonPicker, useReasonTemplates } from "./modTools.jsx";
 
 // One view for reported Traces and reported comments. The type filter lives in the URL (?type=trace|comment)
@@ -53,7 +54,7 @@ function ReportQueue() {
     } finally { setBulkBusy(false); }
   };
   return <>
-    <PageHeader eyebrow="Manage reports" title="Reported content" subtitle="Review the content and report reason. Dismissing keeps the content; removing hides it from public views. Every decision requires a reason and is saved in moderation history." />
+    <PageHeader eyebrow="Manage reports" title="Reported content" subtitle="Review the content and report reason. Dismissing keeps the content; removing hides it from public views. Every decision requires a reason and is saved in moderation history."><ReviewSwitch /></PageHeader>
     <div className="page-body mod-reports-page">
     <div className="card mod-report-tools">
       <div className="mod-report-tools__filters">

@@ -42,9 +42,10 @@ it("navigates between the admin content, settings, and analytics screens", async
   await screen.findByRole("heading", { name: "Topics & lessons" });
   fireEvent.click(screen.getByRole("link", { name: "Trace Categories" }));
   await screen.findByLabelText("New category name");
-  fireEvent.click(screen.getByRole("link", { name: "Settings" }));
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  fireEvent.click(screen.getByRole("button", { name: "Platform settings" }));
   await screen.findByRole("heading", { name: "Platform configuration" });
-  fireEvent.click(screen.getByRole("link", { name: "Analytics" }));
+  fireEvent.click(screen.getByRole("link", { name: "Insights" }));
   await screen.findByRole("heading", { name: "Platform analytics" });
   expect(screen.queryByText(/Demo analytics/)).toBeNull();
 });
