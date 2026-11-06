@@ -98,21 +98,6 @@ function AnalyticsSkeleton(){
     <S className="ps-chart wide"/>
   </div>;
 }
-function CommentsSkeleton(){
-  return <div className="ps-page ps-narrow">
-    <div className="ps-head"><S className="ps-kicker"/><S className="ps-title"/><S className="ps-subtitle"/></div>
-    <div className="ps-chips">{[1,2,3].map(i=><S key={i}/>)}</div>
-    <S className="ps-note"/>
-    <div className="ps-comment-list">
-      {[1,2,3].map(i=><div className="ps-comment-card" key={i}>
-        <div className="ps-row"><S className="ps-line lg"/><S className="ps-line xs"/></div>
-        <div className="ps-comment-author"><S className="ps-avatar"/><div className="ps-grow"><S className="ps-line sm"/><S className="ps-paragraph short"/></div></div>
-        <div className="ps-reason"><S className="ps-label"/><S className="ps-line lg"/></div>
-        <div className="ps-actions"><S/><S/></div>
-      </div>)}
-    </div>
-  </div>;
-}
 function ReportsSkeleton(){
   return <div className="ps-page ps-report-page">
     <div className="ps-head"><S className="ps-kicker"/><S className="ps-title"/><S className="ps-subtitle"/></div>
@@ -327,7 +312,6 @@ function getType(path=""){
   if(path==="/admin/review/history")return "adminhistory";
   if(path.includes("/review/history"))return "list";
   if(/^\/(moderator|admin)\/review\/[^/]+$/.test(path))return "detail";
-  if(path==="/moderator/comments")return "comments";
   if(["/moderator/reports","/admin/reports"].includes(path))return "reports";
   if(path.endsWith("/analytics"))return "analytics";
   if(path==="/user/profile")return "userprofile";
@@ -464,7 +448,6 @@ export default function SkeletonLoader({path=""}){
     {type==="admincontent"&&<AdminContentSkeleton/>}
     {type==="adminhistory"&&<AdminHistorySkeleton/>}
     {type==="adminprofile"&&<AdminProfileSkeleton/>}
-    {type==="comments"&&<CommentsSkeleton/>}
     {type==="reports"&&<ReportsSkeleton/>}
     {type==="list"&&<ListSkeleton/>}
   </section>;

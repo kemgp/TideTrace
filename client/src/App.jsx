@@ -31,7 +31,6 @@ import "./pages/moderator/moderator.css";
 import "./pages/user/user.css";
 import ModDashboard from "./pages/moderator/Dashboard.jsx";
 import ReviewTraces,{ModerationHistory} from "./pages/moderator/ReviewTraces.jsx";
-import ManageComments from "./pages/moderator/ManageComments.jsx";
 import ManageReports from "./pages/moderator/ManageReports.jsx";
 import ModeratorProfile from "./pages/moderator/Profile";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
@@ -511,9 +510,7 @@ function AppShell(){
               path="/moderator/comments"
               element={
                 <RequireRole role="mod">
-                  <div className="view">
-                    <ManageComments/>
-                  </div>
+                  <Navigate to="/moderator/reports?type=comment" replace/>
                 </RequireRole>
               }
             />

@@ -351,6 +351,7 @@ html.dark-mode .app-shell .queue-flag{background:#4a2410;color:#ffd2b3;}
 html.dark-mode .app-shell .group-badge{background:#314e9d;border-color:#314e9d;}
 html.dark-mode .app-shell .mod-queue-list .tcard.is-selected{border-color:#5aa2a8;}
 .app-shell .mod-report-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;margin-bottom:18px;}
+.app-shell .mod-report-tools__filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .app-shell .mod-report-tools__side{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .app-shell .bulk-bar > span:first-child{font-weight:700;}
 .app-shell .bulk-bar .bulk-bar__note{margin-right:auto;font-weight:400;font-size:13px;color:#526581;}
