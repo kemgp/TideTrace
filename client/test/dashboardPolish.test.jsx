@@ -7,7 +7,7 @@ import { SESSION_KEY } from "../src/api/session.js";
 import { attentionLine, attentionLink, continueLesson, nextLesson, statItems, waitingText } from "../src/api/dashboardText.js";
 
 const ok = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
-const summary = (extra = {}) => ({ id: "me", role: "user", as_of: "2026-11-03T01:00:00Z", member_since: "2026-08-10T00:00:00Z", traces: 5, drafts: 0, pending: 1, approved: 2, needs_revision: 0, comments_posted: 0, tides_finished: 0, ...extra });
+const summary = (extra = {}) => ({ id: "me", role: "user", as_of: "2026-11-03T01:00:00Z", member_since: "2026-08-10T00:00:00Z", traces: 5, active_traces: 5, drafts: 0, pending: 1, approved: 2, needs_revision: 0, comments_posted: 0, tides_finished: 0, ...extra });
 const row = (id, status, extra = {}) => ({ id, title: `Trace ${id}`, author_id: "me", status, category: { id: "c", name: "Pollution" }, location_name: "Coast", description: "x",
   created_at: "2026-10-20T00:00:00Z", updated_at: "2026-10-24T00:00:00Z", trace_media: [], version: 1, ...extra });
 const note = (id, message, read_at = null) => ({ id, message, type: "trace_approved", read_at, created_at: "2026-11-02T10:00:00Z" });
@@ -85,7 +85,7 @@ it("links the hero to the attention list, which shows revisions before drafts wi
 it("falls back to a plain line on a revision row without a note", async () => {
   setup({ totals: summary({ needs_revision: 1 }), revisions: [row("r", "revision_requested")] });
   const section = await screen.findByRole("region", { name: "Needs your attention" });
-  expect(within(section).getByText("Reviewer asked for changes")).toBeTruthy();
+  expect(await within(section).findByText("Reviewer asked for changes")).toBeTruthy();
 });
 
 it("hides the attention list when nothing needs action", async () => {
@@ -113,15 +113,16 @@ it("opens My Contributions filtered by status from each stat card", async () => 
   within(region).getAllByRole("link").forEach((link) => expect(link.querySelector(".stat-chevron")).toBeTruthy());
 });
 
-it("shows a card for every status and the cards add up to the total", async () => {
-  setup({ totals: summary({ traces: 21, drafts: 7, needs_revision: 2, pending: 4, approved: 6, rejected: 2 }) });
+it("shows a card for every status, and the total leaves out rejected Traces", async () => {
+  setup({ totals: summary({ traces: 21, active_traces: 19, drafts: 7, needs_revision: 2, pending: 4, approved: 6, rejected: 2 }) });
   const region = await screen.findByRole("region", { name: "Dashboard totals" });
   const value = (label) => Number(within(region).getByText(label).closest(".stat").querySelector("b").textContent);
-  await waitFor(() => expect(value("Total Traces")).toBe(21));
-  const parts = ["Drafts", "Needs revision", "In review", "Approved", "Rejected"].map(value);
+  await waitFor(() => expect(value("Total Traces")).toBe(19));
+  const parts = ["Drafts", "Needs revision", "In review", "Approved"].map(value);
   expect(parts.reduce((sum, count) => sum + count, 0)).toBe(value("Total Traces"));
+  expect(value("Rejected")).toBe(2);
   expect(within(region).getByText("Rejected").closest("a").getAttribute("href")).toBe("/user/contributions?status=rejected");
-  expect(statItems(null).map(([key]) => key)).toEqual(["traces", "drafts", "needs_revision", "pending", "approved"]);
+  expect(statItems(null).map(([key]) => key)).toEqual(["active_traces", "drafts", "needs_revision", "pending", "approved"]);
 });
 
 it("continues with the next unfinished lesson", async () => {

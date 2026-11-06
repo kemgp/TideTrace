@@ -1,5 +1,5 @@
 // My Contributions keeps its status filter and page in the URL so reload and Back return to the same view.
-export const CONTRIBUTION_FILTERS = ["All", "draft", "pending", "approved", "revision", "rejected"];
+export const CONTRIBUTION_FILTERS = ["All", "draft", "pending", "approved", "revision", "rejected", "removed"];
 
 export function readContributionParams(params) {
   const status = params.get("status");
