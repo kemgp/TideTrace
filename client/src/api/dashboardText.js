@@ -24,6 +24,7 @@ export function attentionLink(summary) {
 
 // Where each stat card leads in My Contributions (the status values are the ones My Contributions reads from the URL).
 export const STAT_LINKS = {
+  active_traces: "/user/contributions",
   traces: "/user/contributions",
   drafts: "/user/contributions?status=draft",
   needs_revision: "/user/contributions?status=revision",
@@ -35,7 +36,7 @@ export const STAT_LINKS = {
 // One card per status, so the cards add up to the total. "Rejected" appears only when the totals report it.
 export function statItems(summary) {
   const items = [
-    ["traces", "Total Traces"],
+    ["active_traces", "Total Traces"],
     ["drafts", "Drafts"],
     ["needs_revision", "Needs revision"],
     ["pending", "In review"],

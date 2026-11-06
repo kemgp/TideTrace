@@ -184,9 +184,11 @@ export function contentRoutes(gateway) {
     send(res, await result(req.db.rpc("set_data_saver", { p_enabled: body.data_saver })));
   });
   router.get("/contributions", member, async (req, res) => {
-    const query = page.extend({ status: z.enum(["draft", "pending", "approved", "revision_requested", "rejected"]).optional() }).parse(req.query);
+    const query = page.extend({ status: z.enum(["draft", "pending", "approved", "revision_requested", "rejected", "removed"]).optional() }).parse(req.query);
     let contributions = req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).is("deleted_at", null);
-    if (query.status) contributions = contributions.eq("status", query.status);
+    // "removed" lists Traces a moderator hid; every other view leaves them out.
+    contributions = contributions.eq("is_hidden", query.status === "removed");
+    if (query.status && query.status !== "removed") contributions = contributions.eq("status", query.status);
     const rows = await result(paginate(contributions.order("created_at", { ascending: false }).order("id"), query));
     send(res, await withReviewerNotes(req.db, await withAuthorPhotos(req.db, rows)));
   });

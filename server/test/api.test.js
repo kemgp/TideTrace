@@ -273,6 +273,19 @@ test("contributions and notifications explicitly filter the authenticated owner"
   assert.equal(dataCalls[1].url.searchParams.get("recipient_id"), `eq.${userId}`);
 });
 
+test("contributions leave removed Traces out except in the removed view", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([]) : undefined });
+  await bearer(request(app).get("/api/contributions")).expect(200);
+  await bearer(request(app).get("/api/contributions?status=approved")).expect(200);
+  await bearer(request(app).get("/api/contributions?status=removed")).expect(200);
+  const [all, approved, removed] = businessCalls(calls);
+  assert.equal(all.url.searchParams.get("is_hidden"), "eq.false");
+  assert.equal(approved.url.searchParams.get("is_hidden"), "eq.false");
+  assert.equal(approved.url.searchParams.get("status"), "eq.approved");
+  assert.equal(removed.url.searchParams.get("is_hidden"), "eq.true");
+  assert.equal(removed.url.searchParams.get("status"), null);
+});
+
 test("category reads request only active categories in name order", async () => {
   const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/categories" ? json([{ id: categoryId, name: "Coral", is_active: true }]) : undefined });
   const response = await request(app).get("/api/categories").expect(200);

@@ -24,7 +24,14 @@ function setup(rows, path = "/user/contributions", totals = null) {
   return fetch;
 }
 const url = () => screen.getByTestId("url").textContent;
-beforeEach(() => { sessionStorage.clear(); });
+beforeEach(() => {
+  sessionStorage.clear();
+  // jsdom does not implement the native modal dialog.
+  Object.defineProperties(HTMLDialogElement.prototype, {
+    showModal: { configurable: true, value: function () { this.open = true; } },
+    close: { configurable: true, value: function () { this.open = false; } },
+  });
+});
 
 it("shows where each trace stands and how recently it changed", async () => {
   setup([row("d", "draft"), row("p", "pending"), row("a", "approved")]);
@@ -122,4 +129,19 @@ it("explains an empty status and offers all traces", async () => {
   expect(await screen.findByText("No rejected traces.")).toBeTruthy();
   const link = screen.getByRole("link", { name: "Show all traces" });
   expect(link.getAttribute("href")).toBe("/user/contributions");
+});
+
+it("lists removed traces in their own section with a Removed badge, a count and no edit action", async () => {
+  const fetch = setup((u) => u.includes("status=removed") ? [row("h", "approved", { is_hidden: true })] : [row("a", "approved")], "/user/contributions?status=removed", { traces: 4, removed: 1, drafts: 0, pending: 0, approved: 4, needs_revision: 0 });
+  await screen.findByText("Trace h");
+  expect(screen.getByText("Removed by a moderator. It is no longer public.")).toBeTruthy();
+  expect(document.querySelector(".contrib-text + .badge.removed")?.textContent).toBe("Removed");
+  expect(screen.getByRole("link", { name: "View: Trace h" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /^Removed/ }).textContent).toContain("1");
+  expect(fetch.mock.calls.some(([u]) => String(u).includes("/api/contributions?") && String(u).includes("status=removed"))).toBe(true);
+});
+
+it("explains an empty Removed section", async () => {
+  setup([], "/user/contributions?status=removed");
+  expect(await screen.findByText("No removed traces.")).toBeTruthy();
 });

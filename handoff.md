@@ -474,3 +474,7 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
 - Account pane: profile card (photo, name, email, "Moderator · Active", joined date), Display name form, "What you can do" list. The fake "Last login" row, the redundant "Basic information" tab and the disabled "Preferences" tab were removed.
 - App settings reuses `NotificationPreferences`, `DataSaverPreference` and the dark mode toggle; Security reuses `ProfileSecurity`.
 - Member-only selectors in `Profile.css` and `ocean.css` now target `.app-shell:is(.user-shell,.moderator-shell)`.
+
+## Member dashboard total excludes rejected Traces
+- Migration `20261109000100_dashboard_active_traces.sql` adds `active_traces` (every Trace that is neither rejected nor hidden, so it equals the sum of the four status cards; `drafts` also skips hidden Traces). Hidden Traces appear only in the Removed filter of My Contributions (`status=removed`, backed by `GET /contributions?status=removed` and the `removed` total); All no longer lists them, and `traces` excludes them to `get_dashboard_summary()` for members. `traces` is unchanged because the All chip in My Contributions still lists rejected Traces.
+- The "Total Traces" card reads `active_traces` (`statItems` in `client/src/api/dashboardText.js`). Apply the migration before deploying the client, otherwise the card shows 0.

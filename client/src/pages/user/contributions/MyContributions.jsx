@@ -17,12 +17,12 @@ import RowMenu from "../../../components/RowMenu.jsx";
 import { useApp } from "../../../context/AppContext.jsx";
 import "./contributions.css";
 
-const FILTER_LABELS = { All: "All", draft: "Draft", pending: "Pending", approved: "Approved", revision: "Needs revision", rejected: "Rejected" };
+const FILTER_LABELS = { All: "All", draft: "Draft", pending: "Pending", approved: "Approved", revision: "Needs revision", rejected: "Rejected", removed: "Removed" };
 // One line under each trace saying where it stands.
-const STATUS_HINTS = { draft: "Not submitted yet", pending: "Waiting for a reviewer", approved: "Published", rejected: "Not published" };
+const STATUS_HINTS = { draft: "Not submitted yet", pending: "Waiting for a reviewer", approved: "Published", rejected: "Not published", removed: "Removed by a moderator. It is no longer public." };
 // Which dashboard total backs each filter chip. "Rejected" has a count only when the totals report it.
-const COUNT_KEYS = { All: "traces", draft: "drafts", pending: "pending", approved: "approved", revision: "needs_revision", rejected: "rejected" };
-const EMPTY_FILTERED = { draft: "No drafts.", pending: "Nothing is waiting for review.", approved: "No approved traces yet.", revision: "Nothing needs revision.", rejected: "No rejected traces." };
+const COUNT_KEYS = { All: "traces", draft: "drafts", pending: "pending", approved: "approved", revision: "needs_revision", rejected: "rejected", removed: "removed" };
+const EMPTY_FILTERED = { draft: "No drafts.", pending: "Nothing is waiting for review.", approved: "No approved traces yet.", revision: "Nothing needs revision.", rejected: "No rejected traces.", removed: "No removed traces." };
 
 export default function MyContributions() {
   const [params, setParams] = useSearchParams();
@@ -85,6 +85,7 @@ export default function MyContributions() {
             const primary = t.status === "draft" && editable ? { label: "Continue editing", to: `/user/contributions/${id}/edit`, variant: "blue" }
               : t.status === "revision" && editable ? { label: "Revise", to: `/user/contributions/${id}/edit`, variant: "blue" }
               : { label: "View", to: `/user/contributions/${id}`, variant: "outline" };
+            const state = t.is_hidden ? "removed" : t.status;
             const note = (t.reviewer_note || t.note || "").trim();
             return (
               <div className="contrib-row" key={t.id}>
@@ -95,15 +96,15 @@ export default function MyContributions() {
                     <span>{t.category}</span> · <span>{t.location}</span>
                   </div>
                   <div className="m contrib-state">
-                    {STATUS_HINTS[t.status] && <span>{STATUS_HINTS[t.status]}</span>}
-                    {STATUS_HINTS[t.status] && (t.updated_at || t.created_at) && <span aria-hidden="true">·</span>}
+                    {STATUS_HINTS[state] && <span>{STATUS_HINTS[state]}</span>}
+                    {STATUS_HINTS[state] && (t.updated_at || t.created_at) && <span aria-hidden="true">·</span>}
                     {(t.updated_at || t.created_at) && <span>Updated <RelativeTime value={t.updated_at || t.created_at} /></span>}
                   </div>
                   {t.status === "revision" && note && (
                     <div className="flag"><b>Feedback</b>{note}</div>
                   )}
                 </div>
-                <TraceStatusBadge status={t.status} />
+                <TraceStatusBadge status={state} />
                 <div className="contrib-actions">
                   <Link className={`btn ${primary.variant} sm contrib-primary`} to={primary.to} state={{ listSearch: search }} aria-label={`${primary.label}: ${t.title}`}>{primary.label}</Link>
                   <RowMenu label={`More actions for ${t.title}`} items={[{ label: "Delete", danger: true, onSelect: () => setDeleting(t.id) }]} />

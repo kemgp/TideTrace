@@ -6,6 +6,7 @@ const LABELS = {
   approved: "Approved",
   revision: "Needs revision",
   rejected: "Rejected",
+  removed: "Removed",
 };
 
 export default function TraceStatusBadge({ status }) {

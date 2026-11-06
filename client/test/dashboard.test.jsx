@@ -5,7 +5,7 @@ import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
 const as_of = "2026-09-28T10:00:00Z";
-const summary = (role = "user", extra = {}) => ({ id: "member-id", role, as_of, member_since: "2026-08-10T00:00:00Z", traces: 52, drafts: 27, pending: 12, approved: 10, needs_revision: 3, comments_posted: 44, tides_finished: 8, flagged_comments: 9, open_reports: 39, reviewed_today: 7, users: 201, active_users: 199, moderators: 4, published_traces: 105, published_tides: 31, ...extra });
+const summary = (role = "user", extra = {}) => ({ id: "member-id", role, as_of, member_since: "2026-08-10T00:00:00Z", traces: 52, active_traces: 52, drafts: 27, pending: 12, approved: 10, needs_revision: 3, comments_posted: 44, tides_finished: 8, flagged_comments: 9, open_reports: 39, reviewed_today: 7, users: 201, active_users: 199, moderators: 4, published_traces: 105, published_tides: 31, ...extra });
 const ok = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
 function setup(role = "user", handler = () => undefined) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "live-access", refresh_token: "refresh", expires_at: Date.now() / 1000 + 3600 }));
@@ -37,7 +37,7 @@ it("uses saved usage totals and join date, replacing learning minutes", async ()
 });
 it("shows skeletons, preserves real zero, and rejects another account's response", async () => {
   let finish;
-  let data = summary("user", { traces: 0 });
+  let data = summary("user", { traces: 0, active_traces: 0 });
   const pending = new Promise((resolve) => { finish = resolve; });
   let first = true;
   setup("user", (url) => url === "/api/dashboard" ? first ? pending : ok(data) : undefined);
