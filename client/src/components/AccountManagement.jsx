@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "./RemoteState.jsx";
+import { PeopleSwitch } from "./StaffSwitches.jsx";
 import "./AccountManagement.css";
 
 export default function AccountManagement({ moderators = false }) {
@@ -29,6 +30,7 @@ function Accounts({ moderators }) {
   const rows = result.data || [];
   const reset = () => { setOffset(0); setSelected(null); setNotice(""); };
   return <div className="wrap">
+    <PeopleSwitch />
     <div className="vhead"><span className="eyebrow claye">{moderators ? "Manage moderators" : "Manage users"}</span><h2>{moderators ? "Moderation team" : "Community accounts"}</h2>
       <p>{assigning ? "Choose an existing member to promote. New people must register first." : "Manage saved account roles and access. Every change requires a reason and is recorded."}</p>
     </div>

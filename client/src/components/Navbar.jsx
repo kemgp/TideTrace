@@ -20,22 +20,21 @@ const userLinks=[
   {to:"/user/contributions",label:"Contributions",icon:"log"},
 ];
 
+// Reports (Traces and comments) and My decisions are reached from inside Review.
 const modLinks=[
   {to:"/moderator/dashboard",label:"Dashboard",icon:"dashboard"},
-  {to:"/moderator/review",label:"Review Traces",icon:"review"},
-  {to:"/moderator/comments",label:"Comments",icon:"comment"},
-  {to:"/moderator/reports",label:"Reports",icon:"flag"},
+  {to:"/moderator/review",label:"Review",icon:"review"},
   {to:"/moderator/analytics",label:"Analytics",icon:"chart"},
 ];
 
+// Five tabs. Review also holds the Reports view, People holds Users and Moderators, and
+// Insights holds Analytics and History (each pair is a segmented control on the page). Platform settings is in the account menu.
 const adminLinks=[
   {to:"/admin/dashboard",label:"Dashboard",icon:"dashboard"},
-  {to:"/admin/users",label:"Users",icon:"users"},
-  {to:"/admin/moderators",label:"Moderators",icon:"shield"},
+  {to:"/admin/review",label:"Review",icon:"review"},
+  {to:"/admin/users",label:"People",icon:"users"},
   {to:"/admin/tides",label:"Content",icon:"book"},
-  {to:"/admin/review/history",label:"History",icon:"history"},
-  {to:"/admin/settings",label:"Settings",icon:"settings"},
-  {to:"/admin/analytics",label:"Analytics",icon:"chart"},
+  {to:"/admin/analytics",label:"Insights",icon:"chart"},
 ];
 
 function hintedLinks(){
@@ -172,7 +171,7 @@ export default function Navbar(){
     if(role==="mod"){
       return (
         link.to==="/moderator/review" &&
-        path.startsWith("/moderator/review/")
+        (path.startsWith("/moderator/review/") || path==="/moderator/reports")
       );
     }
 
@@ -185,6 +184,17 @@ export default function Navbar(){
 
     if(role!=="admin")return false;
 
+    if(link.label==="Review"){
+      return (
+        path==="/admin/reports" ||
+        (path.startsWith("/admin/review/") && path!=="/admin/review/history")
+      );
+    }
+
+    if(link.label==="People"){
+      return path==="/admin/moderators";
+    }
+
     if(link.label==="Content"){
       return (
         path.startsWith("/admin/tides/") ||
@@ -192,11 +202,8 @@ export default function Navbar(){
       );
     }
 
-    if(link.label==="History"){
-      return (
-        path.startsWith("/admin/review") ||
-        path==="/admin/reports"
-      );
+    if(link.label==="Insights"){
+      return path==="/admin/review/history";
     }
 
     return false;
@@ -305,6 +312,20 @@ export default function Navbar(){
                 >
                   {role==="user"?"Settings":"Change profile"}
                 </button>
+
+                {role==="admin"&&(
+                  <button
+                    type="button"
+                    className="btn ghost sm nav-profile"
+                    onClick={()=>{
+                      setOpen(false);
+                      setAccountOpen(false);
+                      navigate("/admin/settings");
+                    }}
+                  >
+                    Platform settings
+                  </button>
+                )}
 
                 <button
                   type="button"

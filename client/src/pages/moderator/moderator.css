@@ -28,8 +28,6 @@
 .moderator-shell .mod-narrow { max-width: 760px; }
 .moderator-shell .mod-trace-marker { display: block; width: 44px; height: 44px; border-radius: var(--r-sm); flex: none; }
 .moderator-shell .mod-review-link { border: 1px solid var(--line); border-radius: 20px; padding: 5px 12px; color: var(--soft); white-space: nowrap; font-size:var(--fs-badge); }
-.moderator-shell .mod-queue-filters { margin: -4px 0 18px; }
-.moderator-shell .mod-queue-filters .hint { margin-top: 10px; }
 .moderator-shell .mod-report-tools { align-items: flex-end; gap: 10px; margin-bottom: 14px; }
 .moderator-shell .mod-report-tools > label { display: flex; flex-direction: column; gap: 6px; flex: 0 1 220px; min-width: 0; font-size:var(--fs-badge); font-weight: 600; color: var(--soft); }
 .moderator-shell .mod-report-tools select { height: 44px; }
@@ -57,9 +55,6 @@
 .moderator-shell .mod-report-card form { margin-top: 16px; }
 .moderator-shell .mod-report-card textarea { min-height: 75px; height: 75px; }
 .moderator-shell .mod-empty { text-align: center; padding: 32px 20px; font-size:var(--fs-meta); color: var(--soft); }
-.moderator-shell .mod-review-media { margin-top: 16px; padding: 14px; border: 1px dashed var(--line); background: var(--bg); border-radius: var(--r-md); }
-.moderator-shell .mod-review-media section { margin: 0 !important; }
-.moderator-shell .mod-review-media h3 { font-size:var(--fs-badge); }
 .moderator-shell .mod-review-detail > h2 { font-size:var(--fs-section-lg); }
 .moderator-shell .mod-review-detail > .hint { margin: 8px 0 12px; }
 .moderator-shell .mod-review-detail > h3 { font-size:var(--fs-badge); letter-spacing: .06em; text-transform: uppercase; color: var(--soft); border-top: 1px solid var(--line); padding-top: 18px; margin-top: 20px; margin-bottom: 10px; }

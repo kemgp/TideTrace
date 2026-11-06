@@ -8,7 +8,7 @@ it.each([
   ["/user/traces", "cards"],
   ["/user/traces/trace-id", "detail"],
   ["/user/notifications", "notifications"],
-  ["/moderator/comments", "comments"],
+  ["/admin/reports", "reports"],
   ["/moderator/reports", "reports"],
   ["/admin/tides", "admincontent"],
 ])("uses the original %s skeleton until the request settles", (path, type) => {

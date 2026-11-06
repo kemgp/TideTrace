@@ -37,7 +37,7 @@ function setup(role = "admin", handler = () => undefined) {
 const open = (path) => render(<StrictMode><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></StrictMode>);
 async function openForm(role) {
   const view = open(`/${role === "moderator" ? "moderator" : role}/profile`);
-  if (role !== "user") fireEvent.click(await screen.findByRole("button", { name: /Basic information/ }));
+  if (role === "admin") fireEvent.click(await screen.findByRole("button", { name: /Basic information/ }));
   await screen.findByLabelText("Full name");
   return view;
 }
@@ -121,12 +121,17 @@ it.each(["admin", "moderator"])("prevents a member from opening the %s profile r
   expect(screen.queryByRole("button", { name: /Basic information/ })).toBeNull();
 });
 
-it("keeps unsupported staff preferences disabled", async () => {
+it("shows the moderator account, app settings and security panes without a fake last-login row", async () => {
   setup("moderator"); open("/moderator/profile");
-  await screen.findByRole("button", { name: "Edit profile photo" });
-  fireEvent.click(screen.getByRole("button", { name: /Preferences/ }));
-  await screen.findByText(/Email notification preferences are not available yet/);
-  expect(screen.queryByRole("button", { name: "Save Changes" })).toBeNull();
+  await screen.findByRole("heading", { name: "Account & preferences" });
+  expect(screen.getByText("Moderator · Active")).toBeTruthy();
+  expect(screen.getByText("What you can do")).toBeTruthy();
+  expect(screen.queryByText(/Last login/)).toBeNull();
+  expect(screen.queryByRole("button", { name: /Basic information/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Preferences/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /App settings/ }));
+  await screen.findByRole("switch", { name: "Submission updates" });
+  expect(screen.getByRole("button", { name: "Turn on dark mode" })).toBeTruthy();
 });
 
 it.each(["user", "moderator", "admin"])("saves and restores the %s profile photo, including the navigation avatar", async (role) => {

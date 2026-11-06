@@ -6,12 +6,11 @@ import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState from "../../components/RemoteState.jsx";
 import React from "react";
 import AdminIcon from "../../components/AdminIcon.jsx";
-import { useNavigate } from "react-router-dom";
+import NeedsYou from "./NeedsYou.jsx";
 import { useApp } from "../../context/AppContext.jsx";
 
 export default function Dashboard() {
   const { profile } = useApp();
-  const navigate = useNavigate();
   const totals = useDashboard();
   const activity = useRemoteData("admin/audit-logs?limit=5&offset=0", { collection: true });
   const logs = activity.data || [];
@@ -29,15 +28,9 @@ export default function Dashboard() {
         </svg>
       </div>
 
-      <DashboardStats result={totals} items={[["users", "Registered accounts"], ["active_users", "Active accounts"], ["moderators", "Active moderators"], ["published_traces", "Published Traces"], ["published_tides", "Published Tides"], ["pending", "Pending review"], ["open_reports", "Open reports"]]} />
+      <NeedsYou result={totals} />
 
-      <h3 className="sec-t">Quick actions</h3>
-      <div className="g4">
-        <button className="btn blue" onClick={() => navigate("/admin/users")}><AdminIcon name="users" /> Manage users</button>
-        <button className="btn outline" onClick={() => navigate("/admin/moderators?add=1")}><AdminIcon name="shield" /> Add moderator</button>
-        <button className="btn outline" onClick={() => navigate("/admin/tides")}><AdminIcon name="book" /> Publish Tides</button>
-        <button className="btn outline" onClick={() => navigate("/admin/review/history")}><AdminIcon name="history" /> Moderation history</button>
-      </div>
+      <DashboardStats result={totals} items={[["users", "Registered accounts"], ["active_users", "Active accounts"], ["moderators", "Active moderators"], ["published_traces", "Published Traces"], ["published_tides", "Published Tides"], ["pending", "Pending review"], ["open_reports", "Open reports"]]} />
 
       <h3 className="sec-t">Recent account administration</h3>
       <RemoteState compact {...activity} />

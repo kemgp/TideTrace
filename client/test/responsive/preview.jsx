@@ -12,13 +12,13 @@ const widths = [320, 375, 768, 1024, 1440];
 const routes = [
   ["guest", "/"], ["guest", "/login"], ["guest", "/register"], ["guest", "/forgot-password"], ["guest", "/auth/callback"],
   ...["/user/dashboard", "/user/traces", "/user/traces/trace-1", "/user/traces/upload", "/user/contributions", "/user/contributions/trace-1", "/user/contributions/trace-1/edit", "/user/tides", "/user/tides/lesson-1", "/user/notifications", "/user/profile"].map((path) => ["user", path]),
-  ...["/moderator/dashboard", "/moderator/review", "/moderator/review/trace-1", "/moderator/review/history", "/moderator/comments", "/moderator/reports", "/moderator/analytics", "/moderator/profile"].map((path) => ["moderator", path]),
+  ...["/moderator/dashboard", "/moderator/review", "/moderator/review/trace-1", "/moderator/review/history", "/moderator/reports", "/moderator/reports?type=comment", "/moderator/analytics", "/moderator/profile"].map((path) => ["moderator", path]),
   ...["/admin/dashboard", "/admin/users", "/admin/moderators", "/admin/moderators?add=1", "/admin/tides", "/admin/tides/new", "/admin/tides/lesson-1/edit", "/admin/categories", "/admin/review", "/admin/review/trace-1", "/admin/review/history", "/admin/reports", "/admin/settings", "/admin/settings?tab=app", "/admin/settings?tab=permissions", "/admin/settings?tab=logs", "/admin/analytics", "/admin/profile"].map((path) => ["admin", path]),
 ];
 routes.push(
   ["admin", "/admin/users", "View / Edit"],
   ...["Basic information", "Security", "Recent activity", "Quick actions"].map((action) => ["admin", "/admin/profile", action]),
-  ...["Basic information", "Security", "Preferences"].map((action) => ["moderator", "/moderator/profile", action]),
+  ...["Account", "App settings", "Security"].map((action) => ["moderator", "/moderator/profile", action]),
   ...["Privacy", "App settings", "Security", "Usage & activity"].map((action) => ["user", "/user/profile", action]),
 );
 const params = new URLSearchParams(location.search);

@@ -23,7 +23,7 @@ const pages = {
  "/admin/notifications": ["Notifications", "Read updates about reports and reviews."],
  "/user/profile": ["Account settings", "Manage your TideTrace account and preferences."],
 };
-const staffPages = { dashboard:"Dashboard", review:"Review Traces", "review/history":"Moderation history", analytics:"Analytics", comments:"Manage comments", reports:"Manage reports", profile:"Account settings", users:"Manage users", moderators:"Manage moderators", tides:"Manage Tides", "tides/new":"Create Tide", categories:"Trace categories", settings:"Platform settings" };
+const staffPages = { dashboard:"Dashboard", review:"Review Traces", "review/history":"Moderation history", analytics:"Analytics", reports:"Manage reports", profile:"Account settings", users:"Manage users", moderators:"Manage moderators", tides:"Manage Tides", "tides/new":"Create Tide", categories:"Trace categories", settings:"Platform settings" };
 export function metadataForPath(pathname) {
  const path = pathname.replace(/\/+$/, "") || "/";
  if (pages[path]) return { title: path === "/" ? pages[path][0] : `${pages[path][0]} | TideTrace`, description: pages[path][1], indexable: path === "/" };

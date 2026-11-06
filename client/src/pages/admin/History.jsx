@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
+import { InsightsSwitch } from "../../components/StaffSwitches.jsx";
 
 const filters = ["All", "Approved", "Revision", "Rejected", "Kept", "Removed", "Dismissed"];
 function outcome(row) {
@@ -17,6 +18,7 @@ export default function History() {
   const rows = result.data || [];
   const filtered = rows.slice(0, PAGE_SIZE);
   return <div className="wrap">
+    <InsightsSwitch />
     <div className="vhead headrow"><div><span className="eyebrow claye">Trace moderation history</span><h2>Every decision, on record</h2><p>Audit saved moderation decisions, with the reviewer, date, and feedback recorded for each action.</p></div><div className="row"><Link className="btn outline sm" to="/admin/review">Review Traces</Link><Link className="btn outline sm" to="/admin/reports">Reports</Link></div></div>
     <div className="chiprow" aria-label="Filter moderation history">{filters.map((label) => <button className={`chip ${filter === label ? "on" : ""}`} aria-pressed={filter === label} key={label} onClick={() => { setFilter(label); setOffset(0); }}>{label}</button>)}</div>
     <div className="admin-history-tools"><button className="btn ghost sm" disabled={result.loading} onClick={result.retry}>Refresh history</button></div>
