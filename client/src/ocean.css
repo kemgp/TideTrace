@@ -334,7 +334,7 @@ html.dark-mode .mod-dialog__quote{background:#101827;border-left-color:#4a6a95;}
 .app-shell .mod-review-stack > .card{padding:24px 28px;border-radius:20px;}
 .app-shell .mod-review-stack .mod-callout{margin:0;}
 .app-shell .mod-decision-card .mod-decision{border:0;padding:0;margin-top:0 !important;}
-.app-shell .mod-decision .btn kbd,.app-shell .mod-decision .btn kbd{margin-left:8px;padding:1px 7px;border:1px solid rgba(255,255,255,.55);border-bottom-width:2px;border-radius:6px;background:transparent;font:inherit;font-size:12px;font-weight:700;}
+.app-shell .mod-decision .btn kbd{margin-left:8px;padding:1px 7px;border:1px solid rgba(255,255,255,.55);border-bottom-width:2px;border-radius:6px;background:transparent;font:inherit;font-size:12px;font-weight:700;}
 .app-shell .mod-decision .btn.outline kbd{border-color:#b6c9dc;}
 .app-shell .btn-dashed{border-style:dashed;}
 .app-shell .author-card dd{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600;}

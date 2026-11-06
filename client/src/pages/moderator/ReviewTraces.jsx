@@ -15,7 +15,6 @@ import TraceFeedback from "../../components/TraceFeedback.jsx";
 import TraceLocationPrivacy from "../../components/TraceLocationPrivacy.jsx";
 import TraceMap from "../../components/TraceMap.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
-import {PHOTO_TYPES} from "../../api/photos.js";
 import { categoryLabel } from "./TraceMarker.jsx";
 import { ReviewSwitch } from "../../components/StaffSwitches.jsx";
 import { AuthorCard, QueueBadges, ConfirmDialog, REVIEW_REASONS, ReasonPicker, shortcutBlocked, useReasonTemplates, waitLabel, waitTone } from "./modTools.jsx";
@@ -23,56 +22,6 @@ const labels={approved: "Approved", revision_requested: "Needs revision", reject
 // What a saved decision means for the Trace, shown under the outcome banner.
 const outcomes={approved:"It now appears in the community archive.",revision_requested:"It goes back to the author for changes.",rejected:"It will not be published."};
 const reviewBase=(role)=> role === "admin" ? "/admin/review" : "/moderator/review";
-function TraceQueuePhoto({trace,className,emptyClassName}){
-  const {readData,profile}=useApp();
-  const [url,setUrl]=useState("");
-  const [empty,setEmpty]=useState(false);
-  useEffect(()=>{
-    if(profile?.data_saver)return;
-    const controller=new AbortController();
-    setUrl("");
-    setEmpty(false);
-    const load=async()=>{
-      try{
-        let media=Array.isArray(trace?.trace_media)?trace.trace_media:[];
-        if(!media.length){
-          const detail=await readData(`moderation/traces/${encodeURIComponent(trace.id)}`,{signal:controller.signal});
-          media=Array.isArray(detail?.trace_media)?detail.trace_media:[];
-        }
-        const photo=media
-          .filter((item)=>PHOTO_TYPES.includes(item.mime_type))
-          .sort((a,b)=>(a.sort_order??0)-(b.sort_order??0))[0];
-        if(!photo?.id){
-          if(!controller.signal.aborted)setEmpty(true);
-          return;
-        }
-        const data=await readData(`media/${encodeURIComponent(photo.id)}/url`,{signal:controller.signal});
-        if(!data?.url){
-          if(!controller.signal.aborted)setEmpty(true);
-          return;
-        }
-        if(!controller.signal.aborted)setUrl(data.url);
-      }catch(error){
-        if(!controller.signal.aborted)setEmpty(true);
-      }
-    };
-    load();
-    return()=>controller.abort();
-  },[trace,readData,profile?.data_saver]);
-  if(profile?.data_saver)return <span className={emptyClassName}>Open Trace to load photos</span>;
-  if(url){
-    return(
-      <img
-        className={className}
-        src={url}
-        alt={trace?.title?`${trace.title} submission`:"Trace submission"}
-        referrerPolicy="no-referrer"
-        onError={()=>{setUrl("");setEmpty(true);}}
-      />
-    );
-  }
-  return <span className={emptyClassName}>{empty?"No photo attached":"Loading photo…"}</span>;
-}
 export default function ReviewTraces(){
   const { id } = useParams();
   const { profile, role } = useApp();
@@ -138,93 +87,32 @@ function ModWorkspace({id,base}){
     </div>
   </>;
 }
+// The admin queue (moderators review in ModWorkspace, above).
 function ReviewQueue({base}){
   const [offset, setOffset] = useState(0);
-  const [category, setCategory] = useState("All");
   // The hold filter lives in the URL (?hold=only|exclude) so the dashboard and other pages can link to it.
   const [params, setParams] = useSearchParams();
   const hold = ["only", "exclude"].includes(params.get("hold")) ? params.get("hold") : "all";
   const setHold = (value) => setParams(value === "all" ? {} : { hold: value }, { replace: true });
-  const { role } = useApp();
-  const holdQuery = role === "admin" && hold !== "all" ? `&hold=${hold}` : "";
+  const holdQuery = hold !== "all" ? `&hold=${hold}` : "";
   const result = useRemoteData(`moderation/traces?status=pending&limit=${PAGE_SIZE}&offset=${offset}${holdQuery}`, { collection: true });
   const traces = (result.data || []).map((item) => ({ ...item, ...displayTrace(item) }));
-  const categories = [...new Set(["Coral", "Oral history", "Pollution", "Fisheries", "Seagrass", "Other", ...traces.map((trace) => categoryLabel(trace.category))])];
-  const filtered = role === "mod" && category !== "All" ? traces.filter((trace) => categoryLabel(trace.category) === category) : traces;
   return <>
-    {role === "mod" && <div className="mod-queue-filters"><div className="chiprow" aria-label="Filter traces by category">{["All", ...categories].map((label) => <button type="button" key={label} className={`chip ${category === label ? "on" : ""}`} aria-pressed={category === label} onClick={() => setCategory(label)}>{label}</button>)}</div><p className="hint">Categories filter the current page of pending submissions.</p></div>}
-    {role === "admin" && <div className="chiprow" role="group" aria-label="Filter by hold">{[["all", "All pending"], ["only", "On hold"], ["exclude", "Not on hold"]].map(([value, label]) => <button type="button" key={value} className={`chip ${hold === value ? "on" : ""}`} aria-pressed={hold === value} onClick={() => { setHold(value); setOffset(0); }}>{label}</button>)}</div>}
+    <div className="chiprow" role="group" aria-label="Filter by hold">{[["all", "All pending"], ["only", "On hold"], ["exclude", "Not on hold"]].map(([value, label]) => <button type="button" key={value} className={`chip ${hold === value ? "on" : ""}`} aria-pressed={hold === value} onClick={() => { setHold(value); setOffset(0); }}>{label}</button>)}</div>
     <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>Refresh queue</button>
     <RemoteState {...result} />
-    {!result.loading && !result.error && (filtered.length ? (
-      role === "mod" ? (
-        <>
-          <style>{`
-            .mod-review-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px}
-            .mod-review-card{border:1px solid #cfe0f4;border-radius:14px;background:#fff;overflow:hidden;min-width:0;display:flex;flex-direction:column}
-            .mod-review-card-photo{margin:12px 12px 0;height:220px;border-radius:10px;background:#edf6fc;overflow:hidden;display:flex;align-items:center;justify-content:center}
-            .mod-review-card-image{width:100%;height:100%;object-fit:contain;display:block}
-            .mod-review-card-photo-empty{color:#6d84a7;font-size:13px}
-            .mod-review-card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:9px;flex:1}
-            .mod-review-card-title{margin:0;color:#12326b;font-size:18px;font-weight:800}
-            .mod-review-card-meta{margin:0;color:#6d84a7;font-size:13px}
-            .mod-review-card-tags{display:flex;flex-wrap:wrap;gap:8px}
-            .mod-review-card-tag{display:inline-flex;align-items:center;min-height:30px;padding:0 12px;border:1px solid #c8dcf4;border-radius:999px;color:#637da7;font-size:12px;background:#fff}
-            .mod-review-card-footer{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
-            .mod-review-card-date{color:#6d84a7;font-size:12px}
-            .mod-review-card-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;background:#f8ead7;color:#975a12;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
-            .mod-review-card-link:hover{background:#f3dfc4}
-            html.dark-mode .mod-review-card{background:#172235;border-color:#34445d}
-            html.dark-mode .mod-review-card-photo{background:#101827}
-            html.dark-mode .mod-review-card-title{color:#e7eef7}
-            html.dark-mode .mod-review-card-meta,html.dark-mode .mod-review-card-date{color:#9eafc6}
-            html.dark-mode .mod-review-card-tag{background:#172235;border-color:#34445d;color:#b7c4d7}
-            @media(max-width:900px){.mod-review-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-            @media(max-width:640px){.mod-review-card-grid{grid-template-columns:1fr}.mod-review-card-photo{height:240px}}
-          `}</style>
-          <div className="mod-review-card-grid">
-            {filtered.map((trace) => {
-              return (
-                <article className="mod-review-card" key={trace.id}>
-                  <div className="mod-review-card-photo">
-                    <TraceQueuePhoto
-                      trace={trace}
-                      className="mod-review-card-image"
-                      emptyClassName="mod-review-card-photo-empty"
-                    />
-                  </div>
-                  <div className="mod-review-card-body">
-                    <h3 className="mod-review-card-title">{trace.title}</h3>
-                    <p className="mod-review-card-meta">Submitted by {trace.author}</p>
-                    <div className="mod-review-card-tags">
-                      {trace.category && <span className="mod-review-card-tag">{trace.category}</span>}
-                      {trace.location && <span className="mod-review-card-tag">{trace.location}</span>}
-                    </div>
-                    <div className="mod-review-card-footer">
-                      <span className="mod-review-card-date">{trace.when || ""}{trace.submitted_at && <span className={`wait-chip ${waitTone(trace.submitted_at)}`}>{waitLabel(trace.submitted_at)}</span>}</span>
-                      <Link className="mod-review-card-link" to={`${base}/${encodeURIComponent(trace.id)}`}>
-                        Review <span aria-hidden="true">›</span>
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </>
-      ) : (
-        <div className="card admin-review-list">
-          {filtered.map((trace) => (
-            <Link className="lrow click" key={trace.id} to={`${base}/${encodeURIComponent(trace.id)}`} style={{ color: "inherit", textDecoration: "none" }}>
-              <div className="grow">
-                <div className="t">{trace.title}</div>
-                <div className="m">{trace.author} · {trace.category} · {trace.location}{trace.when && ` · ${trace.when}`}{trace.submitted_at && <span className={`wait-chip ${waitTone(trace.submitted_at)}`}>{waitLabel(trace.submitted_at)}</span>}</div>
-              </div>
-              <TraceStatusBadge status={trace.status} />
-            </Link>
-          ))}
-        </div>
-      )
+    {!result.loading && !result.error && (traces.length ? (
+      <div className="card admin-review-list">
+        {traces.map((trace) => (
+          <Link className="lrow click" key={trace.id} to={`${base}/${encodeURIComponent(trace.id)}`} style={{ color: "inherit", textDecoration: "none" }}>
+            <div className="grow">
+              <div className="t">{trace.title}</div>
+              <div className="m">{trace.author} · {trace.category} · {trace.location}{trace.when && ` · ${trace.when}`}{trace.submitted_at && <span className={`wait-chip ${waitTone(trace.submitted_at)}`}>{waitLabel(trace.submitted_at)}</span>}</div>
+            </div>
+            <TraceStatusBadge status={trace.status} />
+          </Link>
+        ))}
+      </div>
     ) : <p className="hint">No pending submissions on this page.</p>)}
     <Pagination offset={offset} count={traces.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />
   </>;
