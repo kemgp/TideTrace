@@ -1,6 +1,14 @@
-# TideTrace — Handoff (updated 2026-11-04, UX audit fixes)
+# TideTrace — Handoff (updated 2026-11-07, staging environment)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Staging environment — `staging` branch (2026-11-07)
+
+- Branch `staging` created from `main`. Vercel (Preview, branch `staging`) serves `https://staging-tide-trace.vercel.app`; a separate Render service builds the `staging` branch; a separate staging Supabase project holds its data. Health, ready, login and the full pass were checked by hand on staging.
+- Variables and the day-to-day workflow (feature branch, PR into `staging`, test, PR into `main`) are in `DEPLOYMENT.md` under "Staging environment". Staging `VITE_API_URL` is scoped to Preview and branch `staging` only.
+- New file `supabase/staging-setup.sql`: all 24 migrations concatenated in order, for building a fresh Supabase project only. It lives outside `supabase/migrations/` on purpose so migration tooling never runs it on production. Regenerate it when a migration is added. Tests, bootstrap and sample SQL are not included.
+- Database changes: run a new migration on staging first, then on production before releasing to `main`.
+- Left: protect `main` in GitHub (require PRs). `DEPLOYMENT.md` and this handoff were committed straight to `main` once; from now on go through `staging`. `supabase/staging-setup.sql` is still untracked: commit it on `staging` so the docs' reference to it resolves. Staging has no sample data yet (see `sample-lesson.sql` and `sample-chapter-lesson.sql`).
 
 ### UX audit fixes — `ux-audit-fixes` (2026-11-04, uncommitted, tests and builds NOT run)
 
