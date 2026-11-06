@@ -12,10 +12,10 @@ const trace = (overrides = {}) => ({ id: "20000000-0000-4000-8000-000000000001",
 const response = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
 const failure = (status = 503) => ({ ok: false, status, json: async () => ({ error: { code: "FAILED", message: "Unable to load saved records." } }) });
 
-function setup(handler) {
+function setup(handler, role = profile.role) {
   window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ access_token: "live-access", refresh_token: "refresh", expires_at: Math.floor(Date.now() / 1000) + 3600 }));
   const calls = vi.fn(async (url, options) => {
-    if (url === "/api/auth/me") return response(profile);
+    if (url === "/api/auth/me") return response({ ...profile, role });
     const custom = await handler(url, options);
     if (custom) return custom;
     if (url === "/api/categories") return response([category]);
@@ -57,9 +57,9 @@ it("loads the live queue, reviews photos, approves and refreshes queue and histo
     if (url.startsWith("/api/moderation/history?")) return response([{ id: "audit", trace_id: trace().id, trace: { title: "Saved seagrass survey" }, actor: { display_name: "Actual Reviewer" }, action: "review_trace", to_state: "approved", reason: "Verified evidence", created_at: "2026-09-24T12:00:00Z" }]);
   });
   const view = open();
-  const card = (await screen.findByRole("heading", { name: "Saved seagrass survey" })).closest("article");
-  fireEvent.click(within(card).getByRole("link", { name: "Review" }));
+  // The first Trace in the queue opens on its own beside the list.
   await screen.findByAltText("Trace photo 1");
+  expect(screen.getByRole("link", { name: "Saved seagrass survey" }).getAttribute("href")).toBe(`/moderator/review/${trace().id}`);
   expect(screen.queryByRole("button", { name: "Upload photo" })).toBeNull();
   fireEvent.change(screen.getByLabelText(/Feedback/), { target: { value: "Verified evidence" } });
   fireEvent.click(screen.getByRole("button", { name: "Approve & publish" }));
@@ -70,7 +70,6 @@ it("loads the live queue, reviews photos, approves and refreshes queue and histo
   const write = calls.mock.calls.find(([url]) => url === decisionPath)[1];
   expect(JSON.parse(write.body)).toEqual({ version: 3, decision: "approved", reason: "Verified evidence" });
   expect(write.headers.Authorization).toBe("Bearer live-access");
-  fireEvent.click(screen.getByRole("link", { name: /Back to queue/ }));
   await screen.findByText("No pending submissions on this page.");
   expect(screen.queryByRole("link", { name: "Moderation history" })).toBeNull();
   view.unmount();
@@ -89,6 +88,12 @@ it.each([["Request revision", "revision_requested"], ["Reject", "rejected"]])("r
   expect(calls.mock.calls.some(([url]) => url === decisionPath)).toBe(false);
   fireEvent.change(screen.getByLabelText(/Feedback/), { target: { value: "  Explain the location  " } });
   fireEvent.click(screen.getByRole("button", { name: button }));
+  if (decision === "rejected") {
+    // Rejecting is final, so it asks for one more confirmation before anything is saved.
+    await screen.findByRole("dialog", { name: "Reject this Trace?" });
+    expect(calls.mock.calls.some(([url]) => url === decisionPath)).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Reject this Trace" }));
+  }
   await screen.findByText(/Decision saved:/);
   expect(JSON.parse(calls.mock.calls.find(([url]) => url === decisionPath)[1].body)).toEqual({ version: 3, decision, reason: "Explain the location" });
 });
@@ -187,4 +192,50 @@ it("shows who made each previous Trace decision to staff", async () => {
  open(`/moderator/review/${trace().id}`);
  await screen.findByText(/Reviewed by Ana Reviewer/);
  expect(screen.getByText("Add evidence")).toBeTruthy();
+});
+
+it("holds a Trace for an admin and stops a moderator deciding a held Trace", async () => {
+  const holdPath = `${detail}/hold`;
+  const calls = setup((url) => {
+    if (url === detail) return response(trace());
+    if (url === holdPath) return response(trace({ version: 4 }));
+  });
+  open(`/moderator/review/${trace().id}`);
+  fireEvent.click(await screen.findByRole("button", { name: "Hold for admin" }));
+  const dialog = await screen.findByRole("dialog", { name: "Hold this Trace for an admin?" });
+  expect(within(dialog).getByRole("button", { name: "Hold Trace" }).disabled).toBe(true);
+  fireEvent.change(within(dialog).getByLabelText(/Why does an admin/), { target: { value: "Unsure about the pin" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Hold Trace" }));
+  await screen.findByText(/On hold for an admin\./);
+  expect(JSON.parse(calls.mock.calls.find(([url]) => url === holdPath)[1].body)).toEqual({ version: 3, reason: "Unsure about the pin" });
+  expect(screen.getByText("This Trace is on hold. Only an admin can decide it.")).toBeTruthy();
+  expect(decisionButtons().every((button) => button.disabled)).toBe(true);
+});
+
+it("shows a held Trace to an admin with a way to release it", async () => {
+  window.sessionStorage.clear();
+  const calls = setup((url) => url === detail ? response(trace({ hold: { reason: "Unsure about the pin", holder: { display_name: "Moderator Ana" } } })) : url === `${detail}/release-hold` ? response(trace({ version: 5 })) : undefined, "admin");
+  open(`/admin/review/${trace().id}`);
+  await screen.findByText(/Unsure about the pin/);
+  fireEvent.click(screen.getByRole("button", { name: "Release hold" }));
+  await waitFor(() => expect(screen.queryByText(/On hold for an admin\./)).toBeNull());
+  expect(calls.mock.calls.some(([url, options]) => url === `${detail}/release-hold` && options.method === "POST")).toBe(true);
+});
+
+it("warns about a precise pin and shows author history before a decision", async () => {
+  setup((url) => {
+    if (url === detail) return response(trace({ latitude: 9.1, longitude: 123.2, is_sensitive: false }));
+    if (url === "/api/moderation/authors/member-author/summary") return response({ traces: 4, approved: 3, needed_changes: 1, reports_against: 0 });
+  });
+  open(`/moderator/review/${trace().id}`);
+  await screen.findByText(/Check the pin before approving/);
+  const card = await screen.findByRole("region", { name: /About/ });
+  expect(within(card).getByText("Needed changes").nextSibling.textContent).toBe("1");
+});
+
+it("fills the feedback box from a quick reason", async () => {
+  setup((url) => url === detail ? response(trace()) : undefined);
+  open(`/moderator/review/${trace().id}`);
+  fireEvent.click(await screen.findByRole("button", { name: "Photo is unclear" }));
+  expect(screen.getByLabelText(/Feedback/).value).toBe("Please add a clearer photo of what you observed.");
 });

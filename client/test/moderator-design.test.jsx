@@ -23,14 +23,14 @@ function setup(path, role = "moderator") {
 
 it("filters the saved queue by category while preserving review links", async () => {
   setup("/moderator/review");
-  await screen.findByRole("heading", { name: "Reef survey" });
+  await screen.findByText("Reef survey");
   fireEvent.click(screen.getByRole("button", { name: "Coral" }));
-  expect(within(screen.getByRole("heading", { name: "Reef survey" }).closest("article")).getByRole("link", { name: "Review" }).getAttribute("href")).toBe("/moderator/review/reef");
-  expect(screen.queryByRole("heading", { name: "Seagrass survey" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Fisheries" }));
+  expect(screen.getByRole("link", { name: "Reef survey" }).getAttribute("href")).toBe("/moderator/review/reef");
+  expect(screen.queryByText("Seagrass survey")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /^Flagged/ }));
   expect(screen.getByText("No pending submissions on this page.")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "All" }));
-  expect(within(screen.getByRole("heading", { name: "Seagrass survey" }).closest("article")).getByRole("link", { name: "Review" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /^All/ }));
+  expect(screen.getByRole("link", { name: "Seagrass survey" })).toBeTruthy();
 });
 
 it("navigates to moderator analytics and requests saved data", async () => {
@@ -55,10 +55,10 @@ it("loads the saved report status selected from the dropdown", async () => {
   const fetcher = setup("/moderator/reports");
   await screen.findByText("No open reports on this page.");
   expect(screen.queryByLabelText("Report filters")).toBeNull();
-  fireEvent.change(screen.getByLabelText("Report status"), { target: { value: "dismissed" } });
+  fireEvent.click(within(screen.getByLabelText("Report status")).getByRole("button", { name: /^Dismissed/ }));
   await screen.findByText("No dismissed reports on this page.");
   expect(fetcher.mock.calls.some(([url]) => url.includes("reports?status=dismissed"))).toBe(true);
-  fireEvent.change(screen.getByLabelText("Report status"), { target: { value: "resolved" } });
+  fireEvent.click(within(screen.getByLabelText("Report status")).getByRole("button", { name: /^Removed/ }));
   await screen.findByText("No resolved reports on this page.");
   expect(fetcher.mock.calls.some(([url]) => url.includes("reports?status=resolved"))).toBe(true);
 });

@@ -3,6 +3,7 @@ import EmptyState from "../../../components/EmptyState.jsx";
 import React from "react";
 import { useApp } from "../../../context/AppContext.jsx";
 import AdminIcon from "../../../components/AdminIcon.jsx";
+import PageHeader from "../../../components/PageHeader.jsx";
 import RemoteState, { Pagination } from "../../../components/RemoteState.jsx";
 
 export default function Notifications() {
@@ -10,18 +11,17 @@ export default function Notifications() {
     notificationAction, notificationsOffset, setNotificationsOffset, refreshNotifications, markNotificationsRead } = useApp();
   const busy = notificationsLoading || notificationAction?.busy;
   return (
-    <div className="wrap" style={{ maxWidth: 720 }}>
-      <div className="vhead headrow">
-        <div>
-          <span className="eyebrow">Notifications</span>
-          <h2>Stay updated</h2>
-          <p>Review decisions and feedback on your Traces and reports.</p>
-        </div>
-        <div className="row">
-          <button className="btn ghost sm" disabled={busy} onClick={refreshNotifications}>Refresh</button>
-          <button className="btn ghost sm" disabled={busy || !unreadNotificationCount} onClick={() => markNotificationsRead(null)}>Mark all read</button>
-        </div>
-      </div>
+    <>
+      <PageHeader
+        eyebrow="Notifications"
+        title="Stay updated"
+        subtitle="Review decisions and feedback on your Traces and reports."
+        actions={<>
+          <button className="btn outline banner-secondary" disabled={busy} onClick={refreshNotifications}>Refresh</button>
+          <button className="banner-action" disabled={busy || !unreadNotificationCount} onClick={() => markNotificationsRead(null)}>Mark all read</button>
+        </>}
+      />
+      <div className="page-body notifications-page">
       <RemoteState loading={notificationsLoading} error={notificationsError} retry={refreshNotifications} />
       {notificationAction?.error && <p role="alert">{notificationAction.error}</p>}
       <span className="notification-announcement" role="status">{notificationAction?.message || ""}</span>
@@ -36,6 +36,7 @@ export default function Notifications() {
         ))}
       </>}
       <Pagination offset={notificationsOffset} count={notifications.length} size={PAGE_SIZE} onChange={setNotificationsOffset} loading={Boolean(busy)} />
-    </div>
+      </div>
+    </>
   );
 }

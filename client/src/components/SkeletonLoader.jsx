@@ -336,7 +336,7 @@ function getType(path=""){
   if(path==="/user/contributions")return "contributions";
   if(path==="/admin/tides")return "admincontent";
   if(path==="/user/traces"||path==="/user/tides")return "cards";
-  if(path==="/user/notifications")return "notifications";
+  if(path==="/user/notifications"||path==="/moderator/notifications"||path==="/admin/notifications")return "notifications";
   if(["/admin/users","/admin/moderators","/admin/categories"].includes(path))return "list";
   if(["/user/traces/upload","/admin/tides/new"].includes(path)||/^\/admin\/tides\/[^/]+\/edit$/.test(path)||/^\/user\/contributions\/[^/]+\/edit$/.test(path))return "form";
   if(/^\/user\/(traces|tides|contributions)\/[^/]+$/.test(path))return "detail";

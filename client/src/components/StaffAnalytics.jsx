@@ -2,6 +2,7 @@ import React from "react";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState from "./RemoteState.jsx";
+import PageHeader from "./PageHeader.jsx";
 
 function Bars({ title, rows }) {
   const max = Math.max(1, ...rows.map(row => row.value));
@@ -18,8 +19,9 @@ export default function StaffAnalytics() {
     ["traces", "approved", "pending", "rejected", "needs_revision", "comments", "completions", "my_reviews", "my_report_decisions"].every(key => count(data[key])) && rows(data.categories) &&
     (!admin || (count(data.users) && count(data.active_users) && rows(data.reviewers)));
   const error = result.error || (data && !valid ? "Unable to verify analytics. Refresh to try again." : "");
-  return <div className="wrap">
-    <div className="vhead"><span className="eyebrow">View analytics</span><h2>{admin ? "Platform analytics" : "Moderation analytics"}</h2><p>All-time saved activity. Trace totals exclude drafts, hidden content, and deleted content.</p></div>
+  return <>
+    <PageHeader eyebrow="View analytics" title={admin ? "Platform analytics" : "Moderation analytics"} subtitle="All-time saved activity. Trace totals exclude drafts, hidden content, and deleted content." />
+    <div className="page-body staff-analytics">
     <button className="btn outline sm" disabled={result.loading} onClick={result.retry}>Refresh analytics</button>
     <RemoteState {...result} error={error} />
     {!result.loading && !error && valid && <>
@@ -34,5 +36,6 @@ export default function StaffAnalytics() {
       <p className="hint">Active accounts are not suspended. Tide completions include archived lessons. Review counts include repeat reviews after revisions.</p>
       {admin && <Bars title="Staff activity · trace reviews" rows={data.reviewers} />}
     </>}
-  </div>;
+    </div>
+  </>;
 }

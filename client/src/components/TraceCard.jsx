@@ -7,7 +7,7 @@ import {PHOTO_TYPES} from "../api/photos.js";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 import {relativeTime} from "../api/relativeTime.js";
 
-function TraceCardPhoto({trace,priority=false}){
+function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
   const {readData,profile}=useApp();
   const [requested,setRequested]=useState(false);
   const deferred=profile?.data_saver&&!requested;
@@ -28,7 +28,7 @@ function TraceCardPhoto({trace,priority=false}){
 
         if(!media.length&&trace?.id){
           const detail=await readData(
-            `traces/${encodeURIComponent(trace.id)}`,
+            `${detailPath}/${encodeURIComponent(trace.id)}`,
             {signal:controller.signal}
           );
 
@@ -65,7 +65,7 @@ function TraceCardPhoto({trace,priority=false}){
 
     loadPhoto();
     return()=>controller.abort();
-  },[trace?.id,trace?.trace_media,readData,deferred]);
+  },[trace?.id,trace?.trace_media,readData,deferred,detailPath]);
 
   if(deferred)return <div className="trace-card-photo trace-card-photo-saver"><span>Data saver is on</span><button type="button" className="btn outline sm" onClick={()=>setRequested(true)}>Load photo</button></div>;
 
@@ -99,7 +99,9 @@ function TraceCardPhoto({trace,priority=false}){
   );
 }
 
-export default function TraceCard({trace,to,linkState,priority=false}){
+// detailPath: where the photo list is read from when the row has none (staff read pending Traces from "moderation/traces").
+// badges: extra pills shown on the card (for example "Flagged" or how long a Trace has waited).
+export default function TraceCard({trace,to,linkState,priority=false,detailPath="traces",badges=null,selected=false}){
   const {profile}=useApp();
   const Tag=to?Link:"article";
   const uid=useId();
@@ -108,7 +110,7 @@ export default function TraceCard({trace,to,linkState,priority=false}){
   const heading=generic&&trace.location?trace.location:trace.title;
 
   return(
-    <article className="tcard user-trace-card">
+    <article className={`tcard user-trace-card${selected?" is-selected":""}`} aria-current={selected?"true":undefined}>
       <style>{`
         .trace-card-photo{
           width:100%;
@@ -149,7 +151,7 @@ export default function TraceCard({trace,to,linkState,priority=false}){
         .user-trace-card .trace-card-photo-saver button{position:relative;z-index:2;}
       `}</style>
 
-      <TraceCardPhoto key={`${trace.id}:${Boolean(profile?.data_saver)}`} trace={trace} priority={priority}/>
+      <TraceCardPhoto key={`${trace.id}:${Boolean(profile?.data_saver)}`} trace={trace} priority={priority} detailPath={detailPath}/>
       <Tag className="trace-card-link" {...(to?{to,state:linkState,"aria-labelledby":`${uid}-t`,"aria-describedby":`${uid}-m`}:{})}>
 
       <div className="t" id={`${uid}-t`}>{heading}</div>
@@ -171,10 +173,11 @@ export default function TraceCard({trace,to,linkState,priority=false}){
           {trace.location}
         </span>}
 
-        {trace.status!=="approved"&&(
+        {trace.status!=="approved"&&!badges&&(
           <TraceStatusBadge status={trace.status}/>
         )}
       </div>
+      {badges&&<div className="m trace-card-badges">{badges}</div>}
       </Tag>
     </article>
   );

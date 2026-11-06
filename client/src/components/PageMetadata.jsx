@@ -19,6 +19,8 @@ const pages = {
  "/user/contributions": ["My Contributions", "Manage your saved Traces and review feedback."],
  "/user/tides": ["Tides", "Explore lessons about coastal communities and the sea."],
  "/user/notifications": ["Notifications", "Read updates about your Traces and reports."],
+ "/moderator/notifications": ["Notifications", "Read updates about reports and reviews."],
+ "/admin/notifications": ["Notifications", "Read updates about reports and reviews."],
  "/user/profile": ["Account settings", "Manage your TideTrace account and preferences."],
 };
 const staffPages = { dashboard:"Dashboard", review:"Review Traces", "review/history":"Moderation history", analytics:"Analytics", comments:"Manage comments", reports:"Manage reports", profile:"Account settings", users:"Manage users", moderators:"Manage moderators", tides:"Manage Tides", "tides/new":"Create Tide", categories:"Trace categories", settings:"Platform settings" };
