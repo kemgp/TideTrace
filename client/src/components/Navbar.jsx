@@ -20,11 +20,10 @@ const userLinks=[
   {to:"/user/contributions",label:"Contributions",icon:"log"},
 ];
 
+// Reports (Traces and comments) and My decisions are reached from inside Review.
 const modLinks=[
   {to:"/moderator/dashboard",label:"Dashboard",icon:"dashboard"},
-  {to:"/moderator/review",label:"Review Traces",icon:"review"},
-  {to:"/moderator/comments",label:"Comments",icon:"comment"},
-  {to:"/moderator/reports",label:"Reports",icon:"flag"},
+  {to:"/moderator/review",label:"Review",icon:"review"},
   {to:"/moderator/analytics",label:"Analytics",icon:"chart"},
 ];
 
@@ -172,7 +171,7 @@ export default function Navbar(){
     if(role==="mod"){
       return (
         link.to==="/moderator/review" &&
-        path.startsWith("/moderator/review/")
+        (path.startsWith("/moderator/review/") || path==="/moderator/reports")
       );
     }
 
