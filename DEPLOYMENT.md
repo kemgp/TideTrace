@@ -70,3 +70,40 @@ localhost `CLIENT_ORIGIN` in `server/.env`. Run `npm run dev` and
 automatic deployments. Frontend and backend deploy independently; preserve API
 compatibility during releases. Back up important shared data before destructive
 database changes.
+
+## Staging environment
+
+Staging mirrors production on separate services and a separate Supabase project.
+
+| Part | Production | Staging |
+| --- | --- | --- |
+| Git branch | `main` | `staging` |
+| Frontend | Vercel Production | Vercel Preview, branch `staging`, `https://staging-tide-trace.vercel.app` |
+| API | Render service on `main` | Render service on `staging` |
+| Database | Production Supabase project | Staging Supabase project |
+
+Staging variables (never reuse production values or keys):
+
+- Render staging: same variables as production, with `CLIENT_ORIGIN=https://staging-tide-trace.vercel.app` and the staging `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
+- Vercel: `VITE_API_URL` set to the staging Render URL, type Config, environment Preview only, branch `staging`. Production keeps its own `VITE_API_URL`.
+- Staging Supabase Auth: allow `https://staging-tide-trace.vercel.app/auth/callback` and set the Site URL to the staging origin.
+
+### Workflow
+
+1. Branch from staging: `git checkout staging && git pull origin staging && git checkout -b feature/short-name`.
+2. Build and test locally (`npm run dev`, `npm run dev:server`, `npm test`, `npm run build`).
+3. Open a pull request into `staging`. Merging deploys staging on Vercel and Render.
+4. Test on the staging site with staging data: auth emails, login, refresh, password recovery, photo upload, submission, and review by a second staff account.
+5. Release with a pull request from `staging` into `main`. Merging deploys production.
+6. After any hotfix on `main`, merge `main` back into `staging`.
+
+Do not push directly to `main`. Protect `main` in GitHub (Settings, Branches) and require pull requests.
+
+### Database changes
+
+Migrations in `supabase/migrations/` are not applied by branch merges.
+
+1. Run the new migration in the staging Supabase project and test the app against it.
+2. When releasing to `main`, run the same migration in production first, then let the API and client deploy.
+3. `supabase/staging-setup.sql` is every migration combined in order. Use it only to build a fresh project. Never run it on a project that already has the schema. Regenerate it when a migration is added (concatenate `supabase/migrations/*.sql` in filename order).
+4. After a fresh setup, run `supabase/bootstrap-first-admin.sql` once with the real Auth user UUID. Do not commit the edited UUID.
