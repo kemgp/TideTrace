@@ -1,4 +1,4 @@
-.app-shell.user-shell .user-settings__body > .card {
+.app-shell:is(.user-shell, .moderator-shell) .user-settings__body > .card {
   padding: clamp(20px, 3vw, 28px);
 }
 .app-shell .user-settings .rail { padding: 12px; }
@@ -15,10 +15,10 @@
 .user-settings .settings-section-title p { margin-top: 8px; max-width: 65ch; font-size:var(--fs-label); line-height: 1.7; color: var(--soft); }
 .user-settings .user-account-header { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .user-settings .user-account-header strong { font-size:var(--fs-body); overflow-wrap: anywhere; }
-.app-shell.user-shell .user-settings .setrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
-.app-shell.user-shell .user-settings .setrow:last-child { border-bottom: 0; padding-bottom: 0; }
-.app-shell.user-shell .user-settings .setrow .l { font-size:var(--fs-label); font-weight: 600; }
-.app-shell.user-shell .user-settings .setrow .s { font-size:var(--fs-meta); line-height: 1.6; font-weight: 400; margin-top: 5px; }
+.app-shell:is(.user-shell, .moderator-shell) .user-settings .setrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.app-shell:is(.user-shell, .moderator-shell) .user-settings .setrow:last-child { border-bottom: 0; padding-bottom: 0; }
+.app-shell:is(.user-shell, .moderator-shell) .user-settings .setrow .l { font-size:var(--fs-label); font-weight: 600; }
+.app-shell:is(.user-shell, .moderator-shell) .user-settings .setrow .s { font-size:var(--fs-meta); line-height: 1.6; font-weight: 400; margin-top: 5px; }
 .user-settings__notice { padding: 14px 16px; margin-bottom: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm); font-size:var(--fs-meta); line-height: 1.7; color: var(--soft); }
 .app-shell .user-settings .security-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; max-width: none; margin: 0; }
 .user-settings .security-card h2 { padding-bottom: 20px; border-bottom: 1px solid var(--line); }

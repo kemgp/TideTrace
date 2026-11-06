@@ -468,3 +468,9 @@ What is there now: WebGL gradient waves in the hero, a rotating "Explore/Contrib
   - Still in place: the repeated `.community-archive .g3 ...` card rules in `ocean.css` (lines around 128 to 148), the unused `TraceMarker` component and `.mod-trace-marker` styles (only `categoryLabel` from that file is used), `.app-shell .mod-review-media` in `responsive.css` (dead, not in the list), and the unreachable `role === "mod"` branch of `actions` in `ReviewTraces`.
   - Visual checks at laptop and phone width were not done (needs a browser on the Mac). The admin bar has fewer links than before, and below 1280px it uses the same menu.
   - Tests changed: `admin-design`, `loadingSkeletons`. New: `needsYou`, `reportsView`, `adminNavigation`, `moderatorNavigation`. None of them has been run.
+
+## Moderator settings (follows ModProfileMock)
+- `client/src/pages/moderator/Profile.jsx` now uses the member settings layout: `PageHeader`, rail with Account / App settings / Security.
+- Account pane: profile card (photo, name, email, "Moderator · Active", joined date), Display name form, "What you can do" list. The fake "Last login" row, the redundant "Basic information" tab and the disabled "Preferences" tab were removed.
+- App settings reuses `NotificationPreferences`, `DataSaverPreference` and the dark mode toggle; Security reuses `ProfileSecurity`.
+- Member-only selectors in `Profile.css` and `ocean.css` now target `.app-shell:is(.user-shell,.moderator-shell)`.

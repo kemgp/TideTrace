@@ -18,7 +18,7 @@ const routes = [
 routes.push(
   ["admin", "/admin/users", "View / Edit"],
   ...["Basic information", "Security", "Recent activity", "Quick actions"].map((action) => ["admin", "/admin/profile", action]),
-  ...["Basic information", "Security", "Preferences"].map((action) => ["moderator", "/moderator/profile", action]),
+  ...["Account", "App settings", "Security"].map((action) => ["moderator", "/moderator/profile", action]),
   ...["Privacy", "App settings", "Security", "Usage & activity"].map((action) => ["user", "/user/profile", action]),
 );
 const params = new URLSearchParams(location.search);
