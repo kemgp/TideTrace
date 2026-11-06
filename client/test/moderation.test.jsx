@@ -58,7 +58,7 @@ it("loads the live queue, reviews photos, approves and refreshes queue and histo
   });
   const view = open();
   // The first Trace in the queue opens on its own beside the list.
-  await screen.findByAltText("Trace photo 1");
+  await screen.findByAltText("Saved seagrass survey, photo 1");
   expect(screen.getByRole("link", { name: "Saved seagrass survey" }).getAttribute("href")).toBe(`/moderator/review/${trace().id}`);
   expect(screen.queryByRole("button", { name: "Upload photo" })).toBeNull();
   fireEvent.change(screen.getByLabelText(/Feedback/), { target: { value: "Verified evidence" } });
@@ -238,4 +238,21 @@ it("fills the feedback box from a quick reason", async () => {
   open(`/moderator/review/${trace().id}`);
   fireEvent.click(await screen.findByRole("button", { name: "Photo is unclear" }));
   expect(screen.getByLabelText(/Feedback/).value).toBe("Please add a clearer photo of what you observed.");
+});
+
+it("marks a resubmitted Trace, keeps history collapsed and lights up Approve after all quick checks", async () => {
+  setup((url) => {
+    if (url === detail) return response(trace({ submitted_at: "2026-10-01T00:00:00Z" }));
+    if (url.startsWith(`${detail}/reviews?`)) return response([{ id: "r1", to_state: "revision_requested", reason: "Please blur the pin", actor: { display_name: "Ana" }, created_at: "2026-10-01T00:00:00Z" }]);
+  });
+  open(`/moderator/review/${trace().id}`);
+  await screen.findByText("Resubmitted after changes");
+  expect(screen.getAllByText(/Please blur the pin/).length).toBeGreaterThan(0);
+  const history = screen.getByText("Review history (1)").closest("details");
+  expect(history.open).toBe(false);
+  const checks = screen.getAllByRole("checkbox");
+  expect(checks).toHaveLength(3);
+  checks.forEach((box) => fireEvent.click(box));
+  await screen.findByText("All checks passed. Approve is ready.");
+  expect(screen.getByRole("button", { name: "Approve & publish" }).className).toMatch(/is-ready/);
 });

@@ -1,16 +1,22 @@
 import { PAGE_SIZE } from "../api/pagination.js";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "./RemoteState.jsx";
 
 const decisions = { approved: "Approved", revision_requested: "Needs revision", rejected: "Rejected" };
 
-export default function TraceFeedback({ id, staff = false }) {
+// collapsible: staff history sits in a closed "Review history (n)" section. onReviews: lets the page see the loaded decisions.
+export default function TraceFeedback({ id, staff = false, collapsible = false, onReviews }) {
   const [offset, setOffset] = useState(0);
   const result = useRemoteData(`${staff ? "moderation/traces" : "contributions"}/${encodeURIComponent(id)}/reviews?limit=${PAGE_SIZE}&offset=${offset}`, { collection: true });
   const reviews = result.data || [];
+  useEffect(() => { if (onReviews && result.data) onReviews(result.data); }, [result.data]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section aria-label="Review feedback" style={{ marginTop: 20, marginBottom: 20 }}>
-    <h3>{staff ? "Previous review feedback" : "Moderator feedback"}</h3>
+    {collapsible ? null : <h3>{staff ? "Previous review feedback" : "Moderator feedback"}</h3>}
+    {collapsible && <details className="review-history"><summary>Review history{!result.loading && !result.error ? ` (${reviews.length})` : ""}</summary>{body()}</details>}
+    {!collapsible && body()}
+  </section>;
+  function body() { return <>
     <RemoteState compact {...result} />
     {!result.loading && !result.error && (reviews.length ? <>
       {reviews.map((review, index) => <div className="flag" key={review.id} style={{ marginBottom: 12 }}>
@@ -20,5 +26,5 @@ export default function TraceFeedback({ id, staff = false }) {
       </div>)}
     </> : <p className="hint">No review feedback on this page.</p>)}
     {(offset > 0 || reviews.length === PAGE_SIZE) && <Pagination offset={offset} count={reviews.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />}
-  </section>;
+  </>; }
 }

@@ -6,6 +6,8 @@ import { ApiError } from "../../api/auth.js";
 import { displayTrace } from "../../api/data.js";
 import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
+import AuthorAvatar from "../../components/AuthorAvatar.jsx";
+import "../../components/trace-detail.css";
 import PageHeader from "../../components/PageHeader.jsx";
 import TraceCard from "../../components/TraceCard.jsx";
 import TraceStatusBadge from "../../components/TraceStatusBadge.jsx";
@@ -235,6 +237,8 @@ function Decision({initialTrace,onReload,onDecided}){
   const [confirming, setConfirming] = useState("");
   const [holding, setHolding] = useState(false);
   const [holdReason, setHoldReason] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [checks, setChecks] = useState({ photo: false, location: false, people: false });
   const [next, setNext] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [current, setCurrent] = useState(initialTrace);
@@ -250,6 +254,9 @@ function Decision({initialTrace,onReload,onDecided}){
   const eligible = current.status === "pending" && !current.is_hidden && !current.deleted_at && !own && Number.isInteger(current.version) && current.version > 0;
   const held = Boolean(current.hold);
   const heldForAdmin = held && role !== "admin";
+  const resubmitted = current.status === "pending" && reviews.some((review) => review.to_state === "revision_requested");
+  const lastAsk = reviews.find((review) => review.to_state === "revision_requested");
+  const allChecked = checks.photo && checks.location && checks.people;
   const preciseLocation = eligible && current.latitude != null && current.longitude != null && !current.is_sensitive;
   const decide = async (decision) => {
     if (request.current || blocked || !eligible) return;
@@ -343,32 +350,44 @@ function Decision({initialTrace,onReload,onDecided}){
   return <div className="mod-review-stack">
     {preciseLocation && <p className="mod-callout mod-callout--warn" role="note"><strong>Check the pin before approving.</strong> This Trace shows an exact location. If it points to a nesting site, a fishing spot or private land, hide the exact location above first.</p>}
     {held && <div className="mod-callout mod-callout--hold" role="status"><p><strong>On hold for an admin.</strong> {current.hold.reason}{current.hold.holder?.display_name ? ` (held by ${current.hold.holder.display_name})` : ""}</p>{role === "admin" && <button type="button" className="btn outline sm" disabled={busy} onClick={release}>Release hold</button>}</div>}
-  <div className="card mod-review-detail">
-    <TraceStatusBadge status={trace.status} />
+  <div className="card mod-review-detail mod-case">
     {current.deleted_at && <p className="hint">Deleted by the author.</p>}
-    {role === "mod" && !current.deleted_at && <div className="mod-review-media"><TracePhotos trace={current} /></div>}
-    <h2 style={{ marginTop: 16 }}>{trace.title}</h2>
-    <p className="hint">Submitted by {trace.author}</p>
-    <div className="chiprow"><span className="chip">{trace.category}</span><span className="chip">{trace.location}</span></div>
-    <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates />
-    {!current.deleted_at && <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={busy || blocked} />}
-    <h3>Description</h3><p style={{ whiteSpace: "pre-wrap" }}>{trace.description}</p>
-    {role !== "mod" && !current.deleted_at && <TracePhotos trace={current} />}
-    <TraceFeedback key={`${current.id}:${current.version}`} id={current.id} staff />
+    {!current.deleted_at && <div className="mod-case__photos trace-detail__card--public"><TracePhotos trace={current} hero /></div>}
+    <div className="mod-case__body">
+      <div className="mod-case__meta">
+        <span className="mod-case__author"><AuthorAvatar authorId={current.author_id} name={trace.author} url={current.author?.avatar_url} /><b>{trace.author}</b>{current.submitted_at && <span> · submitted {new Date(current.submitted_at).toLocaleDateString()}</span>}</span>
+        <span className="mod-case__status">{waitLabel(current.submitted_at) && trace.status === "pending" && <span className={`wait-chip ${waitTone(current.submitted_at)}`}>{waitLabel(current.submitted_at)}</span>}<TraceStatusBadge status={trace.status} /></span>
+      </div>
+      <div className="chiprow"><span className="chip">{trace.category}</span><span className="chip">{trace.location}</span>{resubmitted && <span className="chip chip--resubmitted">Resubmitted after changes</span>}</div>
+      <h2>{trace.title}</h2>
+      <p className="mod-case__description" style={{ whiteSpace: "pre-wrap" }}>{trace.description}</p>
+      {resubmitted && lastAsk?.reason && <p className="mod-callout" role="note"><strong>Last request:</strong> {lastAsk.reason}</p>}
+      <section className="mod-location" aria-label="Location">
+        <h3>Location</h3>
+        <TraceMap latitude={current.latitude} longitude={current.longitude} showCoordinates />
+        {!current.deleted_at && <TraceLocationPrivacy trace={current} onChange={setCurrent} disabled={busy || blocked} />}
+      </section>
+      <TraceFeedback key={`${current.id}:${current.version}`} id={current.id} staff collapsible onReviews={setReviews} />
+    </div>
   </div>
     {eligible && <AuthorCard authorId={current.author_id} name={trace.author} />}
   <div className="card mod-decision-card">
     {own && <p role="alert">You cannot review your own submission.</p>}
-    {!own && !eligible && <p className="hint">This Trace is not awaiting a decision.</p>}
+    {!own && !eligible && !notice && <p className="hint">This Trace is not awaiting a decision.</p>}
     {eligible && <section className="mod-decision" style={{ marginTop: 24 }}>
       <h3>Review decision</h3>
       <p className="hint">Approve publishes the Trace. Request revision returns it to the author. Reject is final.</p>
+      <fieldset className="mod-checks" disabled={busy || heldForAdmin}>
+        <legend className="lbl">Quick checks (optional)</legend>
+        {[["photo", "Photo is clear"], ["location", "Location is okay"], ["people", "No one can be identified"]].map(([key, label]) => <label key={key} className="mod-check"><input type="checkbox" checked={checks[key]} onChange={(event) => setChecks({ ...checks, [key]: event.target.checked })} /> {label}</label>)}
+        {allChecked && <span className="mod-checks__ready" role="status">All checks passed. Approve is ready.</span>}
+      </fieldset>
       <label className="lbl" htmlFor="review-reason">Feedback (required for revision or rejection)</label>
       <textarea id="review-reason" ref={reasonBox} className="input" rows={4} maxLength={2000} value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} />
       <ReasonPicker options={REVIEW_REASONS} templates={templates} value={reason} disabled={busy || heldForAdmin} onPick={(text) => { setReason(text); reasonBox.current?.focus(); }} />
       {heldForAdmin && <p className="hint">This Trace is on hold. Only an admin can decide it.</p>}
       <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
-        <button className="btn blue" aria-label="Approve & publish" disabled={busy || blocked || heldForAdmin} onClick={() => decide("approved")}>Approve &amp; publish <kbd aria-hidden="true">A</kbd></button>
+        <button className={`btn blue${allChecked ? " is-ready" : ""}`} aria-label="Approve & publish" disabled={busy || blocked || heldForAdmin} onClick={() => decide("approved")}>Approve &amp; publish <kbd aria-hidden="true">A</kbd></button>
         <button className="btn outline" aria-label="Request revision" disabled={busy || blocked || heldForAdmin} onClick={() => decide("revision_requested")}>Request revision <kbd aria-hidden="true">R</kbd></button>
         <button className="btn danger" disabled={busy || blocked || heldForAdmin} onClick={() => { if (!reason.trim()) { setError("Enter feedback before requesting revision or rejecting a Trace."); return; } setError(""); setConfirming("rejected"); }}>Reject</button>
         {!held && <button className="btn outline btn-dashed" disabled={busy || blocked} onClick={() => setHolding(true)}>Hold for admin</button>}
