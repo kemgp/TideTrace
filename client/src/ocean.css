@@ -376,3 +376,50 @@ html.dark-mode .app-shell .mod-cards .user-category-label{background:#1f2f52;col
 html.dark-mode .app-shell .mod-cards .user-trace-card > a > .m,html.dark-mode .app-shell .mod-cards .user-card-location{color:#9fb0cc;}
 html.dark-mode .app-shell .mod-cards .user-trace-card .t{color:var(--d-text);}
 html.dark-mode .app-shell .mod-cards .user-trace-card .m svg{stroke:#9fb0cc;}
+
+/* ---------- Moderator Trace detail ---------- */
+.app-shell .mod-case{padding:0 !important;overflow:hidden;}
+.app-shell .mod-case__photos{background:#eef3f8;padding:12px;}
+.app-shell .mod-case__photos .trace-detail__media{border-radius:14px;}
+.app-shell .mod-case__body{padding:22px 28px 26px;}
+.app-shell .mod-case__body h2{margin:14px 0 6px;font-size:26px;line-height:1.2;}
+.app-shell .mod-case__body h3{margin:0 0 8px;}
+.app-shell .mod-case__meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-bottom:12px;}
+.app-shell .mod-case__author{display:inline-flex;align-items:center;gap:8px;min-width:0;color:#526581;font-size:14px;}
+.app-shell .mod-case__author b{color:#203463;}
+.app-shell .mod-case__status{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.app-shell .mod-case__status .wait-chip{margin-left:0;}
+.app-shell .mod-case .badge.pending::before{content:"● " / "";}
+.app-shell .mod-case__description{margin:8px 0 0;font-size:16px;line-height:1.7;max-width:68ch;}
+.app-shell .chip--resubmitted{border-color:#f0c9a0;background:#fff4e8;color:#7a3f17;}
+.app-shell .mod-location{margin-top:22px;padding-top:18px;border-top:1px solid #d6e6f4;}
+.app-shell .mod-location .trace-map-frame{height:240px;}
+.app-shell .review-history{margin-top:18px;border:1px solid #d6e6f4;border-radius:14px;padding:10px 16px;}
+.app-shell .review-history summary{cursor:pointer;font-weight:700;color:#203463;min-height:32px;display:flex;align-items:center;}
+.app-shell .mod-checks{border:1px dashed #c7dcee;border-radius:14px;padding:10px 14px 12px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;}
+.app-shell .mod-checks legend{padding:0 6px;margin:0;}
+.app-shell .mod-check{display:inline-flex;align-items:center;gap:8px;font-size:14px;min-height:32px;cursor:pointer;}
+.app-shell .mod-check input{width:20px;height:20px;accent-color:#2c6fb7;}
+.app-shell .mod-checks__ready{flex-basis:100%;font-size:13px;font-weight:700;color:#2f6a70;}
+.app-shell .mod-decision .btn.blue.is-ready{box-shadow:0 0 0 3px #bfe3e6,0 10px 20px -10px rgba(49,78,157,.7);}
+.app-shell .decision-outcome{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:14px 18px;border-radius:14px;background:#e2f2f2;border:1px solid #9ccdd0;color:#10453f;}
+.app-shell .decision-outcome p{margin:0;}
+.app-shell .decision-outcome.is-rejected{background:#fdecec;border-color:#f1b5b5;color:#6b1d1d;}
+.app-shell .decision-outcome.is-revision_requested{background:#fff4e8;border-color:#f0c9a0;color:#5c3112;}
+@media (max-width:640px){
+  .app-shell .mod-case__body{padding:18px 16px 20px;}
+  .app-shell .mod-decision .row{position:sticky;bottom:0;z-index:3;margin:16px -8px 0 !important;padding:10px 8px;background:#fff;border-top:1px solid #d6e6f4;display:grid !important;grid-template-columns:1fr 1fr;gap:10px;}
+  .app-shell .mod-decision .row .btn{width:100%;min-height:48px;white-space:normal;}
+}
+html.dark-mode .app-shell .mod-case__photos{background:#101827;}
+html.dark-mode .app-shell .mod-case__author b,html.dark-mode .app-shell .review-history summary{color:#e7eef7;}
+html.dark-mode .app-shell .mod-case__author{color:#9eafc6;}
+html.dark-mode .app-shell .chip--resubmitted{background:#3a2f12;border-color:#7a6320;color:#ffe3a0;}
+html.dark-mode .app-shell .mod-location,html.dark-mode .app-shell .review-history{border-color:#34445d;}
+html.dark-mode .app-shell .mod-checks{border-color:#34445d;}
+html.dark-mode .app-shell .mod-checks__ready{color:#bfeee6;}
+html.dark-mode .app-shell .mod-decision .btn.blue.is-ready{box-shadow:0 0 0 3px #2f6b63;}
+html.dark-mode .app-shell .decision-outcome{background:#12302d;border-color:#2f6b63;color:#bfeee6;}
+html.dark-mode .app-shell .decision-outcome.is-rejected{background:#3d1b1b;border-color:#7d3535;color:#ffc4c4;}
+html.dark-mode .app-shell .decision-outcome.is-revision_requested{background:#3a2f12;border-color:#7a6320;color:#ffe3a0;}
+@media (max-width:640px){html.dark-mode .app-shell .mod-decision .row{background:#172235;border-top-color:#34445d;}}
