@@ -265,7 +265,7 @@ export default function Navbar(){
 
         <div className="nav-right">
 
-          {role==="user"&&<NotificationMenu onNavigate={()=>setOpen(false)} />}
+          {role&&<NotificationMenu onNavigate={()=>setOpen(false)} />}
 
           {role&&(
             <div

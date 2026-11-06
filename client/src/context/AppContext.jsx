@@ -164,7 +164,7 @@ export function AppProvider({children}){
   },[sessions]);
 
   const notificationState=useNotifications(
-    role==="user"?profile?.id:null,
+    role?profile?.id:null,
     readData,
     writeData
   );

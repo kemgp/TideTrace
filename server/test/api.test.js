@@ -615,10 +615,11 @@ test("staff Trace detail requires staff access and retains deleted records", asy
   await bearer(request(member.app).get(`/api/moderation/traces/${traceId}`)).expect(403);
   assert.equal(businessCalls(member.calls).length, 0);
   for (const role of ["moderator", "admin"]) {
-    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([{ id: traceId, status: "pending", version: 3, deleted_at: "2026-11-02T00:00:00Z" }]) : undefined });
+    const { app, calls } = fixture({ role, handler: ({ url }) => url.pathname === "/rest/v1/trace_holds" ? json([]) : url.pathname === "/rest/v1/traces" ? json([{ id: traceId, status: "pending", version: 3, deleted_at: "2026-11-02T00:00:00Z" }]) : undefined });
     const response = await bearer(request(app).get(`/api/moderation/traces/${traceId}`)).expect(200);
+    assert.equal(response.body.data.hold, null);
     assert.ok(response.body.data.deleted_at);
-    const query = businessCalls(calls)[0].url.searchParams;
+    const query = businessCalls(calls).find(({ url }) => url.pathname === "/rest/v1/traces").url.searchParams;
     assert.equal(query.get("id"), `eq.${traceId}`);
     // Deleted traces stay readable for staff; moderation-hidden ones remain excluded.
     assert.equal(query.get("is_hidden"), "eq.false");
@@ -1719,4 +1720,83 @@ test("a member reads only their own lesson progress", async () => {
   assert.equal(query.get("user_id"), `eq.${userId}`);
   assert.equal(query.get("tide_id"), `in.(${tideId})`);
   await bearer(request(app).get("/api/tide-progress?tide_ids=nope")).expect(400);
+});
+
+const heldId = "20000000-0000-4000-8000-000000000009";
+const reportA = "50000000-0000-4000-8000-000000000001";
+const reportB = "50000000-0000-4000-8000-000000000002";
+
+test("moderators cannot see held Traces in the queue but admins can filter to them", async () => {
+  const handler = ({ url }) => url.pathname === "/rest/v1/trace_holds" ? json([{ trace_id: heldId }]) : url.pathname === "/rest/v1/traces" ? json([]) : url.pathname === "/rest/v1/reports" ? json([]) : undefined;
+  const moderator = fixture({ role: "moderator", handler });
+  await bearer(request(moderator.app).get("/api/moderation/traces?hold=only")).expect(200);
+  assert.equal(businessCalls(moderator.calls).find(({ url }) => url.pathname === "/rest/v1/traces").url.searchParams.get("id"), `not.in.(${heldId})`);
+  const admin = fixture({ role: "admin", handler });
+  await bearer(request(admin.app).get("/api/moderation/traces?hold=only")).expect(200);
+  assert.equal(businessCalls(admin.calls).find(({ url }) => url.pathname === "/rest/v1/traces").url.searchParams.get("id"), `in.(${heldId})`);
+  const all = fixture({ role: "admin", handler });
+  await bearer(request(all.app).get("/api/moderation/traces")).expect(200);
+  assert.equal(businessCalls(all.calls).some(({ url }) => url.pathname === "/rest/v1/trace_holds"), false);
+});
+
+test("staff can hold a Trace and only admins can release it", async () => {
+  const handler = ({ url }) => /\/rpc\/(hold_trace|release_trace_hold)$/.test(url.pathname) ? json({ id: traceId, status: "pending", version: 4 }) : undefined;
+  const member = fixture();
+  await bearer(request(member.app).post(`/api/moderation/traces/${traceId}/hold`)).send({ version: 3, reason: "Unsure" }).expect(403);
+  const moderator = fixture({ role: "moderator", handler });
+  await bearer(request(moderator.app).post(`/api/moderation/traces/${traceId}/hold`)).send({ version: 3, reason: "  " }).expect(400);
+  await bearer(request(moderator.app).post(`/api/moderation/traces/${traceId}/hold`)).send({ version: 3, reason: "Unsure about the pin" }).expect(200);
+  assert.deepEqual(businessCalls(moderator.calls).find(({ url }) => url.pathname.endsWith("/hold_trace")).body, { p_id: traceId, p_version: 3, p_reason: "Unsure about the pin" });
+  await bearer(request(moderator.app).post(`/api/moderation/traces/${traceId}/release-hold`)).expect(403);
+  const admin = fixture({ role: "admin", handler });
+  await bearer(request(admin.app).post(`/api/moderation/traces/${traceId}/release-hold`)).expect(200);
+});
+
+test("grouped report decisions validate ids and pass one reason to the database", async () => {
+  const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/resolve_reports" ? json(2) : undefined });
+  await bearer(request(app).post("/api/moderation/reports/resolve")).send({ ids: [], remove_content: true, reason: "x" }).expect(400);
+  await bearer(request(app).post("/api/moderation/reports/resolve")).send({ ids: ["nope"], remove_content: true, reason: "x" }).expect(400);
+  await bearer(request(app).post("/api/moderation/reports/resolve")).send({ ids: [reportA], remove_content: true, reason: " " }).expect(400);
+  const response = await bearer(request(app).post("/api/moderation/reports/resolve")).send({ ids: [reportA, reportB, reportA], remove_content: false, reason: "Fine" }).expect(200);
+  assert.equal(response.body.data.resolved, 2);
+  assert.deepEqual(businessCalls(calls).find(({ url }) => url.pathname.endsWith("/resolve_reports")).body, { p_ids: [reportA, reportB], p_remove_content: false, p_reason: "Fine" });
+});
+
+test("saved reasons belong to the signed-in moderator and are capped", async () => {
+  const member = fixture();
+  await bearer(request(member.app).get("/api/moderation/reason-templates")).expect(403);
+  const { app, calls } = fixture({ role: "moderator", handler: ({ url, method }) => url.pathname === "/rest/v1/moderator_reason_templates" ? json(method === "POST" ? [{ id: reportA, kind: "review", body: "Blur the pin" }] : []) : undefined });
+  await bearer(request(app).get("/api/moderation/reason-templates?kind=report")).expect(200);
+  const list = businessCalls(calls)[0].url.searchParams;
+  assert.equal(list.get("owner_id"), `eq.${userId}`);
+  assert.equal(list.get("kind"), "eq.report");
+  await bearer(request(app).post("/api/moderation/reason-templates")).send({ kind: "other", body: "x" }).expect(400);
+  await bearer(request(app).post("/api/moderation/reason-templates")).send({ kind: "review", body: "Blur the pin" }).expect(201);
+  await bearer(request(app).delete(`/api/moderation/reason-templates/${reportA}`)).expect(204);
+  const full = fixture({ role: "moderator", handler: ({ url, method }) => url.pathname === "/rest/v1/moderator_reason_templates" && method === "GET" ? json(Array.from({ length: 30 }, (_, index) => ({ id: `60000000-0000-4000-8000-${String(index).padStart(12, "0")}` }))) : undefined });
+  const response = await bearer(request(full.app).post("/api/moderation/reason-templates")).send({ kind: "review", body: "One more" }).expect(409);
+  assert.equal(response.body.error.code, "LIMIT_REACHED");
+});
+
+test("author summary is staff-only and history can be limited to the current moderator", async () => {
+  const member = fixture();
+  await bearer(request(member.app).get(`/api/moderation/authors/${userId}/summary`)).expect(403);
+  const { app, calls } = fixture({ role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/staff_author_summary" ? json({ traces: 3 }) : url.pathname === "/rest/v1/moderation_actions" ? json([]) : undefined });
+  const summary = await bearer(request(app).get(`/api/moderation/authors/${userId}/summary`)).expect(200);
+  assert.equal(summary.body.data.traces, 3);
+  await bearer(request(app).get("/api/moderation/history?mine=true")).expect(200);
+  assert.equal(businessCalls(calls).find(({ url }) => url.pathname === "/rest/v1/moderation_actions").url.searchParams.get("actor_id"), `eq.${userId}`);
+});
+
+test("the pending queue lists Traces with open reports first and can show only those", async () => {
+  const older = { id: "20000000-0000-4000-8000-0000000000a1", submitted_at: "2026-10-01T00:00:00Z" };
+  const flagged = { id: "20000000-0000-4000-8000-0000000000a2", submitted_at: "2026-10-20T00:00:00Z" };
+  const handler = ({ url }) => url.pathname === "/rest/v1/trace_holds" ? json([]) : url.pathname === "/rest/v1/traces" ? json([older, flagged]) : url.pathname === "/rest/v1/reports" ? json([{ trace_id: flagged.id }, { trace_id: flagged.id }]) : undefined;
+  const { app } = fixture({ role: "moderator", handler });
+  const all = await bearer(request(app).get("/api/moderation/traces")).expect(200);
+  assert.deepEqual(all.body.data.map((row) => [row.id, row.report_count]), [[flagged.id, 2], [older.id, 0]]);
+  const only = await bearer(request(app).get("/api/moderation/traces?flag=only")).expect(200);
+  assert.deepEqual(only.body.data.map((row) => row.id), [flagged.id]);
+  const second = await bearer(request(app).get("/api/moderation/traces?limit=1&offset=1")).expect(200);
+  assert.deepEqual(second.body.data.map((row) => row.id), [older.id]);
 });

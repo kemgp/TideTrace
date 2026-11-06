@@ -1,5 +1,5 @@
 import React, { StrictMode } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { it, expect, vi } from "vitest";
 import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
@@ -112,6 +112,7 @@ it.each([false, true])("saves moderator decision remove=%s and reloads its saved
   await screen.findByText("Enter a reason for your decision.");
   fireEvent.change(screen.getByLabelText("Decision reason"), { target: { value: "Reviewed evidence" } });
   await click(remove ? "Remove content" : "Dismiss report");
+  if (remove) await click("Yes, remove");
   await screen.findByText(remove ? "Content removed. Decision saved." : "Report dismissed. Decision saved.");
   expect(screen.queryByRole("button", { name: "Remove content" })).toBeNull();
   expect(JSON.parse(writes(calls)[0][1].body)).toEqual({ remove_content: remove, reason: "Reviewed evidence" });
@@ -133,7 +134,7 @@ it("shows resolved comment reports, safe content, and supports admin access", as
   const calls = setup((url) => url.startsWith("/api/moderation/reports?") ? ok(url.includes("status=open") ? [] : [{ ...initial, trace_id: null, trace: null, comment_id: commentId, comment: { body: "<script>unsafe()</script>", trace: { title: "Comment context" }, status: "hidden" }, status: "resolved", resolution_reason: "Removed harassment" }]) : undefined, "admin");
   open("/admin/reports");
   await screen.findByText("No open reports on this page.");
-  fireEvent.change(screen.getByLabelText("Report status"), { target: { value: "resolved" } });
+  fireEvent.click(within(screen.getByLabelText("Report status")).getByRole("button", { name: /^Removed/ }));
   await screen.findByText("Comment: Comment context");
   expect(screen.getByText("<script>unsafe()</script>").querySelector("script")).toBeNull();
   expect(screen.queryByLabelText("Decision reason")).toBeNull();
@@ -207,10 +208,11 @@ it("blocks duplicate member reports and ignores the save after logout", async ()
   expect(writes(calls)).toHaveLength(0);
   fireEvent.change(screen.getByLabelText("Decision reason"), { target: { value: "Reviewed comment" } });
   await click(remove ? "Remove comment" : "Keep comment");
+  if (remove) await click("Yes, remove");
   await screen.findByText(remove ? "Content removed. Decision saved." : "Report dismissed. Decision saved.");
   expect(JSON.parse(writes(calls)[0][1].body)).toEqual({ remove_content: remove, reason: "Reviewed comment" });
   expect(calls.mock.calls.some(([url]) => url.includes("type=comment"))).toBe(true);
-  fireEvent.change(screen.getByLabelText("Report status"), { target: { value: "dismissed" } });
+  fireEvent.click(within(screen.getByLabelText("Report status")).getByRole("button", { name: /^Dismissed/ }));
   await waitFor(() => expect(calls.mock.calls.some(([url]) => url.includes("status=dismissed") && url.includes("type=comment"))).toBe(true));
  });
 
@@ -221,4 +223,53 @@ it.each(["trace", "comment"])("distinguishes the %s author from its reporter", a
  open("/admin/reports");
  await screen.findByText(type === "comment" ? "Comment by Comment Author" : "Trace by Trace Author");
  expect(screen.getByText(/Reported by Reporting Member/)).toBeTruthy();
+});
+
+it("dismisses several selected reports at once with one reason", async () => {
+  const second = { ...initial, id: "70000000-0000-4000-8000-000000000002", reporter: { display_name: "Another member" } };
+  const calls = setup((url) => {
+    if (url.startsWith("/api/moderation/reports?")) return ok([initial, second]);
+    if (url === "/api/moderation/reports/resolve") return ok({ resolved: 2 });
+  }, "moderator");
+  open("/moderator/reports");
+  // Two reports on one Trace share a single card.
+  expect(await screen.findByText("2 reports")).toBeTruthy();
+  const boxes = await screen.findAllByRole("checkbox", { name: /Select report on/ });
+  expect(boxes).toHaveLength(1);
+  fireEvent.click(boxes[0]);
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss selected" }));
+  const dialog = await screen.findByRole("dialog", { name: "Dismiss 2 reports?" });
+  const confirm = dialog.querySelector(".btn.blue");
+  expect(confirm.disabled).toBe(true);
+  fireEvent.change(dialog.querySelector("#bulk-reason"), { target: { value: "Fine to keep" } });
+  fireEvent.click(confirm);
+  await screen.findByText("2 reports dismissed. Decisions saved.");
+  expect(JSON.parse(writes(calls)[0][1].body)).toEqual({ ids: [initial.id, second.id], remove_content: false, reason: "Fine to keep" });
+});
+
+it("asks before removing content and lets the moderator back out", async () => {
+  const calls = setup(() => undefined, "moderator");
+  open("/moderator/reports");
+  await screen.findByText("Private information", { exact: false });
+  fireEvent.change(screen.getByLabelText("Decision reason"), { target: { value: "Breaks the guidelines" } });
+  await click("Remove content");
+  const dialog = await screen.findByRole("dialog", { name: "Remove this content?" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(writes(calls)).toHaveLength(0);
+});
+
+it("decides every report on the same Trace together from one card", async () => {
+  const second = { ...initial, id: "70000000-0000-4000-8000-000000000002", reporter: { display_name: "Another member" } };
+  const calls = setup((url) => {
+    if (url.startsWith("/api/moderation/reports?")) return ok([initial, second]);
+    if (url === "/api/moderation/reports/resolve") return ok({ resolved: 2 });
+  }, "moderator");
+  open("/moderator/reports");
+  await screen.findByText("2 reports");
+  expect(screen.getByText(/Reported by Member and 1 other/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Decision reason"), { target: { value: "Fine to keep" } });
+  await click("Dismiss report");
+  await screen.findByText("Reports dismissed. Decisions saved.");
+  expect(JSON.parse(writes(calls)[0][1].body)).toEqual({ ids: [initial.id, second.id], remove_content: false, reason: "Fine to keep" });
 });

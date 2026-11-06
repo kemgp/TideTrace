@@ -9,7 +9,8 @@ import "./NotificationMenu.css";
 // The bell in the navbar: shows the unread count and opens a short list of the latest notifications,
 // with a link to the full page. The list is fetched when the menu is first opened, then refreshed on each opening.
 export default function NotificationMenu({ onNavigate }) {
-  const { unreadNotificationCount, markNotificationsRead } = useApp();
+  const { unreadNotificationCount, markNotificationsRead, role } = useApp();
+  const allPath = role === "mod" ? "/moderator/notifications" : role === "admin" ? "/admin/notifications" : "/user/notifications";
   const navigate = useNavigate();
   const location = useLocation();
   // The app drops the count to null while it refreshes; keep the last number so the badge stays steady.
@@ -46,7 +47,7 @@ export default function NotificationMenu({ onNavigate }) {
   const openRow = (row) => {
     setOpen(false);
     onNavigate?.();
-    navigate("/user/notifications");
+    navigate(allPath);
     if (!row.read_at) markNotificationsRead([row.id]);
   };
   const markAll = async () => { await markNotificationsRead(null); result.retry(); };
@@ -82,7 +83,7 @@ export default function NotificationMenu({ onNavigate }) {
           </li>)}
         </ul>}
       </div>
-      <Link className="notif-foot" to="/user/notifications" onClick={() => { setOpen(false); onNavigate?.(); }}>See all notifications</Link>
+      <Link className="notif-foot" to={allPath} onClick={() => { setOpen(false); onNavigate?.(); }}>See all notifications</Link>
     </section>}
   </div>;
 }

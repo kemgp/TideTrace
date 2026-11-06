@@ -16,12 +16,49 @@ export function staffRoutes(gateway) {
     res.json({ data: await result(req.db.rpc("get_staff_analytics")) });
   });
   router.get("/traces", async (req, res) => {
-    const input = page.extend({ status: z.enum(["pending", "approved", "rejected", "revision_requested", "draft"]).default("pending") }).parse(req.query);
-    res.json({ data: await result(paginate(req.db.from("traces").select(traceSelect).eq("status", input.status).eq("is_hidden", false).is("deleted_at", null).order("submitted_at").order("id"), input)) });
+    const input = page.extend({ status: z.enum(["pending", "approved", "rejected", "revision_requested", "draft"]).default("pending"), hold: z.enum(["exclude", "only", "all"]).optional(), flag: z.enum(["only"]).optional() }).parse(req.query);
+    // Moderators never see held Traces in their queue; admins see everything unless they filter.
+    const mode = req.profile.role === "admin" ? input.hold ?? "all" : "exclude";
+    let query = req.db.from("traces").select(traceSelect).eq("status", input.status).eq("is_hidden", false).is("deleted_at", null);
+    if (mode !== "all") {
+      const held = (await result(req.db.from("trace_holds").select("trace_id"))).map((row) => row.trace_id);
+      if (mode === "only") query = held.length ? query.in("id", held) : query.eq("id", "00000000-0000-0000-0000-000000000000");
+      else if (held.length) query = query.not("id", "in", `(${held.join(",")})`);
+    }
+    if (input.status !== "pending") {
+      res.json({ data: await result(paginate(query.order("submitted_at").order("id"), input)) });
+      return;
+    }
+    // The pending queue puts Traces with open reports first, then the longest waiting.
+    const [rows, reports] = await Promise.all([
+      result(query.order("submitted_at").order("id").range(0, 499)),
+      result(req.db.from("reports").select("trace_id").eq("status", "open").not("trace_id", "is", null)),
+    ]);
+    const counts = new Map();
+    for (const row of reports) counts.set(row.trace_id, (counts.get(row.trace_id) || 0) + 1);
+    let queue = rows.map((row) => ({ ...row, report_count: counts.get(row.id) || 0 }));
+    if (input.flag === "only") queue = queue.filter((row) => row.report_count > 0);
+    queue = [...queue.filter((row) => row.report_count > 0), ...queue.filter((row) => row.report_count === 0)];
+    res.json({ data: queue.slice(input.offset, input.offset + input.limit) });
   });
   router.get("/traces/:id", async (req, res) => {
-    const row = first(await result(req.db.from("traces").select(traceSelect).eq("id", uuid.parse(req.params.id)).eq("is_hidden", false).limit(1)));
-    res.json({ data: await withPrivateLocation(req.db, row) });
+    const id = uuid.parse(req.params.id);
+    const row = first(await result(req.db.from("traces").select(traceSelect).eq("id", id).eq("is_hidden", false).limit(1)));
+    const holds = await result(req.db.from("trace_holds").select("reason,held_at,holder:profiles!trace_holds_held_by_fkey(id,display_name)").eq("trace_id", id).limit(1));
+    res.json({ data: { ...(await withPrivateLocation(req.db, row)), hold: holds[0] ?? null } });
+  });
+  router.post("/traces/:id/hold", async (req, res) => {
+    const input = z.object({ version: z.number().int().min(1), reason: text(2000) }).strict().parse(req.body);
+    const saved = await result(req.db.rpc("hold_trace", { p_id: uuid.parse(req.params.id), p_version: input.version, p_reason: input.reason }));
+    res.json({ data: await withPrivateLocation(req.db, saved) });
+  });
+  router.post("/traces/:id/release-hold", async (req, res) => {
+    if (req.profile.role !== "admin") throw new HttpError(403, "FORBIDDEN", "Only an admin can release a hold.");
+    const saved = await result(req.db.rpc("release_trace_hold", { p_id: uuid.parse(req.params.id) }));
+    res.json({ data: await withPrivateLocation(req.db, saved) });
+  });
+  router.get("/authors/:id/summary", async (req, res) => {
+    res.json({ data: await result(req.db.rpc("staff_author_summary", { p_author_id: uuid.parse(req.params.id) })) });
   });
   router.get("/traces/:id/reviews", async (req, res) => {
     const id = uuid.parse(req.params.id);
@@ -43,14 +80,36 @@ export function staffRoutes(gateway) {
   router.get("/reports/:id", async (req, res) => {
     res.json({ data: first(await result(req.db.from("reports").select(reportSelect).eq("id", uuid.parse(req.params.id)).limit(1))) });
   });
+  router.post("/reports/resolve", async (req, res) => {
+    const input = z.object({ ids: z.array(uuid).min(1).max(50), remove_content: z.boolean(), reason: text(2000) }).strict().parse(req.body);
+    const resolved = await result(req.db.rpc("resolve_reports", { p_ids: [...new Set(input.ids)], p_remove_content: input.remove_content, p_reason: input.reason }));
+    res.json({ data: { resolved } });
+  });
+  router.get("/reason-templates", async (req, res) => {
+    const input = z.object({ kind: z.enum(["review", "report"]).optional() }).strict().parse(req.query);
+    let query = req.db.from("moderator_reason_templates").select("id,kind,body,created_at").eq("owner_id", req.user.id);
+    if (input.kind) query = query.eq("kind", input.kind);
+    res.json({ data: await result(query.order("created_at").order("id")) });
+  });
+  router.post("/reason-templates", async (req, res) => {
+    const input = z.object({ kind: z.enum(["review", "report"]), body: text(500) }).strict().parse(req.body);
+    const existing = await result(req.db.from("moderator_reason_templates").select("id").eq("owner_id", req.user.id));
+    if (existing.length >= 30) throw new HttpError(409, "LIMIT_REACHED", "You can keep up to 30 saved reasons. Delete one to add another.");
+    res.status(201).json({ data: first(await result(req.db.from("moderator_reason_templates").insert({ kind: input.kind, body: input.body }).select("id,kind,body,created_at"))) });
+  });
+  router.delete("/reason-templates/:id", async (req, res) => {
+    await result(req.db.from("moderator_reason_templates").delete().eq("id", uuid.parse(req.params.id)).eq("owner_id", req.user.id));
+    res.sendStatus(204);
+  });
   router.post("/reports/:id/resolve", async (req, res) => {
     const input = z.object({ remove_content: z.boolean(), reason: text(2000) }).strict().parse(req.body);
     await result(req.db.rpc("resolve_report", { p_id: uuid.parse(req.params.id), p_remove_content: input.remove_content, p_reason: input.reason }));
     res.sendStatus(204);
   });
   router.get("/history", async (req, res) => {
-    const input = page.extend({ outcome: z.enum(["approved", "revision", "rejected", "kept", "removed", "dismissed"]).optional() }).parse(req.query);
+    const input = page.extend({ outcome: z.enum(["approved", "revision", "rejected", "kept", "removed", "dismissed"]).optional(), mine: z.enum(["true", "false"]).optional() }).parse(req.query);
     let query = req.db.from("moderation_actions").select("*,trace:traces(id,title,deleted_at,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name)),report:reports(id,status,reporter:profiles!reports_reporter_id_fkey(id,display_name),trace:traces(id,title,deleted_at,author:profiles!traces_author_id_fkey(id,display_name)),comment:comments(id,body,author:profiles!comments_author_id_fkey(id,display_name))),actor:profiles!moderation_actions_actor_id_fkey(id,display_name)");
+    if (input.mine === "true") query = query.eq("actor_id", req.user.id);
     if (input.outcome) {
       const states = { approved: ["approved"], revision: ["revision_requested"], rejected: ["rejected"], kept: ["visible", "kept"], removed: ["hidden", "removed", "resolved"], dismissed: ["dismissed"] };
       query = query.in("to_state", states[input.outcome]);

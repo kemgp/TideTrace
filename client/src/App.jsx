@@ -427,6 +427,26 @@ function AppShell(){
               }
             />
             <Route
+              path="/moderator/notifications"
+              element={
+                <RequireRole role="mod">
+                  <div className="view">
+                    <Notifications/>
+                  </div>
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/notifications"
+              element={
+                <RequireRole role="admin">
+                  <div className="view">
+                    <Notifications/>
+                  </div>
+                </RequireRole>
+              }
+            />
+            <Route
               path="/user/profile"
               element={
                 <RequireRole role="user">

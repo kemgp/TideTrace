@@ -80,6 +80,8 @@ try {
   console.log('PASS: sensitive coordinates, publication, ownership, suspension and direct-read isolation.');
   await db.exec(await readFile(new URL('./delete-own-trace.sql', import.meta.url), 'utf8'));
   console.log('PASS: own-Trace deletion in every status, visibility, reports, comments, history and cleanup permissions.');
+  await db.exec(await readFile(new URL('./moderator-workflow.sql', import.meta.url), 'utf8'));
+  console.log('PASS: holds, admin-only decisions on held Traces, grouped report decisions, author summary, saved reasons and staff report notices.');
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);
   const bootstrap = (await readFile(new URL('../bootstrap-first-admin.sql', import.meta.url), 'utf8')).replaceAll('REPLACE_WITH_YOUR_AUTH_USER_UUID','20000000-0000-0000-0000-000000000001');
