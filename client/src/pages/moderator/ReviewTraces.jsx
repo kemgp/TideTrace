@@ -1,6 +1,6 @@
 import { PAGE_SIZE } from "../../api/pagination.js";
 import React,{useEffect,useRef,useState} from "react";
-import {Link,useNavigate,useParams} from "react-router-dom";
+import {Link,useNavigate,useParams,useSearchParams} from "react-router-dom";
 import { useApp } from "../../context/AppContext.jsx";
 import { ApiError } from "../../api/auth.js";
 import { displayTrace } from "../../api/data.js";
@@ -140,7 +140,10 @@ function ModWorkspace({id,base}){
 function ReviewQueue({base}){
   const [offset, setOffset] = useState(0);
   const [category, setCategory] = useState("All");
-  const [hold, setHold] = useState("all");
+  // The hold filter lives in the URL (?hold=only|exclude) so the dashboard and other pages can link to it.
+  const [params, setParams] = useSearchParams();
+  const hold = ["only", "exclude"].includes(params.get("hold")) ? params.get("hold") : "all";
+  const setHold = (value) => setParams(value === "all" ? {} : { hold: value }, { replace: true });
   const { role } = useApp();
   const holdQuery = role === "admin" && hold !== "all" ? `&hold=${hold}` : "";
   const result = useRemoteData(`moderation/traces?status=pending&limit=${PAGE_SIZE}&offset=${offset}${holdQuery}`, { collection: true });

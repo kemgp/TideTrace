@@ -7,6 +7,9 @@ const counts = {
   admin: ["users", "active_users", "moderators", "published_traces", "published_tides", "pending", "open_reports"],
 };
 
+// Totals added after the first release. Older databases omit them, so they are checked only when present.
+const optionalFieldsValid = (data) => (data.held_traces === undefined || (Number.isSafeInteger(data.held_traces) && data.held_traces >= 0)) && (data.oldest_pending_at == null || Number.isFinite(Date.parse(data.oldest_pending_at)));
+
 export default function useDashboard() {
   const { profile, readData } = useApp();
   const key = `${profile.id}:${profile.role}`;
@@ -22,7 +25,7 @@ export default function useDashboard() {
       controller = new AbortController();
       try {
         const data = await readData("dashboard", { signal: controller.signal });
-        if (data?.id !== profile.id || data.role !== profile.role || !counts[data.role] || !counts[data.role].every((field) => Number.isSafeInteger(data[field]) && data[field] >= 0) || !Number.isFinite(Date.parse(data.as_of)) || (data.role === "user" && !Number.isFinite(Date.parse(data.member_since)))) throw new Error("Dashboard totals could not be verified. Please try again.");
+        if (data?.id !== profile.id || data.role !== profile.role || !counts[data.role] || !counts[data.role].every((field) => Number.isSafeInteger(data[field]) && data[field] >= 0) || !Number.isFinite(Date.parse(data.as_of)) || !optionalFieldsValid(data) || (data.role === "user" && !Number.isFinite(Date.parse(data.member_since)))) throw new Error("Dashboard totals could not be verified. Please try again.");
         if (active) setResult({ key, data, error: "" });
       } catch (failure) {
         if (active) setResult({ key, data: null, error: failure.message });
