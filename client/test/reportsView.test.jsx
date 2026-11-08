@@ -78,7 +78,7 @@ it("opens with the filter from the address and ignores an unknown type", async (
 
 it("treats an unknown type as All", async () => {
   const fetcher = setup("/moderator/reports?type=banana");
-  await screen.findByRole("article", { name: "Report: Coastal observation" });
+  expect(await screen.findAllByRole("article", { name: "Report: Coastal observation" })).toHaveLength(2);
   expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
   expect(reportCalls(fetcher)[0]).not.toContain("type=");
 });
