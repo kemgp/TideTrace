@@ -75,7 +75,7 @@ it("shows feedback, saves edits under the same Trace, then resubmits and locks e
   expect(JSON.parse(calls.mock.calls.find(([url]) => url === `${update}/submit`)[1].body)).toEqual({ version: 5 });
   // Reopening the saved record continues to show Pending with its previous feedback.
   fireEvent.click(screen.getByRole("link", { name: /Back to My Contributions/ }));
-  fireEvent.click(await screen.findByText(saved.title));
+  fireEvent.click(await screen.findByRole("link", { name: `View: ${saved.title}` }));
   await screen.findByText(/Your Trace is awaiting a reviewer/);
   await screen.findByText(feedback.reason);
   expect(screen.queryByRole("link", { name: "Edit requested revision" })).toBeNull();
@@ -160,7 +160,7 @@ it("shows prior feedback to a reviewer opening a resubmitted Trace", async () =>
   const fetch = globalThis.fetch;
   vi.stubGlobal("fetch", vi.fn((url, options) => url === "/api/auth/me" ? Promise.resolve(response({ ...profile, role: "moderator" })) : fetch(url, options)));
   open(`/moderator/review/${trace().id}`);
-  await screen.findByRole("heading", { name: "Previous review feedback" });
-  expect(await screen.findByText(feedback.reason)).toBeTruthy();
+  expect(await screen.findByText("Last request:")).toBeTruthy();
+  expect(screen.getAllByText(feedback.reason).length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: "Approve & publish" })).toBeTruthy();
 });

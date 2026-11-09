@@ -191,7 +191,8 @@ it("shows who made each previous Trace decision to staff", async () => {
  });
  open(`/moderator/review/${trace().id}`);
  await screen.findByText(/Reviewed by Ana Reviewer/);
- expect(screen.getByText("Add evidence")).toBeTruthy();
+ // The reason appears in the review history and, for a resubmitted Trace, in the "Last request" callout.
+ expect(within(screen.getByRole("region", { name: "Review feedback" })).getByText("Add evidence")).toBeTruthy();
 });
 
 it("holds a Trace for an admin and stops a moderator deciding a held Trace", async () => {

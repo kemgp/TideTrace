@@ -53,7 +53,7 @@ it("saves an unfinished draft, reopens it from contributions, and persists an ed
   expect(JSON.parse(create.body)).toEqual({ category_id: category.id, title: "", location_name: "", description: "", latitude: null, longitude: null, is_sensitive: false });
   expect(create.headers.Authorization).toBe("Bearer live-access");
   fireEvent.click(screen.getByRole("link", { name: /Back to My Contributions/ }));
-  fireEvent.click(await screen.findByText("Untitled draft"));
+  fireEvent.click(await screen.findByRole("link", { name: "Continue editing: Untitled draft" }));
   await screen.findByRole("option", { name: "Seagrass" });
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Return visit" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Lawis shoreline" } });

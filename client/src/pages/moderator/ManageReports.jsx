@@ -81,7 +81,7 @@ function ReportQueue() {
       <ReasonPicker options={REPORT_REASONS} templates={keepTemplates} value={bulkReason} disabled={bulkBusy} onPick={setBulkReason} />
     </ConfirmDialog>}
     <RemoteState {...result} />
-    {!result.loading && !result.error && (reports.length ? groups.map((group) => <ReportDecision key={group.map((report) => `${report.id}:${report.status}`).join("|")} initialReport={group[0]} group={group} templates={keepTemplates} selected={group.every((report) => selected.includes(report.id))} onToggle={() => toggleGroup(group.map((report) => report.id))} onChanged={result.retry} />) : <p>No {status} {type === "comment" ? "comment reports" : type === "trace" ? "Trace reports" : "reports"} on this page.</p>)}
+    {!result.loading && !result.error && (reports.length ? groups.map((group) => <ReportDecision key={group.map((report) => `${report.id}:${report.status}`).join("|")} initialReport={group[0]} group={group} templates={keepTemplates} selected={group.every((report) => selected.includes(report.id))} onToggle={() => toggleGroup(group.map((report) => report.id))} onChanged={(message) => { if (message) setBulkNotice(message); result.retry(); }} />) : <p>No {status} {type === "comment" ? "comment reports" : type === "trace" ? "Trace reports" : "reports"} on this page.</p>)}
     <Pagination offset={offset} count={reports.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
     </div>
   </>;
@@ -113,8 +113,9 @@ function ReportDecision({ initialReport, group, templates, selected = false, onT
         if (controller.signal.aborted) return;
         if (!response || response.resolved !== groupSize) throw new Error("The decisions could not be verified.");
         setReport({ ...report, status: removeContent ? "resolved" : "dismissed", resolution_reason: reason.trim() }); setBlocked(false);
-        setNotice(removeContent ? "Content removed. Decisions saved." : "Reports dismissed. Decisions saved.");
-        onChanged?.();
+        // The queue reloads after a group decision, which replaces this card, so the queue shows the confirmation.
+        const message = removeContent ? "Content removed. Decisions saved." : "Reports dismissed. Decisions saved.";
+        if (onChanged) onChanged(message); else setNotice(message);
         return;
       }
       if (!reload) {
