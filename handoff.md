@@ -1,6 +1,19 @@
-# TideTrace — Handoff (updated 2026-11-07, staging environment)
+# TideTrace — Handoff (updated 2026-11-09, a11y-design-fixes branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Accessibility fixes from the design-system audit — `a11y-design-fixes` (2026-11-09, uncommitted, tests and builds NOT run)
+
+- Branched from local `staging` (`46ac568`). The Mac shell could not reach GitHub, so pull `staging` first if it moved.
+- New tokens in `index.css` `:root`: `--field-line:#7590b0` (3.3:1 on white, 3.0:1 on `--bg`) and `--d-field-line:#5c7593` (3.4:1 on `--d-surface`). Used for `.input`, `.code-input`, `.search`, the community search box, `.settings-field input`, auth inputs, and the forced-light login page in dark mode. `--line` is unchanged and still used for chips, dividers and outline buttons.
+- Tide editor errors (`EditTide.jsx` field, import and asset errors; `.lesson-images__error`) now use `--danger` instead of decorative `--clay` (was 3.6:1).
+- Settings text: labels and the settings menu `#607ca8` (4.25:1) and section/preference notes `#6d84a7` (3.8:1) now use `--soft`; role badge and permission ticks use `--teal-strong`; success note `#16805c` (4.49:1) is `#1f6b4f`. `.account-security-content p` and the forced-light login page's labels, paragraphs and placeholders no longer use `#6b7f9e` (4.1:1). The login page's dark-mode clay button uses `--clay-strong`, not `#ce6d38` (3.6:1 with white).
+- Password show/hide button in settings is 44x44 (was 32x32); the field's right padding grows to 52px.
+- Segmented switches (Tides progress filter, Traces list/map) no longer break words on phones: `white-space:nowrap`, 8px padding. Checked at 390px and 320px with the new rule injected into the live page: fits, no overflow.
+- `client/src/pages/auth/forgot-password.css` is not imported anywhere (dead file, has its own failing colours). Left alone; delete in the cleanup pass.
+- Decisions recorded in `CLAUDE.md`: landing page exempt from one-clay; "New Trace" always clay; one `h1` per page; dates as "24 Oct 2026". The code does not follow the last three yet (Traces and My Contributions use a white "New Trace"; most pages render the PageHeader title as `h2`; Notifications and staff pages print full locale timestamps).
+- Design system: Claude artifact "TideTrace Design System" (https://claude.ai/artifact/KsxeXYSUEuZ8e6YeDvGNPH), built from this code on 2026-11-09. Phase A mockups: https://claude.ai/artifact/XEkyRXiy48EFiV1EZvqC59.
+- Run on the Mac: `cd client && npm test && npm run build`. Then check Account settings, the Tide editor errors, login in dark mode, and the Tides filter at 390px and 1440px.
 
 ### Staging environment — `staging` branch (2026-11-07)
 
