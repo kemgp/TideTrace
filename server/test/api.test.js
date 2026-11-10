@@ -1811,3 +1811,105 @@ test("the database refuses a stray energy setting save and the API reports it", 
   const response = await bearer(request(app).put("/api/admin/energy-settings")).send({ active: true }).expect(400);
   assert.equal(response.body.error.code, "INVALID_DATA");
 });
+
+const quizQuestion = (n) => ({ prompt: `Question ${n}`, options: ["A", "B", "C", "D"], correct: n % 4, explanation: `Because ${n}` });
+const fullQuiz = [1, 2, 3, 4, 5].map(quizQuestion);
+const quizPath = `/api/admin/tides/${tideId}/quiz`;
+
+test("quiz authoring routes answer 404 while the flag is off and leave other admin routes alone", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([{ id: tideId }]) : undefined });
+  for (const [method, path] of [["get", quizPath], ["put", quizPath], ["post", `${quizPath}/unpublish`]]) {
+    await request(app)[method](path).send({}).expect(404);
+    const signedIn = await bearer(request(app)[method](path)).send({}).expect(404);
+    assert.equal(signedIn.body.error.code, "NOT_FOUND");
+  }
+  assert.equal(calls.length, 0);
+  await bearer(request(app).get(`/api/admin/tides/${tideId}`)).expect(200);
+});
+
+test("only admins reach the quiz authoring routes", async () => {
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role });
+    await bearer(request(app).get(quizPath)).expect(403);
+    await bearer(request(app).put(quizPath)).send({ version: null, publish: false, questions: [] }).expect(403);
+    await bearer(request(app).post(`${quizPath}/unpublish`)).send({ version: 1 }).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_get_tide_quiz" ? json({ exists: false }) : undefined });
+  await request(app).get(quizPath).expect(401);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("the editor loads a quiz with its key through the admin function", async () => {
+  const quiz = { tide_id: tideId, exists: true, status: "draft", version: 2, questions: fullQuiz.map((q, i) => ({ id: `q${i}`, position: i + 1, ...q })) };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_get_tide_quiz" ? json(quiz) : undefined });
+  const response = await bearer(request(app).get(quizPath)).expect(200);
+  assert.deepEqual(response.body.data, quiz);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId });
+  await bearer(request(app).get("/api/admin/tides/not-a-uuid/quiz")).expect(400);
+  assert.equal(businessCalls(calls).length, 1);
+});
+
+test("saving a quiz passes the version, publish choice and questions to the database", async () => {
+  const saved = { tide_id: tideId, exists: true, status: "published", version: 3, questions: [] };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_save_tide_quiz" ? json(saved) : undefined });
+  const response = await bearer(request(app).put(quizPath)).send({ version: 2, publish: true, questions: fullQuiz }).expect(200);
+  assert.deepEqual(response.body.data, saved);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId, p_expected_version: 2, p_questions: fullQuiz, p_publish: true });
+  // A first draft has no version yet, and may be partial or empty.
+  const partial = [{ prompt: "Only a prompt", options: ["", "", "", ""], correct: null, explanation: "" }];
+  await bearer(request(app).put(quizPath)).send({ version: null, publish: false, questions: partial }).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_tide_id: tideId, p_expected_version: null, p_questions: partial, p_publish: false });
+  await bearer(request(app).put(quizPath)).send({ version: null, publish: false, questions: [] }).expect(200);
+  assert.deepEqual(businessCalls(calls)[2].body.p_questions, []);
+});
+
+test("quiz saves reject malformed bodies before calling the database", async () => {
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin" });
+  const q = quizQuestion(1);
+  const bodies = [
+    {}, { version: null, publish: false }, { version: null, questions: [] },
+    { version: 0, publish: false, questions: [] }, { version: "2", publish: false, questions: [] }, { version: 1.5, publish: false, questions: [] },
+    { version: null, publish: "yes", questions: [] },
+    { version: null, publish: false, questions: [1, 2, 3, 4, 5, 6].map(quizQuestion) },
+    { version: null, publish: false, questions: [{ ...q, options: ["A", "B", "C"] }] },
+    { version: null, publish: false, questions: [{ ...q, options: ["A", "B", "C", "D", "E"] }] },
+    { version: null, publish: false, questions: [{ ...q, correct: 4 }] },
+    { version: null, publish: false, questions: [{ ...q, correct: -1 }] },
+    { version: null, publish: false, questions: [{ ...q, correct: 1.5 }] },
+    { version: null, publish: false, questions: [{ ...q, correct: "1" }] },
+    { version: null, publish: false, questions: [{ ...q, prompt: "x".repeat(501) }] },
+    { version: null, publish: false, questions: [{ ...q, explanation: "x".repeat(1001) }] },
+    { version: null, publish: false, questions: [{ ...q, options: ["A", "B", "C", 4] }] },
+    { version: null, publish: false, questions: [{ ...q, id: "q1" }] },
+    { version: null, publish: false, questions: [{ prompt: "No options" }] },
+    { version: null, publish: false, questions: [], status: "published" },
+  ];
+  for (const body of bodies) await bearer(request(app).put(quizPath)).send(body).expect(400);
+  await bearer(request(app).put("/api/admin/tides/not-a-uuid/quiz")).send({ version: null, publish: false, questions: [] }).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("quiz saves report a stale version, a missing lesson and rejected content", async () => {
+  const cases = [["40001", 409, "STALE_VERSION"], ["P0002", 404, "NOT_FOUND"], ["22023", 400, "INVALID_DATA"], ["42501", 403, "FORBIDDEN"]];
+  for (const [code, status, apiCode] of cases) {
+    const { app } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_save_tide_quiz" ? json({ code, message: "refused" }, 400) : undefined });
+    const response = await bearer(request(app).put(quizPath)).send({ version: 1, publish: true, questions: fullQuiz }).expect(status);
+    assert.equal(response.body.error.code, apiCode);
+  }
+});
+
+test("unpublishing a quiz sends only the version it was loaded at", async () => {
+  const saved = { tide_id: tideId, exists: true, status: "draft", version: 4, questions: [] };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_unpublish_tide_quiz" ? json(saved) : undefined });
+  const response = await bearer(request(app).post(`${quizPath}/unpublish`)).send({ version: 3 }).expect(200);
+  assert.deepEqual(response.body.data, saved);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId, p_expected_version: 3 });
+  const before = businessCalls(calls).length;
+  for (const body of [{}, { version: 0 }, { version: "3" }, { version: 3, questions: [] }, { version: 3, status: "draft" }]) {
+    await bearer(request(app).post(`${quizPath}/unpublish`)).send(body).expect(400);
+  }
+  assert.equal(businessCalls(calls).length, before);
+  const stale = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_unpublish_tide_quiz" ? json({ code: "40001", message: "stale" }, 400) : undefined });
+  await bearer(request(stale.app).post(`${quizPath}/unpublish`)).send({ version: 3 }).expect(409);
+});

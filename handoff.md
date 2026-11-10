@@ -1,6 +1,14 @@
-# TideTrace — Handoff (updated 2026-11-10, feature/energy-server branch)
+# TideTrace — Handoff (updated 2026-11-10, feature/energy-quiz-authoring branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Phase A step 3: quiz authoring — `feature/energy-quiz-authoring` (2026-11-10, uncommitted, client tests and build NOT run)
+- Server: `GET/PUT /api/admin/tides/:id/quiz` and `POST .../quiz/unpublish` in `routes/energy.js` (admin only, 404 while `ENERGY_ENABLED` is off, guards per route so other admin routes are unaffected). 162 server tests pass.
+- Client: `api/quiz.js` (pure helpers), `components/QuizEditor.jsx` + `.css`, wired into `EditTide.jsx` behind `energyEnabled()`. The lesson editor's unsaved-changes guard includes unsaved quiz edits.
+- Behaviour: 5 question chips, 4 options with "Correct" radios, explanation, "Before publishing" checklist. Publish is locked until all 5 are ready. Draft saves may be partial. Published edits show the next-version warning. A 409 stale save blocks saving until "Reload quiz". Unpublish asks first and keeps unsaved edits. "Preview quiz" grades locally (pass 4 of 5) and makes no request.
+- No toasts: outcomes show inline next to the card.
+- Run on the Mac: `cd client && npm test && npm run build` (new `client/test/quizEditor.test.jsx`). Then eyeball it with `VITE_ENERGY_ENABLED=true`.
+- Next: step 4, member quiz-taking on ViewTide (map `TT429` to 429 in `errors.js` there).
 
 ### Phase A step 2: server foundation and Settings › Energy — `feature/energy-server` (2026-11-10, uncommitted)
 
