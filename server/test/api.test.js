@@ -1913,3 +1913,70 @@ test("unpublishing a quiz sends only the version it was loaded at", async () => 
   const stale = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_unpublish_tide_quiz" ? json({ code: "40001", message: "stale" }, 400) : undefined });
   await bearer(request(stale.app).post(`${quizPath}/unpublish`)).send({ version: 3 }).expect(409);
 });
+
+const memberQuizPath = `/api/tides/${tideId}/quiz`;
+const attemptsPath = `${memberQuizPath}/attempts`;
+
+test("member quiz routes answer 404 while the flag is off and leave lesson routes alone", async () => {
+  const { app, calls } = fixture({ role: "user" });
+  for (const [method, path] of [["get", memberQuizPath], ["post", attemptsPath]]) {
+    await request(app)[method](path).send({}).expect(404);
+    const signedIn = await bearer(request(app)[method](path)).send({}).expect(404);
+    assert.equal(signedIn.body.error.code, "NOT_FOUND");
+  }
+  assert.equal(calls.length, 0);
+});
+
+test("a signed-in member loads the quiz without its key through the database function", async () => {
+  const quiz = { tide_id: tideId, version: 2, passed: false, retry_after: 0, questions: [{ id: "q1", position: 1, prompt: "Which?", options: ["A", "B", "C", "D"] }] };
+  for (const role of ["user", "moderator", "admin"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_tide_quiz" ? json(quiz) : undefined });
+    const response = await bearer(request(app).get(memberQuizPath)).expect(200);
+    assert.deepEqual(response.body.data, quiz);
+    assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId });
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "user" });
+  await request(app).get(memberQuizPath).expect(401);
+  await bearer(request(app).get("/api/tides/not-a-uuid/quiz")).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("quiz attempts pass the version and five answers and return only the outcome", async () => {
+  const outcome = { passed: true, first_pass: true, awarded: true, amount: 15, retry_after: 0 };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "user", handler: ({ url }) => url.pathname === "/rest/v1/rpc/submit_tide_quiz" ? json(outcome) : undefined });
+  const response = await bearer(request(app).post(attemptsPath)).send({ version: 3, answers: [0, 1, 2, 3, 0] }).expect(200);
+  assert.deepEqual(response.body.data, outcome);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId, p_version: 3, p_answers: [0, 1, 2, 3, 0] });
+});
+
+test("quiz attempts reject malformed bodies and never accept a score or an owner", async () => {
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "user" });
+  const bodies = [
+    {}, { version: 1 }, { answers: [0, 0, 0, 0, 0] },
+    { version: 0, answers: [0, 0, 0, 0, 0] }, { version: "1", answers: [0, 0, 0, 0, 0] }, { version: 1.5, answers: [0, 0, 0, 0, 0] },
+    { version: 1, answers: [0, 0, 0, 0] }, { version: 1, answers: [0, 0, 0, 0, 0, 0] },
+    { version: 1, answers: [0, 0, 0, 0, 4] }, { version: 1, answers: [0, 0, 0, 0, -1] }, { version: 1, answers: [0, 0, 0, 0, 1.5] },
+    { version: 1, answers: [0, 0, 0, 0, "1"] }, { version: 1, answers: [0, 0, 0, 0, null] },
+    { version: 1, answers: [0, 0, 0, 0, 0], score: 5 }, { version: 1, answers: [0, 0, 0, 0, 0], user_id: tideId },
+  ];
+  for (const body of bodies) await bearer(request(app).post(attemptsPath)).send(body).expect(400);
+  await bearer(request(app).post("/api/tides/not-a-uuid/quiz/attempts")).send({ version: 1, answers: [0, 0, 0, 0, 0] }).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("quiz attempts report a changed quiz, a cooldown with seconds left, and missing access", async () => {
+  const attempt = (error) => {
+    const { app } = fixture({ appConfig: energyConfig, role: "user", handler: ({ url }) => url.pathname === "/rest/v1/rpc/submit_tide_quiz" ? json(error, 400) : undefined });
+    return bearer(request(app).post(attemptsPath)).send({ version: 1, answers: [0, 0, 0, 0, 0] });
+  };
+  const stale = await attempt({ code: "40001", message: "Quiz changed." }).expect(409);
+  assert.equal(stale.body.error.code, "STALE_VERSION");
+  const cooling = await attempt({ code: "TT429", message: "Try again in 17 seconds", details: "17" }).expect(429);
+  assert.equal(cooling.body.error.code, "QUIZ_COOLDOWN");
+  assert.deepEqual(cooling.body.error.details, { retry_after: 17 });
+  const noDetail = await attempt({ code: "TT429", message: "Try again" }).expect(429);
+  assert.deepEqual(noDetail.body.error.details, { retry_after: 30 });
+  await attempt({ code: "42501", message: "Complete the lesson before the quiz" }).expect(403);
+  await attempt({ code: "P0002", message: "Quiz is not available" }).expect(404);
+  await attempt({ code: "22023", message: "Answer all five questions" }).expect(400);
+});

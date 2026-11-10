@@ -1,0 +1,16 @@
+/* Member quiz under a completed lesson. */
+.tide-quiz{margin-top:24px;}
+.tide-quiz h3{margin:0 0 6px;}
+.tide-quiz .hint{margin:6px 0 0;}
+.tide-quiz__fields{border:0;padding:0;margin:12px 0 0;min-width:0;display:grid;gap:14px;}
+.tide-quiz__question{border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;margin:0;min-width:0;}
+.tide-quiz__question legend{font-weight:600;padding:0 6px;}
+.tide-quiz__option{display:flex;align-items:flex-start;gap:10px;padding:6px 0;cursor:pointer;}
+.tide-quiz__option input{width:18px;height:18px;margin:2px 0 0;flex:none;}
+.tide-quiz__actions{flex-wrap:wrap;gap:8px;margin-top:16px;}
+.tide-quiz__review{margin:12px 0 0;padding-left:22px;display:grid;gap:14px;}
+.tide-quiz__review ul{margin:6px 0 0;padding-left:20px;}
+.tide-quiz__prompt{margin:0;font-weight:600;}
+.tide-quiz__review .is-correct{font-weight:600;}
+.tide-quiz__tag{font-size:var(--fs-badge);font-weight:700;color:var(--teal-strong);}
+html.dark-mode .tide-quiz__question{border-color:var(--d-border);}
