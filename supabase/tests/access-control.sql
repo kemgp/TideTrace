@@ -234,7 +234,8 @@ insert into public.traces(author_id,category_id,title)
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
 select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'drafts')::int=32,'Counts include more than one API page');
-select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'traces')::int=33,'Member totals include own nondeleted drafts and hidden Trace');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'traces')::int=32,'Member totals include own nondeleted drafts but not the hidden Trace');
+select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'removed')::int=1,'Hidden Trace counts as removed');
 select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'approved')::int=0,'Hidden approved Trace is not a published total');
 select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'tides_finished')::int=1,'Completed lessons count saved records');
 select tidetrace_test.assert_ok((public.get_dashboard_summary()->>'comments_posted')::int=0,'Another author comments are excluded');
