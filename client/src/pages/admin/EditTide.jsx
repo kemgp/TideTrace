@@ -12,6 +12,8 @@ import { countPdfPages } from "../../api/pdfDocument.js";
 import { lessonShape } from "../../components/TideLesson.jsx";
 import { MAX_IMPORT_BYTES, MAX_IMPORT_CHARS, prepareImport } from "../../api/importText.js";
 import LessonImages from "./LessonImages.jsx";
+import QuizEditor from "../../components/QuizEditor.jsx";
+import { energyEnabled } from "../../api/energy.js";
 
 const toFields = (lesson) => ({ title: lesson?.title || "", slug: lesson?.slug || "", body: lesson?.body || "", summary: lesson?.summary || "", category_id: lesson?.category_id || "", paged: Boolean(lesson?.paged) });
 const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -51,13 +53,14 @@ function Editor({ initial }) {
   const [previewPart, setPreviewPart] = useState(1);
   const [importing, setImporting] = useState(null);
   const [importError, setImportError] = useState("");
+  const [quizDirty, setQuizDirty] = useState(false);
   const bodyRef = useRef(null);
   const pictures = useRemoteData(saved ? `tides/${encodeURIComponent(saved.id)}/images` : null, { collection: true, keepPrevious: true });
   const pictureMap = new Map((pictures.data || []).map((image) => [image.id, image]));
   const shape = lessonShape(fields.body);
   const dirty = Object.keys(fields).some(name => fields[name] !== (name === "paged" ? Boolean(saved?.paged) : saved?.[name] || ""));
   const request = useRef(null);
-  const allowNavigation = useUnsavedChanges(dirty || busy || Boolean(assetBusy) || hasPending, { onDiscard: () => request.current?.abort(), pendingRequest: busy });
+  const allowNavigation = useUnsavedChanges(dirty || busy || Boolean(assetBusy) || hasPending || quizDirty, { onDiscard: () => request.current?.abort(), pendingRequest: busy });
   useEffect(() => () => request.current?.abort(), []);
   const change = (event) => {
     const { name, type, checked } = event.target;
@@ -259,6 +262,9 @@ function Editor({ initial }) {
       {assetBusy && <p role="status">{assetBusy === "cover" ? "Uploading cover image…" : "Uploading slides…"}</p>}
       {assetError && <p role="alert" style={{ color: "var(--danger)" }}>{assetError}</p>}
     </Card>
+    {energyEnabled() && (saved
+      ? <QuizEditor tideId={saved.id} tideStatus={saved.status} onDirtyChange={setQuizDirty} />
+      : <Card><h3 style={{ marginTop: 0 }}>Quiz</h3><p className="hint" style={{ margin: 0 }}>Save the lesson once to add a quiz.</p></Card>)}
     {preview && <section aria-label="Lesson preview" style={{ marginTop: 24 }}><h3>Preview - unsaved content</h3><Card><TideLesson title={fields.title} body={fields.body} images={pictureMap} paged={fields.paged && !saved?.slides_path} part={previewPart} onPart={setPreviewPart} /></Card></section>}
   </>;
 }
