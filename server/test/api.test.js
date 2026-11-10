@@ -11,12 +11,13 @@ const categoryId = "30000000-0000-4000-8000-000000000001";
 const mediaId = "40000000-0000-4000-8000-000000000001";
 const draft = { title: "Coral survey", description: "Reef observations", category_id: categoryId, location_name: "Lawis" };
 const config = readConfig({ SUPABASE_URL: "https://project.supabase.co", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test" });
+const energyConfig = readConfig({ SUPABASE_URL: "https://project.supabase.co", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", ENERGY_ENABLED: "true" });
 const json = (data, status = 200) => new Response(data === null ? null : JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
 
-function fixture({ role = "user", status = "active", handler = () => undefined } = {}) {
+function fixture({ role = "user", status = "active", handler = () => undefined, appConfig = config } = {}) {
   const calls = [];
   const state = { role, status };
-  const app = createApp({ config, fetchImpl: async (input, init = {}) => {
+  const app = createApp({ config: appConfig, fetchImpl: async (input, init = {}) => {
     const url = new URL(input instanceof Request ? input.url : input);
     const headers = new Headers(init.headers);
     let body = init.body;
@@ -780,101 +781,42 @@ test("Tides public detail always filters published status, including for admins"
   assert.equal(query.get("id"), `eq.${tideId}`);
   await request(app).get("/api/tides?status=draft").expect(400);
 });
-test("Tide completion creates a completion for the authenticated user", async () => {
-  const completion = {
-    user_id: userId,
-    tide_id: tideId,
-    completed_at: "2026-09-25T10:00:00.000Z",
-  };
-
-  let inserted = false;
-
-  const { app, calls } = fixture({
-    handler: ({ url, method }) => {
-      if (url.pathname === "/rest/v1/tides") {
-        return json([{ id: tideId }]);
-      }
-
-      if (url.pathname === "/rest/v1/tide_completions") {
-        if (method === "GET") {
-          return json([]);
-        }
-
-        if (method === "POST") {
-          inserted = true;
-          return json([completion]);
-        }
-      }
-    },
-  });
-
-  const response = await bearer(
-    request(app).put(`/api/tides/${tideId}/completion`)
-  ).expect(201);
-
-  assert.deepEqual(response.body.data, completion);
-  assert.equal(inserted, true);
-
-  const insert = calls.find(
-    ({ url, method }) =>
-      url.pathname === "/rest/v1/tide_completions" &&
-      method === "POST"
-  );
-
-  assert.ok(insert);
-  assert.deepEqual(insert.body, {
-    user_id: userId,
-    tide_id: tideId,
-  });
+test("Tide completion calls one database function and reports the energy awarded", async () => {
+  const record = { user_id: userId, tide_id: tideId, completed_at: "2026-09-25T10:00:00.000Z", awarded: true, amount: 5 };
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/complete_tide" ? json(record) : undefined });
+  const response = await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(200);
+  assert.deepEqual(response.body.data, record);
+  const business = businessCalls(calls);
+  assert.equal(business.length, 1);
+  assert.equal(business[0].method, "POST");
+  assert.deepEqual(business[0].body, { p_tide_id: tideId });
+  assert.equal(business[0].headers.get("authorization"), "Bearer member-token");
+  assert.equal(calls.some(({ url }) => url.pathname === "/rest/v1/tide_completions"), false, "no direct table write");
 });
 
+test("finishing a Tide again returns the original completion and awards nothing", async () => {
+  const record = { user_id: userId, tide_id: tideId, completed_at: "2026-09-25T10:00:00.000Z", awarded: false, amount: 0 };
+  const { app } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/complete_tide" ? json(record) : undefined });
+  const first = await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(200);
+  const second = await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(200);
+  assert.deepEqual(first.body.data, record);
+  assert.deepEqual(second.body.data, record);
+});
 
-test("Tide completion is idempotent and does not create a duplicate", async () => {
-  const completion = {
-    user_id: userId,
-    tide_id: tideId,
-    completed_at: "2026-09-25T10:00:00.000Z",
-  };
-
-  let inserted = false;
-
-  const { app, calls } = fixture({
-    handler: ({ url, method }) => {
-      if (url.pathname === "/rest/v1/tides") {
-        return json([{ id: tideId }]);
-      }
-
-      if (url.pathname === "/rest/v1/tide_completions") {
-        if (method === "GET") {
-          return json(inserted ? [completion] : []);
-        }
-
-        if (method === "POST") {
-          inserted = true;
-          return json([completion]);
-        }
-      }
-    },
-  });
-
-  const first = await bearer(
-    request(app).put(`/api/tides/${tideId}/completion`)
-  ).expect(201);
-
-  const second = await bearer(
-    request(app).put(`/api/tides/${tideId}/completion`)
-  ).expect(200);
-
-  assert.deepEqual(first.body.data, completion);
-  assert.deepEqual(second.body.data, completion);
-
-  const inserts = calls.filter(
-    ({ url, method }) =>
-      url.pathname === "/rest/v1/tide_completions" &&
-      method === "POST"
-  );
-
-  assert.equal(inserts.length, 1);
+test("Tide completion maps database refusals and checks the request before calling it", async () => {
+  // The database answers 400 either way; the API must pick the status from the error code.
+  const refusals = [["P0002", 404, "NOT_FOUND"], ["42501", 403, "FORBIDDEN"]];
+  for (const [code, status, apiCode] of refusals) {
+    const { app } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/complete_tide" ? json({ code, message: "refused" }, 400) : undefined });
+    const response = await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(status);
+    assert.equal(response.body.error.code, apiCode);
+  }
+  const { app, calls, state } = fixture();
+  await request(app).put(`/api/tides/${tideId}/completion`).expect(401);
+  await bearer(request(app).put("/api/tides/not-a-uuid/completion")).expect(400);
+  state.status = "suspended";
+  await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(403);
+  assert.equal(businessCalls(calls).length, 0);
 });
 
 test("profile name saves for each role only update the authenticated user's display name", async () => {
@@ -900,20 +842,6 @@ test("profile name updates reject unsupported fields and anonymous writes", asyn
 });
 
 
-test("concurrent Tide completion conflict returns the original record", async () => {
-  const completion = { user_id: userId, tide_id: tideId, completed_at: "2026-09-25T10:00:00Z" };
-  let reads = 0;
-  const { app } = fixture({ handler: ({ url, method }) => {
-    if (url.pathname === "/rest/v1/tides") return json([{ id: tideId }]);
-    if (url.pathname === "/rest/v1/tide_completions") {
-      if (method === "POST") return json({ code: "23505", message: "duplicate" }, 409);
-      return json(++reads === 1 ? [] : [completion]);
-    }
-  } });
-  const response = await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(200);
-  assert.deepEqual(response.body.data, completion);
-});
-
 test("completion reads filter the current owner and requested lessons", async () => {
   const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tide_completions" ? json([]) : undefined });
   await bearer(request(app).get(`/api/tide-completions?tide_ids=${tideId}`)).expect(200);
@@ -923,12 +851,6 @@ test("completion reads filter the current owner and requested lessons", async ()
   assert.equal(query.get("limit"), "25");
   await bearer(request(app).get("/api/tide-completions?tide_ids=invalid")).expect(400);
   await request(app).get("/api/tide-completions").expect(401);
-});
-
-test("unpublished Tide cannot be completed", async () => {
-  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([]) : undefined });
-  await bearer(request(app).put(`/api/tides/${tideId}/completion`)).expect(404);
-  assert.equal(calls.some(({ url }) => url.pathname === "/rest/v1/tide_completions"), false);
 });
 
 test("member report status checks stay owner-scoped and filter the exact target", async () => {
@@ -1812,4 +1734,80 @@ test("the pending queue lists Traces with open reports first and can show only t
   assert.deepEqual(only.body.data.map((row) => row.id), [flagged.id]);
   const second = await bearer(request(app).get("/api/moderation/traces?limit=1&offset=1")).expect(200);
   assert.deepEqual(second.body.data.map((row) => row.id), [older.id]);
+});
+
+
+test("Tide Energy is off unless ENERGY_ENABLED is exactly true or false", () => {
+  const base = { SUPABASE_URL: config.url, SUPABASE_PUBLISHABLE_KEY: config.key };
+  assert.equal(readConfig({}).energyEnabled, false);
+  assert.equal(readConfig(base).energyEnabled, false);
+  assert.equal(readConfig({ ...base, ENERGY_ENABLED: "false" }).energyEnabled, false);
+  assert.equal(readConfig({ ...base, ENERGY_ENABLED: "true" }).energyEnabled, true);
+  assert.equal(readConfig({ ...base, ENERGY_ENABLED: " TRUE " }).energyEnabled, true);
+  for (const bad of ["1", "yes", "on", "enabled"]) assert.throws(() => readConfig({ ...base, ENERGY_ENABLED: bad }), /ENERGY_ENABLED/);
+});
+
+test("every Tide Energy route answers 404 while the flag is off, before sign-in and without calling Supabase", async () => {
+  const { app, calls } = fixture({ role: "admin" });
+  const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"]];
+  for (const [method, path] of routes) {
+    const anonymous = await request(app)[method](path).send({ active: true }).expect(404);
+    assert.equal(anonymous.body.error.code, "NOT_FOUND");
+    await bearer(request(app)[method](path)).send({ active: true }).expect(404);
+  }
+  assert.equal(calls.length, 0);
+});
+
+test("members read their own energy through the database function with a validated page", async () => {
+  const energy = { balance: 25, active: true, items: [] };
+  const { app, calls } = fixture({ appConfig: energyConfig, handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_my_energy" ? json(energy) : undefined });
+  await request(app).get("/api/energy").expect(401);
+  const response = await bearer(request(app).get("/api/energy")).expect(200);
+  assert.deepEqual(response.body.data, energy);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_limit: 20, p_offset: 0, p_kind: null });
+  await bearer(request(app).get("/api/energy?limit=5&offset=10&kind=quiz")).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_limit: 5, p_offset: 10, p_kind: "quiz" });
+  const before = businessCalls(calls).length;
+  for (const query of ["kind=everything", "limit=0", "limit=51", "offset=-1", "user_id=" + userId]) await bearer(request(app).get(`/api/energy?${query}`)).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("suspended members cannot read energy", async () => {
+  const { app, calls } = fixture({ appConfig: energyConfig, status: "suspended" });
+  await bearer(request(app).get("/api/energy")).expect(403);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("only admins read and change the Tide Energy switch", async () => {
+  const settings = { active: false, activated_at: null, updated_at: null, updated_by_name: null };
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role });
+    await bearer(request(app).get("/api/admin/energy-settings")).expect(403);
+    await bearer(request(app).put("/api/admin/energy-settings")).send({ active: true }).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url, body }) => {
+    if (url.pathname === "/rest/v1/rpc/get_energy_settings") return json(settings);
+    if (url.pathname === "/rest/v1/rpc/set_energy_active") return json({ ...settings, active: body.p_active });
+  } });
+  await request(app).get("/api/admin/energy-settings").expect(401);
+  assert.deepEqual((await bearer(request(app).get("/api/admin/energy-settings")).expect(200)).body.data, settings);
+  assert.equal((await bearer(request(app).put("/api/admin/energy-settings")).send({ active: true }).expect(200)).body.data.active, true);
+  assert.deepEqual(businessCalls(calls).at(-1).body, { p_active: true });
+  assert.equal((await bearer(request(app).put("/api/admin/energy-settings")).send({ active: false }).expect(200)).body.data.active, false);
+  assert.deepEqual(businessCalls(calls).at(-1).body, { p_active: false });
+});
+
+test("the Tide Energy switch rejects anything but a boolean active field", async () => {
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin" });
+  for (const body of [{}, { active: "true" }, { active: 1 }, { active: null }, { active: true, activated_at: "2020-01-01T00:00:00Z" }, { activated_at: "2020-01-01T00:00:00Z" }]) {
+    await bearer(request(app).put("/api/admin/energy-settings")).send(body).expect(400);
+  }
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("the database refuses a stray energy setting save and the API reports it", async () => {
+  const { app } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/set_energy_active" ? json({ code: "22023", message: "Invalid energy settings" }, 400) : undefined });
+  const response = await bearer(request(app).put("/api/admin/energy-settings")).send({ active: true }).expect(400);
+  assert.equal(response.body.error.code, "INVALID_DATA");
 });

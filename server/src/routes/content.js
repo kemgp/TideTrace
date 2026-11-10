@@ -161,19 +161,11 @@ export function contentRoutes(gateway) {
       .refine((value) => value.part <= value.total, { message: "The chapter is outside the lesson." }).parse(req.body);
     send(res, await result(req.db.rpc("save_tide_progress", { p_tide_id: tideId, p_part: body.part, p_total: body.total })));
   });
+  // One database call records the completion and, when Tide Energy is on, issues the award in the same transaction.
+  // PUT is idempotent: finishing a lesson again returns the original record with awarded false.
   router.put("/tides/:id/completion", member, async (req, res) => {
     const tideId = uuid.parse(req.params.id);
-    first(await result(req.db.from("tides").select("id").eq("status", "published").eq("id", tideId).limit(1)));
-    const existingRows = await result(req.db.from("tide_completions").select("user_id,tide_id,completed_at").eq("user_id", req.user.id).eq("tide_id", tideId).limit(1));
-    const existing = existingRows[0];
-    if (existing) return send(res, existing);
-    const inserted = await req.db.from("tide_completions").insert({ user_id: req.user.id, tide_id: tideId }).select("user_id,tide_id,completed_at");
-    // Another request may have completed the same lesson after our read.
-    if (inserted.error?.code === "23505") {
-      return send(res, first(await result(req.db.from("tide_completions").select("user_id,tide_id,completed_at").eq("user_id", req.user.id).eq("tide_id", tideId).limit(1))));
-    }
-    if (inserted.error) throw upstreamError(inserted.error);
-    send(res, first(inserted.data), 201);
+    send(res, await result(req.db.rpc("complete_tide", { p_tide_id: tideId })));
   });
   router.patch("/profile", member, async (req, res) => {
     const body = z.object({ display_name: text(100) }).strict().parse(req.body);

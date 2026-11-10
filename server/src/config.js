@@ -22,10 +22,13 @@ export function readConfig(env = process.env) {
       throw new Error("Use a Supabase publishable or legacy anon key, never a secret/service-role key");
     }
   }
+  // Tide Energy routes answer 404 until this is "true". Off is the default; anything else is a mistake worth failing fast on.
+  const energyValue = (env.ENERGY_ENABLED || "false").trim().toLowerCase();
+  if (!["true", "false"].includes(energyValue)) throw new Error('ENERGY_ENABLED must be "true" or "false"');
   const origins = (env.CLIENT_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173").split(",").map((item) => {
     const origin = item.trim();
     if (new URL(origin).origin !== origin) throw new Error("CLIENT_ORIGIN must contain comma-separated origins");
     return origin;
   });
-  return { port, host: env.HOST || "127.0.0.1", url: url.replace(/\/$/, ""), key, origins, trustProxyHops, configured: Boolean(url && key) };
+  return { port, host: env.HOST || "127.0.0.1", url: url.replace(/\/$/, ""), key, origins, trustProxyHops, energyEnabled: energyValue === "true", configured: Boolean(url && key) };
 }
