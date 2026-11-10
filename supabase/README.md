@@ -171,3 +171,22 @@ When enabled, the frontend prepares new Trace photos at up to 1600 pixels on the
 ### Sensitive Trace coordinates
 
 Apply `migrations/20261029000100_sensitive_trace_locations.sql` before deploying the community map API/frontend. It adds `traces.is_sensitive` (false for existing rows), a public-coordinate null constraint, and `private.trace_locations` with RLS and no client grants. Draft saves atomically move or clear coordinates. The optional final `p_is_sensitive` argument preserves old eight-argument RPC callers; omission preserves the stored flag. RPC results contain only public Trace columns; use `get_trace_private_location(p_id)` for an active author's/staff member's authorized exact pin. `hide_trace_location(p_id,p_version)` only increases privacy and records an audit action. Public reads and existing search RPCs cannot retrieve private coordinates. Run `tests/local-check.mjs` to include sensitive-location access tests. Hosted rollout remains migration → API → frontend; no hosted migration is applied by the local tests.
+
+### Tide Energy, quizzes and energy flags (Phase A)
+
+Apply `migrations/20261110000100_tide_energy.sql` before deploying any Phase A API or frontend. It is additive and inert: no award is issued until an admin turns energy on (settings key `energy`, value `{"activated_at": "<now>" | null}`, set only through `set_energy_active`). Activation is "from now" with no backfill; pausing keeps balances and stops new awards. The migration is rerunnable.
+
+- `energy_ledger` is append-only (no update, delete or truncate, even for the table owner) with one award per owner, type and source. A reversal is a compensating negative entry; each entry can be reversed once. Members read their own rows, admins read all, nobody writes directly.
+- Awards are issued only inside `moderate_trace` (approval, 20), `complete_tide` (new completion, 5) and `submit_tide_quiz` (first pass, 15), in the same transaction as the event. Inactive accounts earn nothing. With energy on, the approval notification adds "You earned 20 Tide Energy."; with it off, every message is unchanged.
+- Quiz questions are readable only through `get_tide_quiz` after completing the lesson. The answer key lives in `private.tide_quiz_keys` and is returned only after a pass. Grading is server-side and returns pass or fail, never a score. A 30 second cooldown per member and Tide (`TT429`) and a per-member advisory lock stop parallel guessing. Any admin save bumps the quiz version (`40001` for members holding an older copy); earlier passes stand.
+- Moderators flag Trace awards (`flag_energy_award`, one open flag per award, never their own). Admins dismiss (`dismiss_energy_flag`, only the flagger is told) or reverse (`reverse_energy_award`, final; the member and any open flaggers are told, open flags become upheld). Both are written to `admin_audit_logs`.
+- `get_dashboard_summary` adds `open_energy_flags` for admins only.
+- The direct `insert` grant on `tide_completions` stays until the API calls `complete_tide` (Phase A step 7).
+
+`tests/tide-energy.sql`, `tests/tide-quiz.sql` and `tests/energy-flags.sql` run in `tests/local-check.mjs`. `tests/energy-concurrency.sh` runs parallel sessions against the same award (quiz submits, lesson completions, approvals, flags and reversals) and checks exactly one wins. It needs `psql` and a disposable database with every migration applied, such as the local `supabase start` database, and refuses to run without `TT_DISPOSABLE_DB=yes`:
+
+```
+TT_DISPOSABLE_DB=yes DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres supabase/tests/energy-concurrency.sh
+```
+
+Its fixtures cannot be removed (the ledger is append-only), so reset that database afterwards (`supabase db reset`).

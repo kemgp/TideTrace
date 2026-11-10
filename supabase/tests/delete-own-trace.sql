@@ -44,8 +44,9 @@ select set_config('request.jwt.claim.sub','d1000000-0000-4000-8000-000000000002'
 select delete_trace_test.denied($$select public.delete_own_trace('d2000000-0000-4000-8000-000000000005')$$);
 select delete_trace_test.denied($$select public.delete_own_trace('d2000000-0000-4000-8000-000000000099')$$);
 select set_config('request.jwt.claim.sub','d1000000-0000-4000-8000-000000000001',true);
-select delete_trace_test.check((public.get_dashboard_summary()->>'traces')::int=5);
-select delete_trace_test.check((public.get_dashboard_summary()->>'active_traces')::int<=5);
+select delete_trace_test.check((public.get_dashboard_summary()->>'traces')::int=4);
+select delete_trace_test.check((public.get_dashboard_summary()->>'removed')::int=1);
+select delete_trace_test.check((public.get_dashboard_summary()->>'active_traces')::int=4);
 select delete_trace_test.check((public.get_dashboard_summary()->>'approved')::int=1);
 select delete_trace_test.check((select count(*)=1 from public.search_public_traces('Deletion fixture coast')));
 select delete_trace_test.check(not private.can_delete_trace_media('d1000000-0000-4000-8000-000000000001/d2000000-0000-4000-8000-000000000005/attached.jpg'));

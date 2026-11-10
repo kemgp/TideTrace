@@ -1,6 +1,19 @@
-# TideTrace — Handoff (updated 2026-11-09, a11y-design-fixes branch)
+# TideTrace — Handoff (updated 2026-11-10, feature/energy-schema branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Phase A step 1: Tide Energy schema — `feature/energy-schema` (2026-11-10, uncommitted, database only)
+
+- Branched from `staging` (`33ca4a1`). Plan: `docs/plans/phase-a-plan.md` section 6. No API or client code yet.
+- New migration `supabase/migrations/20261110000100_tide_energy.sql` (additive, rerunnable, inert until an admin activates energy). Adds the append-only `energy_ledger`, quizzes (questions public, answer key and attempts in `private`), quiz passes, energy flags, the `energy` settings key with validation and audit, and the functions in the plan: `complete_tide`, `get_tide_quiz`, `submit_tide_quiz`, admin quiz authoring, `get_my_energy`, `get_energy_status`, staff award status and flagging, admin dismiss/reverse, activity and award detail, `set_energy_active` / `get_energy_settings`.
+- Replaced two existing functions, same signatures: `moderate_trace` (awards 20 on approval; message gains "You earned 20 Tide Energy." only when an award was issued) and `get_dashboard_summary` (admin branch adds `open_energy_flags`; member and moderator results unchanged).
+- `tide_completions` still has its direct insert grant. Revoke it in step 7, once the API calls `complete_tide`.
+- Tests: `tide-energy.sql`, `tide-quiz.sql`, `energy-flags.sql` added to `local-check.mjs`, plus a rerun check for the migration. `energy-concurrency.sh` (needs psql and a disposable database; see `supabase/README.md`) runs 8 parallel sessions per race: quiz submit, lesson completion, approval, flag, reversal. Exactly one wins in each.
+- Fixed two stale assertions that were already failing on `staging` and stopped `local-check.mjs` early: `access-control.sql` and `delete-own-trace.sql` still expected hidden Traces in the member `traces` total (changed by 20261109). They now expect `removed` instead.
+- `supabase/staging-setup.sql` regenerated (25 migrations) and checked on a fresh database.
+- Verified in the cloud session on PostgreSQL 16 with Supabase stand-ins (not PGlite, which the Mac VM could not install): all tests in `local-check.mjs` pass, the concurrency script passes, and it fails as expected when the quiz lock is removed.
+- Still unexplained, not part of this change: `tide-lessons.sql:56` and `tide-chapters.sql:53` fail on that harness (anonymous callers appear to see a draft lesson's files). They are not in `local-check.mjs`. Check on a real Supabase dev project before relying on draft lesson assets being private.
+- `node supabase/tests/local-check.mjs` passed on the Mac with PGlite 0.5.8 (2026-11-10). Next: apply the migration on the staging Supabase project before step 2.
 
 ### Accessibility fixes from the design-system audit — `a11y-design-fixes` (2026-11-09, uncommitted, tests and builds NOT run)
 
