@@ -8,6 +8,7 @@ import { authRoutes } from "./routes/auth.js";
 import { contentRoutes } from "./routes/content.js";
 import { adminRoutes, staffRoutes } from "./routes/staff.js";
 import { mediaRoutes } from "./routes/media.js";
+import { energyRoutes, energySettingsRoutes } from "./routes/energy.js";
 
 export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
   const app = express();
@@ -29,6 +30,9 @@ export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
     res.json({ data: { status: "ready" } });
   });
   app.use("/api/auth", authRoutes(gateway, config));
+  // Tide Energy sits before the generic routers; each answers 404 while ENERGY_ENABLED is off.
+  app.use("/api/energy", energyRoutes(gateway, config));
+  app.use("/api/admin/energy-settings", energySettingsRoutes(gateway, config));
   app.use("/api", contentRoutes(gateway));
   app.use("/api", mediaRoutes(gateway));
   app.use("/api/moderation", staffRoutes(gateway));

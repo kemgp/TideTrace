@@ -1,6 +1,18 @@
-# TideTrace — Handoff (updated 2026-11-10, feature/energy-schema branch)
+# TideTrace — Handoff (updated 2026-11-10, feature/energy-server branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Phase A step 2: server foundation and Settings › Energy — `feature/energy-server` (2026-11-10, uncommitted)
+
+- Branched from `staging` after the step 1 merge. Plan: `docs/plans/phase-a-plan.md`, step 2.
+- Flags, both default off: `ENERGY_ENABLED` (server, `config.js`; must be `true` or `false`, anything else fails at start) and `VITE_ENERGY_ENABLED` (client, read by `energyEnabled()` in `client/src/api/energy.js`). Documented in `DEPLOYMENT.md` and both `.env.example` files. Set both together, only after the migration is applied there.
+- New `server/src/routes/energy.js`: `GET /api/energy` (member: balance, history; `limit` 1-50, `offset`, `kind` trace|tide|quiz; calls `get_my_energy`) and `GET`/`PUT /api/admin/energy-settings` (admin; `{active: boolean}`; calls `get_energy_settings` / `set_energy_active`). While the flag is off all three answer 404 before sign-in checks and make no Supabase call.
+- `PUT /api/tides/:id/completion` now always calls `complete_tide` (one database call, no direct table write). Response is `{user_id, tide_id, completed_at, awarded, amount}`; it is `200` on every call (it was `201` on the first). The client ignores the extra fields until step 4, so flag-off behaviour is unchanged. This is what makes the step 7 grant revoke safe.
+- `errors.js` maps `P0002` (not available) to 404. `TT429` (quiz cooldown) is not mapped yet; step 4 adds it.
+- Client: new `ConfirmDialog` (reusable; `variant="danger"` for destructive), Settings › Tide Energy tab (only with the flag on) in `EnergySettings.jsx`: status, Activate (confirm), Pause awards (confirm), inline outcome, no toast. Failed save closes the dialog, shows the error next to the buttons and blocks changes until "Reload status". New `bolt` icon.
+- Tests: server `api.test.js` (4 old completion tests replaced by 3 on the RPC; 7 new for config, the 404 guard, member and admin routes). Client `test/energySettings.test.jsx` (7).
+- Server tests (`node --test`, 155) passed in the cloud session. Client tests could NOT run there (macOS binaries): run `cd client && npm test && npm run build` on the Mac before merging.
+- Staging checks after deploy, flags still off: lessons still complete, Settings has no Tide Energy tab, `/api/energy` returns 404. Then set both flags on staging and use Settings › Tide Energy.
 
 ### Phase A step 1: Tide Energy schema — `feature/energy-schema` (2026-11-10, uncommitted, database only)
 
