@@ -1,6 +1,15 @@
-# TideTrace — Handoff (updated 2026-11-10, feature/energy-quiz-authoring branch)
+# TideTrace — Handoff (updated 2026-11-10, feature/energy-quiz-taking branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Phase A step 4: taking the quiz — `feature/energy-quiz-taking` (2026-11-10, uncommitted, client tests and build NOT run)
+- Branched from `feature/energy-quiz-authoring` (step 3), not `staging`, because both change `energy.js`, `app.js`, `api.test.js` and `handoff.md`. Merge step 3 first, then open this PR into `staging`. If step 3 is already merged, rebase onto `staging` first.
+- Server: `GET /api/tides/:id/quiz` and `POST /api/tides/:id/quiz/attempts` (`energyQuizRoutes`, any signed-in role, 404 while `ENERGY_ENABLED` is off, per-route guards). `errors.js` maps `TT429` to 429 `QUIZ_COOLDOWN` with `details.retry_after`. 167 server tests pass.
+- Client: `components/TideQuiz.jsx` + `.css`, shown under the completed lesson on `ViewTide` behind `energyEnabled()`. `ApiError` now keeps `details`. `TideCompletion` says "Completed. You earned N Tide Energy." when the server reports an award.
+- Behaviour: nothing shows when the lesson has no published quiz. Submit stays disabled until all 5 are answered and during the cooldown (30 seconds, counted down on screen). A miss says only "Not passed yet", never a score. A pass reloads the quiz and shows the correct answers and explanations. A 409 asks for "Reload quiz". Errors stay inline; no toasts.
+- Known limit: a chaptered lesson shows the quiz only once the member reaches the last chapter and completes it, because that is where the completion button is.
+- Run on the Mac: `cd client && npm test && npm run build` (new `client/test/tideQuiz.test.jsx`).
+- Next: step 5, member energy pill, dashboard cards and `/user/energy`.
 
 ### Phase A step 3: quiz authoring — `feature/energy-quiz-authoring` (2026-11-10, uncommitted, client tests and build NOT run)
 - Server: `GET/PUT /api/admin/tides/:id/quiz` and `POST .../quiz/unpublish` in `routes/energy.js` (admin only, 404 while `ENERGY_ENABLED` is off, guards per route so other admin routes are unaffected). 162 server tests pass.

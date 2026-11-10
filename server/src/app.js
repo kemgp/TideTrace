@@ -8,7 +8,7 @@ import { authRoutes } from "./routes/auth.js";
 import { contentRoutes } from "./routes/content.js";
 import { adminRoutes, staffRoutes } from "./routes/staff.js";
 import { mediaRoutes } from "./routes/media.js";
-import { energyQuizAdminRoutes, energyRoutes, energySettingsRoutes } from "./routes/energy.js";
+import { energyQuizAdminRoutes, energyQuizRoutes, energyRoutes, energySettingsRoutes } from "./routes/energy.js";
 
 export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
   const app = express();
@@ -34,6 +34,7 @@ export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
   app.use("/api/energy", energyRoutes(gateway, config));
   app.use("/api/admin/energy-settings", energySettingsRoutes(gateway, config));
   app.use("/api/admin", energyQuizAdminRoutes(gateway, config));
+  app.use("/api", energyQuizRoutes(gateway, config));
   app.use("/api", contentRoutes(gateway));
   app.use("/api", mediaRoutes(gateway));
   app.use("/api/moderation", staffRoutes(gateway));

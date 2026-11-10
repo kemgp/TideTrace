@@ -72,3 +72,18 @@ export function energyQuizAdminRoutes(gateway, config) {
   });
   return router;
 }
+
+// Member quiz. Grading happens in the database: the key never leaves it until the member has passed, and an attempt returns
+// only pass or fail. Per-route guards for the same reason as the admin quiz routes (these share the /api prefix).
+export function energyQuizRoutes(gateway, config) {
+  const router = Router();
+  const open = [energyGuard(config), authenticate(gateway)];
+  router.get("/tides/:id/quiz", ...open, async (req, res) => {
+    res.json({ data: await result(req.db.rpc("get_tide_quiz", { p_tide_id: uuid.parse(req.params.id) })) });
+  });
+  router.post("/tides/:id/quiz/attempts", ...open, async (req, res) => {
+    const input = z.object({ version: z.number().int().positive(), answers: z.array(z.number().int().min(0).max(3)).length(5) }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("submit_tide_quiz", { p_tide_id: uuid.parse(req.params.id), p_version: input.version, p_answers: input.answers })) });
+  });
+  return router;
+}

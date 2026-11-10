@@ -4,6 +4,8 @@ import useRemoteData from "../../../hooks/useRemoteData.js";
 import RemoteState from "../../../components/RemoteState.jsx";
 import TideLesson from "../../../components/TideLesson.jsx";
 import TideCompletion from "../../../components/TideCompletion.jsx";
+import TideQuiz from "../../../components/TideQuiz.jsx";
+import { energyEnabled } from "../../../api/energy.js";
 import LessonNav from "../../../components/LessonNav.jsx";
 import SlidesViewer from "../../../components/SlidesViewer.jsx";
 import ReadingProgress from "../../../components/ReadingProgress.jsx";
@@ -81,6 +83,7 @@ export default function ViewTide() {
         ? <><SlidesViewer key={lesson.id} tideId={lesson.id} pages={lesson.slides_pages} onProgress={setSlideProgress} /><details className="lesson-text-version" open><summary>Text version</summary><TideLesson hideTitle title={lesson.title} body={lesson.body} images={images} /></details></>
         : <>{resumedFrom > 0 && part === resumedFrom && <p className="chapter-resume" role="status">Continuing from chapter {resumedFrom}. <button type="button" className="btn ghost sm" onClick={() => { setResumedFrom(0); onPart(1); }}>Start from the beginning</button></p>}<TideLesson hideTitle title={lesson.title} body={lesson.body} images={images} paged={chaptered} part={part} onPart={onPart} /></>}
         {lastChapter && <TideCompletion tideId={lesson.id} onCompleted={() => setCompletedId(lesson.id)} />}</Card></div>
+      {energyEnabled() && completedId === lesson.id && <TideQuiz tideId={lesson.id} />}
       <LessonNav key={lesson.id} tideId={lesson.id} completed={completedId === lesson.id} />
     </div>
   </>;

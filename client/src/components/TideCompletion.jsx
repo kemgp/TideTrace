@@ -12,6 +12,7 @@ function Completion({ tideId, onCompleted }) {
   const { profile, writeData } = useApp();
   const result = useRemoteData(`tide-completions?tide_ids=${encodeURIComponent(tideId)}`, { collection: true });
   const [saved, setSaved] = useState(false);
+  const [earned, setEarned] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pending = useRef(null);
@@ -28,6 +29,7 @@ function Completion({ tideId, onCompleted }) {
       const record = await writeData(`tides/${encodeURIComponent(tideId)}/completion`, { method: "PUT", signal: controller.signal });
       if (controller.signal.aborted) return;
       if (record?.user_id !== profile.id || record?.tide_id !== tideId || !record.completed_at) throw new Error("The saved completion could not be verified.");
+      if (record.awarded && Number(record.amount) > 0) setEarned(Number(record.amount));
       setSaved(true);
     } catch (failure) {
       if (controller.signal.aborted || failure.code === "CANCELLED") return;
@@ -41,6 +43,6 @@ function Completion({ tideId, onCompleted }) {
   return <section aria-label="Lesson completion" style={{ marginTop: 24 }}>
     <RemoteState compact {...result} />
     {error && !completed && <p role="alert">{error}</p>}
-    {completed ? <p role="status">Completed</p> : <button className="btn blue" disabled={busy || result.loading || Boolean(result.error)} onClick={complete}>{busy ? "Saving…" : "Mark as complete"}</button>}
+    {completed ? <p role="status">{earned > 0 ? `Completed. You earned ${earned} Tide Energy.` : "Completed"}</p> : <button className="btn blue" disabled={busy || result.loading || Boolean(result.error)} onClick={complete}>{busy ? "Saving…" : "Mark as complete"}</button>}
   </section>;
 }
