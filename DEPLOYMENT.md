@@ -86,6 +86,7 @@ Staging variables (never reuse production values or keys):
 
 - Render staging: same variables as production, with `CLIENT_ORIGIN=https://staging-tide-trace.vercel.app` and the staging `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
 - Vercel: `VITE_API_URL` set to the staging Render URL, type Config, environment Preview only, branch `staging`. Production keeps its own `VITE_API_URL`.
+- Tide Energy (Phase A): `ENERGY_ENABLED` on Render and `VITE_ENERGY_ENABLED` on Vercel, both `false` by default. Set the two together, and only after the Tide Energy migration is applied on that environment. With `ENERGY_ENABLED` unset or false every Tide Energy route answers 404; with `VITE_ENERGY_ENABLED` unset or false the screens are hidden. Vite reads its flag at build time, so redeploy the frontend after changing it. Rollback: pause awards in Settings first, then turn both flags off.
 - Staging Supabase Auth: allow `https://staging-tide-trace.vercel.app/auth/callback` and set the Site URL to the staging origin.
 
 ### Workflow

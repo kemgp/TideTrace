@@ -187,7 +187,7 @@ function Editor({ initial }) {
     setImporting(null);
     showToast(`Imported ${name}`);
   };
-  const fieldError = (name) => errors[name] && <p id={`tide-${name}-error`} role="alert" style={{ color: "var(--clay)" }}>{errors[name]}</p>;
+  const fieldError = (name) => errors[name] && <p id={`tide-${name}-error`} role="alert" style={{ color: "var(--danger)" }}>{errors[name]}</p>;
   const fieldProps = (name) => ({ name, id: `tide-${name}`, value: fields[name], onChange: change, "aria-invalid": Boolean(errors[name]), "aria-describedby": errors[name] ? `tide-${name}-error` : undefined });
   return <>
     <div className="vhead"><h2>{saved ? "Edit lesson" : "Create a lesson"}</h2><p>Save a private draft, preview your content, then publish when it is ready.</p></div>
@@ -211,7 +211,7 @@ function Editor({ initial }) {
             <label htmlFor="tide-import-file">Import from a file (.txt or .md)</label>
             <input id="tide-import-file" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" onChange={(event) => { importFile(event.target.files?.[0]); event.target.value = ""; }} />
           </div>
-          {importError && <p role="alert" style={{ color: "var(--clay)" }}>{importError}</p>}
+          {importError && <p role="alert" style={{ color: "var(--danger)" }}>{importError}</p>}
           {importing && <p role="alert">Replace the current content with {importing.name}? <button type="button" className="btn outline sm" onClick={() => applyImport(importing.name, importing.text)}>Replace</button> <button type="button" className="btn ghost sm" onClick={() => setImporting(null)}>Cancel</button></p>}
           <label className="tide-check" htmlFor="tide-paged"><input type="checkbox" id="tide-paged" name="paged" checked={fields.paged} onChange={change} /> Show in chapters</label>
           <p className="hint">{saved?.slides_path ? "Lessons with slides are not split into chapters." : fields.paged ? (shape.chapters >= 2 ? `Each ## heading starts a chapter. ${shape.chapters} chapters found.` : "Add at least two ## headings to make chapters.") : "Each ## heading will start a new chapter, with a contents list and Previous and Next buttons."}</p>
@@ -257,7 +257,7 @@ function Editor({ initial }) {
         ? <LessonImages lessonId={saved.id} images={pictures.data || []} loading={pictures.loading} error={pictures.error} retry={pictures.retry} disabled={busy || Boolean(assetBusy)} onInsert={insertImage} onRemoved={forgetImage} />
         : <p className="hint" style={{ marginTop: 16 }}>Save the lesson once to add images to its text.</p>}
       {assetBusy && <p role="status">{assetBusy === "cover" ? "Uploading cover image…" : "Uploading slides…"}</p>}
-      {assetError && <p role="alert" style={{ color: "var(--clay)" }}>{assetError}</p>}
+      {assetError && <p role="alert" style={{ color: "var(--danger)" }}>{assetError}</p>}
     </Card>
     {preview && <section aria-label="Lesson preview" style={{ marginTop: 24 }}><h3>Preview - unsaved content</h3><Card><TideLesson title={fields.title} body={fields.body} images={pictureMap} paged={fields.paged && !saved?.slides_path} part={previewPart} onPart={setPreviewPart} /></Card></section>}
   </>;

@@ -1,6 +1,44 @@
-# TideTrace — Handoff (updated 2026-11-07, staging environment)
+# TideTrace — Handoff (updated 2026-11-10, feature/energy-server branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Phase A step 2: server foundation and Settings › Energy — `feature/energy-server` (2026-11-10, uncommitted)
+
+- Branched from `staging` after the step 1 merge. Plan: `docs/plans/phase-a-plan.md`, step 2.
+- Flags, both default off: `ENERGY_ENABLED` (server, `config.js`; must be `true` or `false`, anything else fails at start) and `VITE_ENERGY_ENABLED` (client, read by `energyEnabled()` in `client/src/api/energy.js`). Documented in `DEPLOYMENT.md` and both `.env.example` files. Set both together, only after the migration is applied there.
+- New `server/src/routes/energy.js`: `GET /api/energy` (member: balance, history; `limit` 1-50, `offset`, `kind` trace|tide|quiz; calls `get_my_energy`) and `GET`/`PUT /api/admin/energy-settings` (admin; `{active: boolean}`; calls `get_energy_settings` / `set_energy_active`). While the flag is off all three answer 404 before sign-in checks and make no Supabase call.
+- `PUT /api/tides/:id/completion` now always calls `complete_tide` (one database call, no direct table write). Response is `{user_id, tide_id, completed_at, awarded, amount}`; it is `200` on every call (it was `201` on the first). The client ignores the extra fields until step 4, so flag-off behaviour is unchanged. This is what makes the step 7 grant revoke safe.
+- `errors.js` maps `P0002` (not available) to 404. `TT429` (quiz cooldown) is not mapped yet; step 4 adds it.
+- Client: new `ConfirmDialog` (reusable; `variant="danger"` for destructive), Settings › Tide Energy tab (only with the flag on) in `EnergySettings.jsx`: status, Activate (confirm), Pause awards (confirm), inline outcome, no toast. Failed save closes the dialog, shows the error next to the buttons and blocks changes until "Reload status". New `bolt` icon.
+- Tests: server `api.test.js` (4 old completion tests replaced by 3 on the RPC; 7 new for config, the 404 guard, member and admin routes). Client `test/energySettings.test.jsx` (7).
+- Server tests (`node --test`, 155) passed in the cloud session. Client tests could NOT run there (macOS binaries): run `cd client && npm test && npm run build` on the Mac before merging.
+- Staging checks after deploy, flags still off: lessons still complete, Settings has no Tide Energy tab, `/api/energy` returns 404. Then set both flags on staging and use Settings › Tide Energy.
+
+### Phase A step 1: Tide Energy schema — `feature/energy-schema` (2026-11-10, uncommitted, database only)
+
+- Branched from `staging` (`33ca4a1`). Plan: `docs/plans/phase-a-plan.md` section 6. No API or client code yet.
+- New migration `supabase/migrations/20261110000100_tide_energy.sql` (additive, rerunnable, inert until an admin activates energy). Adds the append-only `energy_ledger`, quizzes (questions public, answer key and attempts in `private`), quiz passes, energy flags, the `energy` settings key with validation and audit, and the functions in the plan: `complete_tide`, `get_tide_quiz`, `submit_tide_quiz`, admin quiz authoring, `get_my_energy`, `get_energy_status`, staff award status and flagging, admin dismiss/reverse, activity and award detail, `set_energy_active` / `get_energy_settings`.
+- Replaced two existing functions, same signatures: `moderate_trace` (awards 20 on approval; message gains "You earned 20 Tide Energy." only when an award was issued) and `get_dashboard_summary` (admin branch adds `open_energy_flags`; member and moderator results unchanged).
+- `tide_completions` still has its direct insert grant. Revoke it in step 7, once the API calls `complete_tide`.
+- Tests: `tide-energy.sql`, `tide-quiz.sql`, `energy-flags.sql` added to `local-check.mjs`, plus a rerun check for the migration. `energy-concurrency.sh` (needs psql and a disposable database; see `supabase/README.md`) runs 8 parallel sessions per race: quiz submit, lesson completion, approval, flag, reversal. Exactly one wins in each.
+- Fixed two stale assertions that were already failing on `staging` and stopped `local-check.mjs` early: `access-control.sql` and `delete-own-trace.sql` still expected hidden Traces in the member `traces` total (changed by 20261109). They now expect `removed` instead.
+- `supabase/staging-setup.sql` regenerated (25 migrations) and checked on a fresh database.
+- Verified in the cloud session on PostgreSQL 16 with Supabase stand-ins (not PGlite, which the Mac VM could not install): all tests in `local-check.mjs` pass, the concurrency script passes, and it fails as expected when the quiz lock is removed.
+- Still unexplained, not part of this change: `tide-lessons.sql:56` and `tide-chapters.sql:53` fail on that harness (anonymous callers appear to see a draft lesson's files). They are not in `local-check.mjs`. Check on a real Supabase dev project before relying on draft lesson assets being private.
+- `node supabase/tests/local-check.mjs` passed on the Mac with PGlite 0.5.8 (2026-11-10). Next: apply the migration on the staging Supabase project before step 2.
+
+### Accessibility fixes from the design-system audit — `a11y-design-fixes` (2026-11-09, uncommitted, tests and builds NOT run)
+
+- Branched from local `staging` (`46ac568`). The Mac shell could not reach GitHub, so pull `staging` first if it moved.
+- New tokens in `index.css` `:root`: `--field-line:#7590b0` (3.3:1 on white, 3.0:1 on `--bg`) and `--d-field-line:#5c7593` (3.4:1 on `--d-surface`). Used for `.input`, `.code-input`, `.search`, the community search box, `.settings-field input`, auth inputs, and the forced-light login page in dark mode. `--line` is unchanged and still used for chips, dividers and outline buttons.
+- Tide editor errors (`EditTide.jsx` field, import and asset errors; `.lesson-images__error`) now use `--danger` instead of decorative `--clay` (was 3.6:1).
+- Settings text: labels and the settings menu `#607ca8` (4.25:1) and section/preference notes `#6d84a7` (3.8:1) now use `--soft`; role badge and permission ticks use `--teal-strong`; success note `#16805c` (4.49:1) is `#1f6b4f`. `.account-security-content p` and the forced-light login page's labels, paragraphs and placeholders no longer use `#6b7f9e` (4.1:1). The login page's dark-mode clay button uses `--clay-strong`, not `#ce6d38` (3.6:1 with white).
+- Password show/hide button in settings is 44x44 (was 32x32); the field's right padding grows to 52px.
+- Segmented switches (Tides progress filter, Traces list/map) no longer break words on phones: `white-space:nowrap`, 8px padding. Checked at 390px and 320px with the new rule injected into the live page: fits, no overflow.
+- `client/src/pages/auth/forgot-password.css` is not imported anywhere (dead file, has its own failing colours). Left alone; delete in the cleanup pass.
+- Decisions recorded in `CLAUDE.md`: landing page exempt from one-clay; "New Trace" always clay; one `h1` per page; dates as "24 Oct 2026". The code does not follow the last three yet (Traces and My Contributions use a white "New Trace"; most pages render the PageHeader title as `h2`; Notifications and staff pages print full locale timestamps).
+- Design system: Claude artifact "TideTrace Design System" (https://claude.ai/artifact/KsxeXYSUEuZ8e6YeDvGNPH), built from this code on 2026-11-09. Phase A mockups: https://claude.ai/artifact/XEkyRXiy48EFiV1EZvqC59.
+- Run on the Mac: `cd client && npm test && npm run build`. Then check Account settings, the Tide editor errors, login in dark mode, and the Tides filter at 390px and 1440px.
 
 ### Staging environment — `staging` branch (2026-11-07)
 

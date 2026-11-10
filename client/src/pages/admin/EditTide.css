@@ -40,7 +40,7 @@ html.dark-mode .lesson-asset input[type="file"]::file-selector-button{background
 .lesson-images__add .input{width:100%;}
 .lesson-images__add .lbl{margin:8px 0 0;font-weight:600;}
 .lesson-images__add .btn{margin-top:10px;}
-.lesson-images__error{color:var(--clay);font-size:var(--fs-label);margin:8px 0 0;}
+.lesson-images__error{color:var(--danger);font-size:var(--fs-label);margin:8px 0 0;}
 .lesson-images__list{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px;}
 .lesson-images__list li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px;border:1px solid var(--line);border-radius:var(--r-sm);}
 .lesson-images__list img,.lesson-images__blank{width:56px;height:56px;object-fit:cover;border-radius:var(--r-sm);background:var(--bg);flex:none;}

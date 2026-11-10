@@ -47,9 +47,9 @@ it("makes archive cards accessible links to the saved trace", async () => {
 
 it("links contribution rows to their editor or saved details with their actual status", async () => {
   setup("/user/contributions");
-  const row = await screen.findByRole("link", { name: /My coast/ });
-  expect(row.getAttribute("href")).toBe("/user/contributions/draft/edit");
-  expect(within(row).getByText("Draft")).toBeTruthy();
+  const action = await screen.findByRole("link", { name: "Continue editing: My coast" });
+  expect(action.getAttribute("href")).toBe("/user/contributions/draft/edit");
+  expect(within(action.closest(".contrib-row")).getByText("Draft")).toBeTruthy();
 });
 
 it("keeps user settings navigation and available controls functional", async () => {

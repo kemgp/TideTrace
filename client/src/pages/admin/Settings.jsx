@@ -7,9 +7,13 @@ import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
 
 import { useApp } from "../../context/AppContext.jsx";
+import { energyEnabled } from "../../api/energy.js";
+import EnergySettings from "./EnergySettings.jsx";
 import "./Settings.css";
 
-const tabs = [["moderation", "Moderation", "shield"], ["content", "Content", "book"], ["permissions", "User permissions", "key"], ["app", "App configuration", "settings"], ["categories", "Trace categories", "tag"], ["logs", "System logs", "log"]];
+const baseTabs = [["moderation", "Moderation", "shield"], ["content", "Content", "book"], ["permissions", "User permissions", "key"], ["app", "App configuration", "settings"], ["categories", "Trace categories", "tag"], ["logs", "System logs", "log"]];
+// Tide Energy only appears when the build turns it on, so with the flag off this page is exactly as before.
+const settingsTabs = () => energyEnabled() ? [...baseTabs.slice(0, 4), ["energy", "Tide Energy", "bolt"], ...baseTabs.slice(4)] : baseTabs;
 function Setting({ title, description, children }) {
   return <div className="setrow admin-setting-row"><div className="admin-setting-copy"><div className="l">{title}</div><div className="s">{description}</div></div>{children}</div>;
 }
@@ -80,12 +84,13 @@ function WorkflowForm({ saved, reload }) {
 }
 export default function Settings() {
   const [params, setParams] = useSearchParams();
+  const tabs = settingsTabs();
   const tab = tabs.some(([id]) => id === params.get("tab")) ? params.get("tab") : "moderation";
   return <div className="wrap">
     <div className="vhead"><span className="eyebrow claye">System settings</span><h2>Platform configuration</h2><p>Manage platform rules, account permissions, and submission settings.</p></div>
     <div className="admin-settings-grid"><nav className="admin-settings-nav" aria-label="System settings sections">{tabs.map(([id,label,icon]) => <button key={id} className={`settings-menu ${tab===id ? "active" : ""}`} aria-current={tab===id ? "page" : undefined} onClick={() => setParams({tab:id})}><span><AdminIcon name={icon} size={17}/></span>{label}</button>)}</nav>
       <div className="admin-settings-body">
-        {tab === "categories" ? <CategoryEditor/> : tab === "logs" ? <AuditLogs/> : tab === "app" ? <WorkflowSettings/> : tab === "permissions" ?
+        {tab === "categories" ? <CategoryEditor/> : tab === "energy" ? <EnergySettings/> : tab === "logs" ? <AuditLogs/> : tab === "app" ? <WorkflowSettings/> : tab === "permissions" ?
           <RulesPanel title="Role permissions" description="Access and responsibilities for each account role." rules={[
             ["Members", "Submit Traces, comment, report content and complete Tides."],
             ["Moderators", "Review Traces and reports."],

@@ -82,6 +82,19 @@ try {
   console.log('PASS: own-Trace deletion in every status, visibility, reports, comments, history and cleanup permissions.');
   await db.exec(await readFile(new URL('./moderator-workflow.sql', import.meta.url), 'utf8'));
   console.log('PASS: holds, admin-only decisions on held Traces, grouped report decisions, author summary, saved reasons and staff report notices.');
+  // Tide Energy can be reapplied from the SQL Editor without duplicating triggers or policies.
+  await db.exec(await readFile(new URL('20261110000100_tide_energy.sql', migrationDir), 'utf8'));
+  const { rows: energyTriggers } = await db.query(`select tgname from pg_trigger where not tgisinternal and tgname in ('energy_ledger_append_only','energy_ledger_no_truncate','validate_energy_settings')`);
+  const { rows: energyPolicies } = await db.query(`select policyname from pg_policies where policyname in ('energy_ledger_read','quiz_passes_read','energy_flags_read')`);
+  if (energyTriggers.length !== 3 || energyPolicies.length !== 3) throw new Error('Tide Energy migration retry must retain exactly three triggers and three policies');
+  console.log('PASS: Tide Energy migration can be reapplied without duplicate triggers or policies.');
+  await db.exec(await readFile(new URL('./tide-energy.sql', import.meta.url), 'utf8'));
+  console.log('PASS: energy activation, Trace and lesson awards, activation boundary, append-only ledger and owner-only reads.');
+  await db.exec(await readFile(new URL('./tide-quiz.sql', import.meta.url), 'utf8'));
+  console.log('PASS: quiz authoring, hidden answer key, grading, cooldown, first-pass award and version checks.');
+  await db.exec(await readFile(new URL('./energy-flags.sql', import.meta.url), 'utf8'));
+  console.log('PASS: energy flags, dismissals, reversals, notices, audit rows and admin energy views.');
+  // energy-concurrency.sh needs several real connections, so it runs separately against a disposable database.
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);
   const bootstrap = (await readFile(new URL('../bootstrap-first-admin.sql', import.meta.url), 'utf8')).replaceAll('REPLACE_WITH_YOUR_AUTH_USER_UUID','20000000-0000-0000-0000-000000000001');
