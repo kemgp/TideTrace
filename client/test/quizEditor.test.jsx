@@ -54,7 +54,7 @@ const fillQuestion = (n) => {
   fireEvent.click(chip(n));
   type(`Question ${n}`, q.prompt);
   q.options.forEach((o, i) => type(`Option ${i + 1}`, o));
-  fireEvent.click(screen.getByLabelText(`Option ${q.correct + 1} is the correct answer`));
+  fireEvent.click(screen.getByLabelText(`Mark option ${q.correct + 1} as correct`));
   type("Explanation", q.explanation);
 };
 
@@ -99,28 +99,28 @@ it("builds a quiz, keeps publishing locked until all five questions are ready, t
   expect(screen.getByRole("button", { name: "Preview quiz" }).disabled).toBe(true);
   expect(screen.getByRole("button", { name: "Save quiz draft" }).disabled).toBe(true);
   fillQuestion(1);
-  expect(screen.getByRole("button", { name: "Question 1 complete" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Question 2 incomplete" })).toBeTruthy();
-  expect(within(screen.getByRole("list", { name: "Before publishing" })).getByText("Question 2: Add the question. Fill in all 4 options. Mark the correct option. Add an explanation.")).toBeTruthy();
-  expect(screen.getByText("1 of 5 questions are ready.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Question 1, ready" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Question 2, needs attention" })).toBeTruthy();
+  const checks = screen.getByRole("list", { name: "Publishing checks" });
+  ["Five questions", "Four options for every question", "One correct answer for every question", "An explanation for every question"].forEach((text) => expect(checks.textContent).toContain(`${text}. Not done`));
   // A partial draft can be saved. Trailing empty questions are not sent.
   fireEvent.click(screen.getByRole("button", { name: "Save quiz draft" }));
   await screen.findByText("Draft saved.");
   expect(writes(calls)[0]).toMatchObject({ url: quizUrl, method: "PUT", body: { version: null, publish: false, questions: [question(1)] } });
-  expect(await screen.findByText("Draft, version 1")).toBeTruthy();
+  expect(await screen.findByText("Draft")).toBeTruthy();
   [2, 3, 4, 5].forEach(fillQuestion);
-  expect(screen.getByText("5 of 5 questions are ready.")).toBeTruthy();
+  ["Five questions", "Four options for every question", "One correct answer for every question", "An explanation for every question"].forEach((text) => expect(screen.getByRole("list", { name: "Publishing checks" }).textContent).toContain(`${text}. Done`));
   fireEvent.click(screen.getByRole("button", { name: "Publish quiz" }));
-  await screen.findByText("Quiz published as version 2.");
+  await screen.findByText("Quiz version 2 published.");
   expect(writes(calls)[1].body).toMatchObject({ version: 1, publish: true });
   expect(writes(calls)[1].body.questions).toHaveLength(5);
-  expect(await screen.findByText("Published, version 2")).toBeTruthy();
+  expect(await screen.findByText("Published")).toBeTruthy();
 });
 
 it("warns about the next version on a published quiz and saves changes with the loaded version", async () => {
   const calls = setup({ quiz: serverQuiz("published", 3), write: (url, body) => ok({ ...serverQuiz("published", 4), questions: body.questions.map((q, i) => ({ id: `q${i}`, position: i + 1, ...q })) }) });
   open();
-  expect(await screen.findByText("Published, version 3")).toBeTruthy();
+  expect(await screen.findByText("Published")).toBeTruthy();
   expect(screen.getByText("Saving changes publishes version 4. Members with the quiz open are asked to reload. Energy already earned stays.")).toBeTruthy();
   expect(screen.queryByText("Members see the quiz only while the lesson is published.")).toBeNull();
   const save = screen.getByRole("button", { name: "Save changes" });
@@ -128,7 +128,7 @@ it("warns about the next version on a published quiz and saves changes with the 
   type("Question 1", "A reworded question?");
   expect(screen.getByText("You have unsaved quiz changes.")).toBeTruthy();
   fireEvent.click(save);
-  await screen.findByText("Changes published as version 4.");
+  await screen.findByText("Quiz version 4 published.");
   expect(writes(calls)[0].body).toMatchObject({ version: 3, publish: true });
   expect(writes(calls)[0].body.questions[0].prompt).toBe("A reworded question?");
   expect(await screen.findByText("Saving changes publishes version 5. Members with the quiz open are asked to reload. Energy already earned stays.")).toBeTruthy();
@@ -137,7 +137,7 @@ it("warns about the next version on a published quiz and saves changes with the 
 it("blocks further saves after a stale save until the quiz is reloaded", async () => {
   setup({ quiz: serverQuiz("published", 3), write: () => fail(409, "STALE_VERSION", "Changed.") });
   open();
-  await screen.findByText("Published, version 3");
+  await screen.findByText("Published");
   type("Question 1", "Changed locally");
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   expect((await screen.findByRole("alert")).textContent).toContain("This quiz was changed somewhere else.");
@@ -152,19 +152,19 @@ it("shows other save errors next to the card and lets the admin try again", asyn
   let attempts = 0;
   setup({ quiz: serverQuiz("draft", 1), write: (url, body) => ++attempts === 1 ? fail(400, "INVALID_DATA", "Publishing needs 5 complete questions.") : ok(serverQuiz("published", 2)) });
   open();
-  await screen.findByText("Draft, version 1");
+  await screen.findByText("Draft");
   fireEvent.click(screen.getByRole("button", { name: "Publish quiz" }));
   expect((await screen.findByRole("alert")).textContent).toBe("Publishing needs 5 complete questions.");
   expect(screen.getByRole("button", { name: "Publish quiz" }).disabled).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "Publish quiz" }));
-  await screen.findByText("Quiz published as version 2.");
+  await screen.findByText("Quiz version 2 published.");
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("unpublishes after confirmation, sends only the saved version and keeps unsaved edits", async () => {
   const calls = setup({ quiz: serverQuiz("published", 3), write: () => ok(serverQuiz("draft", 4)) });
   open();
-  await screen.findByText("Published, version 3");
+  await screen.findByText("Published");
   type("Question 1", "Unsaved wording");
   fireEvent.click(screen.getByRole("button", { name: "Unpublish quiz" }));
   const dialog = await screen.findByRole("dialog");
@@ -176,7 +176,7 @@ it("unpublishes after confirmation, sends only the saved version and keeps unsav
   fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Unpublish" }));
   await screen.findByText("Quiz unpublished. Members no longer see it.");
   expect(writes(calls)).toEqual([{ url: `${quizUrl}/unpublish`, method: "POST", body: { version: 3 } }]);
-  expect(await screen.findByText("Draft, version 4")).toBeTruthy();
+  expect(await screen.findByText("Draft")).toBeTruthy();
   expect(screen.getByLabelText("Question 1").value).toBe("Unsaved wording");
   expect(screen.getByRole("button", { name: "Publish quiz" })).toBeTruthy();
 });
@@ -184,7 +184,7 @@ it("unpublishes after confirmation, sends only the saved version and keeps unsav
 it("previews the quiz locally: grades, reveals answers only after a pass and earns nothing", async () => {
   const calls = setup({ quiz: serverQuiz("draft", 1) });
   open();
-  await screen.findByText("Draft, version 1");
+  await screen.findByText("Draft");
   fireEvent.click(screen.getByRole("button", { name: "Preview quiz" }));
   const preview = await screen.findByRole("region", { name: "Quiz preview" });
   expect(within(preview).getByText(/This earns no Tide Energy/)).toBeTruthy();
@@ -204,4 +204,26 @@ it("previews the quiz locally: grades, reveals answers only after a pass and ear
   expect(within(preview).getByText(/Because 1\./)).toBeTruthy();
   expect(writes(calls)).toHaveLength(0);
   expect(calls.mock.calls.some(([url]) => /energy|complete|submit/.test(url))).toBe(false);
+});
+
+it("flags a question that has text but no correct answer, and shows the mockup labels", async () => {
+  setup({ status: "draft" });
+  open();
+  await screen.findByText("No quiz yet");
+  expect(screen.queryByRole("alert")).toBeNull();
+  type("Question 1", "What is a tide?");
+  expect((await screen.findByRole("alert")).textContent).toBe("Choose the correct answer.");
+  fireEvent.click(screen.getByLabelText("Mark option 2 as correct"));
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByText("Options. Mark the correct one.")).toBeTruthy();
+  expect(screen.getByText("Shown to members only after they pass.")).toBeTruthy();
+  expect(screen.getByText("Admin previews earn no energy.")).toBeTruthy();
+  expect(screen.getByText("Five questions, four options each, one correct answer. Members pass with 4 correct.")).toBeTruthy();
+});
+
+it("tells the admin when saving is locked on a published quiz", async () => {
+  setup({ quiz: { ...serverQuiz("published", 2), questions: serverQuiz("published", 2).questions.slice(0, 4) } });
+  open();
+  await screen.findByText("Published");
+  expect(screen.getByText("Save is available when all five questions are ready.")).toBeTruthy();
 });

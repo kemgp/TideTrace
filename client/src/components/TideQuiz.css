@@ -1,16 +1,16 @@
-/* Member quiz under a completed lesson. */
-.tide-quiz{margin-top:24px;}
-.tide-quiz h3{margin:0 0 6px;}
-.tide-quiz .hint{margin:6px 0 0;}
-.tide-quiz__fields{border:0;padding:0;margin:12px 0 0;min-width:0;display:grid;gap:14px;}
-.tide-quiz__question{border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;margin:0;min-width:0;}
-.tide-quiz__question legend{font-weight:600;padding:0 6px;}
-.tide-quiz__option{display:flex;align-items:flex-start;gap:10px;padding:6px 0;cursor:pointer;}
-.tide-quiz__option input{width:18px;height:18px;margin:2px 0 0;flex:none;}
-.tide-quiz__actions{flex-wrap:wrap;gap:8px;margin-top:16px;}
-.tide-quiz__review{margin:12px 0 0;padding-left:22px;display:grid;gap:14px;}
-.tide-quiz__review ul{margin:6px 0 0;padding-left:20px;}
-.tide-quiz__prompt{margin:0;font-weight:600;}
-.tide-quiz__review .is-correct{font-weight:600;}
-.tide-quiz__tag{font-size:var(--fs-badge);font-weight:700;color:var(--teal-strong);}
-html.dark-mode .tide-quiz__question{border-color:var(--d-border);}
+/* Member quiz under a completed lesson. Option and question styles (.quiz-q, .quiz-opt) are in energy.css. */
+.tide-quiz{margin-top:18px;}
+.tide-quiz h2{margin:0;font-size:var(--fs-card);}
+.tide-quiz .hint{margin:4px 0 0;}
+.tide-quiz__intro{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;}
+.tide-quiz__fields{border:0;padding:0;margin:14px 0 0;min-width:0;display:grid;gap:16px;}
+.tide-quiz__actions{flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center;}
+.tide-quiz > .notice{margin-top:12px;}
+.tide-quiz__title{margin-top:18px;}
+.tide-quiz > .notice + .tide-quiz__title{margin-top:18px;}
+.tide-quiz > .tide-quiz__title:first-child{margin-top:0;}
+.tide-quiz__why{display:grid;gap:10px;margin-top:12px;}
+.tide-quiz .explain{padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:var(--fs-label);}
+.tide-quiz .explain b{display:block;}
+.tide-quiz > .btn{margin-top:14px;}
+html.dark-mode .tide-quiz .explain{background:var(--d-surface-2);border-color:var(--d-border);}

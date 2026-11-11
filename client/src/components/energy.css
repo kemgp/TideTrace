@@ -1,0 +1,107 @@
+/* Tide Energy (member side): navbar pill, dashboard cards, the energy page. Built from the Phase A mockup.
+   Text colours here all pass WCAG AA: ink on the soft teal wash, the muted text colour on white. */
+:root{--energy-bg:#edf8f7;--energy-line:#a9d6d2;--energy-ink:#2f6a70;--ledger-negative:#b3261e;}
+html.dark-mode{--energy-bg:#17353a;--energy-line:#2f6b63;--energy-ink:#8fd4d9;--ledger-negative:#f2a29b;}
+.tt-home{--energy-bg:#edf8f7;--energy-line:#a9d6d2;--energy-ink:#2f6a70;--ledger-negative:#b3261e;}
+
+.energy-pill{display:inline-flex;flex:none;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:999px;border:1.5px solid var(--energy-line);background:var(--energy-bg);color:var(--energy-ink);font:700 .875rem "JetBrains Mono",monospace;text-decoration:none;}
+.energy-pill:hover{border-color:var(--energy-ink);}
+.energy-pill:focus-visible{outline:var(--focus-width) solid var(--focus-ring);outline-offset:2px;}
+
+.energy-card{background:var(--energy-bg);border:1px solid var(--energy-line);border-radius:18px;padding:22px;min-width:0;}
+.energy-card h2{margin:0;font-size:var(--fs-card);}
+.energy-card .row{display:flex;align-items:center;gap:10px;}
+.energy-figure{font:700 44px/1.1 "JetBrains Mono",monospace;color:inherit;margin:12px 0 0;}
+.energy-tile{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:#d5eeeb;color:var(--energy-ink);}
+html.dark-mode .energy-tile{background:#17353a;}
+.energy-card .hint{margin:4px 0 0;}
+.energy-card .btn{margin-top:14px;}
+
+.earn-list{display:grid;margin-top:14px;}
+.earn-list div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--energy-line);font-size:var(--fs-label);}
+.earn-list b{font-family:"JetBrains Mono",monospace;color:var(--energy-ink);}
+
+.energy-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start;}
+@media(min-width:900px){.energy-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);}}
+.energy-page{display:grid;gap:24px;}
+.energy-page .card h2{margin:0 0 4px;}
+.energy-page .hint{margin:0;}
+.energy-balance-skeleton{display:block;width:120px;height:48px;margin-top:12px;border-radius:8px;}
+
+.reward-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:14px;}
+@media(min-width:640px){.reward-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.reward-card{display:grid;gap:8px;align-content:start;padding:14px;border:1.5px dashed var(--line);border-radius:14px;background:var(--bg);}
+.reward-card__art{height:64px;border-radius:10px;background:var(--line);display:grid;place-items:center;color:var(--soft);}
+.reward-card .t{font-weight:600;font-size:var(--fs-label);}
+.reward-card__label{font-size:var(--fs-meta);color:var(--soft);}
+html.dark-mode .reward-card{background:var(--d-surface-2);border-color:var(--d-border);}
+html.dark-mode .reward-card__art{background:var(--d-surface);color:var(--d-muted);}
+html.dark-mode .reward-card__label{color:var(--d-muted);}
+
+.ledger-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.ledger-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--bg);}
+.ledger-row:last-child{border-bottom:0;}
+.ledger-row .t{margin:0;font-size:var(--fs-label);font-weight:600;overflow-wrap:anywhere;}
+.ledger-amount{font:700 18px "JetBrains Mono",monospace;color:var(--energy-ink);text-align:right;}
+.ledger-amount.is-negative{color:var(--ledger-negative);}
+.ledger-amount.is-reversed{color:var(--soft);text-decoration:line-through;}
+.ledger-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:var(--fs-meta);color:var(--soft);margin:4px 0 0;}
+.ledger-reason{margin:6px 0 0;font-size:var(--fs-meta);color:var(--soft);}
+html.dark-mode .ledger-row{border-bottom-color:var(--d-border);}
+html.dark-mode .ledger-meta,html.dark-mode .ledger-reason,html.dark-mode .ledger-amount.is-reversed{color:var(--d-muted);}
+.badge.tide{background:#e3ecfa;color:var(--blue);}
+.badge.reversed{background:var(--danger-bg);color:var(--danger-dark);}
+.badge.reversed::before{content:"✕" / "";margin-right:5px;font-weight:800;}
+html.dark-mode .badge.tide{background:var(--d-surface-2);color:#a9b8ff;}
+html.dark-mode .badge.reversed{background:#3b1f1f;color:#f2a29b;}
+.energy-filters{display:flex;gap:8px;flex-wrap:wrap;}
+.energy-filters .chip{min-height:40px;}
+.energy-history-skeleton{display:grid;gap:10px;margin-top:12px;}
+.energy-history-skeleton .sk{display:block;height:56px;border-radius:12px;}
+@media(max-width:759px){
+  .ledger-row{grid-template-columns:minmax(0,1fr);}
+  .ledger-amount{text-align:left;}
+  .energy-figure{font-size:38px;}
+}
+
+/* Dashboard cards. The right column already styles plain sections, so these beat that rule on specificity. */
+.dash-side > section.energy-card{background:var(--energy-bg);border:1px solid var(--energy-line);border-radius:18px;padding:22px;box-shadow:none;}
+html.dark-mode .dash-side > section.energy-card{background:var(--energy-bg);}
+.dash-side > section.learn{background:linear-gradient(160deg,#2f6a70,#203463);color:#fff;border:0;border-radius:18px;padding:22px;box-shadow:none;}
+.learn h2{margin:4px 0 0;font-size:var(--fs-card);color:#fff;}
+.learn .learn-eyebrow{margin:0;font-size:var(--fs-badge);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;}
+.learn .learn-sub{margin:6px 0 0;color:#dbe7f7;font-size:var(--fs-label);}
+.learn .btn.outline{margin-top:14px;background:#fff;color:var(--navy);border-color:#fff;}
+.learn .btn.outline:hover:not(:disabled){background:#edf7ff;border-color:#fff;}
+.dash-side > section.energy-done .hint{margin:6px 0 0;}
+.dash-side > section.energy-done .btn{margin-top:14px;}
+.ledger-list{list-style:none;margin:8px 0 0;padding:0;}
+.dash-grid .dash-side > section.energy-card{order:2;}
+.dash-grid .dash-side > section.energy-done{order:3;}
+.dash-grid .dash-side > section.learn.dash-learning{order:3;}
+
+/* Notices (shared by the quiz and lesson completion). */
+.notice{padding:12px 14px;border-radius:12px;font-size:var(--fs-label);font-weight:600;border:1px solid var(--line);background:var(--bg);color:var(--navy);margin:0;}
+.notice.is-success{background:var(--energy-bg);border-color:var(--energy-line);color:var(--energy-ink);}
+.notice.is-error{background:var(--danger-bg);border-color:#f0b9b4;color:var(--danger-dark);}
+.notice.is-warn{background:#fff6e8;border-color:#ecd2a8;color:#5a3a1e;}
+html.dark-mode .notice{background:var(--d-surface-2);border-color:var(--d-border);color:var(--d-text);}
+html.dark-mode .notice.is-success{background:var(--energy-bg);border-color:var(--energy-line);color:var(--energy-ink);}
+html.dark-mode .notice.is-error{background:#3b1f1f;border-color:#7d3535;color:#f2a29b;}
+html.dark-mode .notice.is-warn{background:#3a2f12;border-color:#7a6320;color:#ffe3a0;}
+
+/* Quiz questions and options (member quiz). The radio sits invisibly over a styled row so the whole row is the target. */
+.quiz-q{border:1px solid var(--line);border-radius:14px;padding:16px;margin:0;min-width:0;}
+.quiz-q legend{font-weight:600;padding:0 6px;}
+.quiz-opt{display:block;position:relative;margin-top:8px;}
+.quiz-opt input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;}
+.quiz-opt span{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--white);}
+.quiz-opt span::before{content:"";flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--soft);}
+.quiz-opt input:checked + span{border-color:var(--blue);background:#e3ecfa;font-weight:600;}
+.quiz-opt input:checked + span::before{border-color:var(--blue);background:radial-gradient(circle,var(--blue) 0 45%,transparent 50%);}
+.quiz-opt input:focus-visible + span{outline:var(--focus-width) solid var(--focus-ring);outline-offset:2px;}
+.quiz-opt input:disabled + span{opacity:.6;}
+html.dark-mode .quiz-q{border-color:var(--d-border);}
+html.dark-mode .quiz-opt span{background:var(--d-surface);border-color:var(--d-border);}
+html.dark-mode .quiz-opt input:checked + span{background:var(--d-surface-2);border-color:#a9b8ff;}
+html.dark-mode .quiz-opt input:checked + span::before{border-color:#a9b8ff;background:radial-gradient(circle,#a9b8ff 0 45%,transparent 50%);}
