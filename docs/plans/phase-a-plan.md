@@ -273,6 +273,16 @@ All of the following must pass before release: exactly-once awards under concurr
 - Should a moderator also see award status on the review queue cards, or only on My decisions and Trace detail? Plan assumes only the latter.
 - Should Energy activity offer CSV export for the capstone report? Not planned (deferred register: no new exports).
 
+### Open question for the rewards phase (not Phase A): reversing energy that was already spent
+
+Phase A has no redemption, so no award can have been spent. The ledger already supports the case once rewards exist: a reversal is a negative row equal to the original, and the balance is the sum of all rows, so reversing an award that was spent leaves a negative balance. Decide before the rewards phase:
+
+- **Allow a negative balance (recommended).** The reversal always goes through. Later earnings pay it back, and redemption is blocked until the balance is positive. The Energy page and the reversal confirmation must say plainly that the balance can go below zero.
+- **Block or limit reversal once spent.** Rejected as the default: it fails exactly when a fraudulent award may already have paid out.
+- **Also cancel the redemption.** An admin action, possible only while the reward can still be cancelled (needs the merchant integration and fulfilment rules).
+
+Constraints to keep: spending is recorded as new negative ledger rows with their own award type, never as edits; a redemption function checks `balance >= cost` under a lock, the same way awards rely on constraints; the append-only trigger and the one-reversal-per-award constraint stay. Phase A needs no change for this, and the Energy page already shows a negative balance if one ever occurs.
+
 ### Prerequisites for real-world operation (not built)
 
 - Update `docs/legal/` privacy policy and terms for the ledger, quiz attempts and flags before any public release.
