@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState from "./RemoteState.jsx";
+import { energyEnabled, notifyEnergyChanged } from "../api/energy.js";
+import "./energy.css";
 
 export default function TideCompletion({ tideId, onCompleted }) {
   const { profile } = useApp();
@@ -29,7 +31,7 @@ function Completion({ tideId, onCompleted }) {
       const record = await writeData(`tides/${encodeURIComponent(tideId)}/completion`, { method: "PUT", signal: controller.signal });
       if (controller.signal.aborted) return;
       if (record?.user_id !== profile.id || record?.tide_id !== tideId || !record.completed_at) throw new Error("The saved completion could not be verified.");
-      if (record.awarded && Number(record.amount) > 0) setEarned(Number(record.amount));
+      if (record.awarded && Number(record.amount) > 0) { setEarned(Number(record.amount)); notifyEnergyChanged(); }
       setSaved(true);
     } catch (failure) {
       if (controller.signal.aborted || failure.code === "CANCELLED") return;
@@ -43,6 +45,11 @@ function Completion({ tideId, onCompleted }) {
   return <section aria-label="Lesson completion" style={{ marginTop: 24 }}>
     <RemoteState compact {...result} />
     {error && !completed && <p role="alert">{error}</p>}
-    {completed ? <p role="status">{earned > 0 ? `Completed. You earned ${earned} Tide Energy.` : "Completed"}</p> : <button className="btn blue" disabled={busy || result.loading || Boolean(result.error)} onClick={complete}>{busy ? "Saving…" : "Mark as complete"}</button>}
+    {completed
+      ? <p className={energyEnabled() ? "notice is-success" : undefined} role="status">{earned > 0 ? `Completed. You earned ${earned} Tide Energy.` : "Completed"}</p>
+      : <>
+        <button className="btn blue" disabled={busy || result.loading || Boolean(result.error)} onClick={complete}>{busy ? "Saving…" : "Mark as complete"}</button>
+        {energyEnabled() && <p className="hint" style={{ marginTop: 8 }}>Finishing a lesson earns 5 Tide Energy.</p>}
+      </>}
   </section>;
 }

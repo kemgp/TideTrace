@@ -94,6 +94,8 @@ try {
   console.log('PASS: quiz authoring, hidden answer key, grading, cooldown, first-pass award and version checks.');
   await db.exec(await readFile(new URL('./energy-flags.sql', import.meta.url), 'utf8'));
   console.log('PASS: energy flags, dismissals, reversals, notices, audit rows and admin energy views.');
+  await db.exec(await readFile(new URL('./quiz-ready.sql', import.meta.url), 'utf8'));
+  console.log('PASS: dashboard quiz-ready card: ready and done states, three day window, reversals and privacy.');
   // energy-concurrency.sh needs several real connections, so it runs separately against a disposable database.
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);

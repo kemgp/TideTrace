@@ -23,6 +23,11 @@ export function energyRoutes(gateway, config) {
     }).strict().parse(req.query);
     res.json({ data: await result(req.db.rpc("get_my_energy", { p_limit: input.limit, p_offset: input.offset, p_kind: input.kind ?? null })) });
   });
+  // Dashboard card: the lesson that has a quiz waiting, or a recent pass. Registered after "/" so the paths never collide.
+  router.get("/quiz-ready", async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("get_quiz_ready")) });
+  });
   return router;
 }
 

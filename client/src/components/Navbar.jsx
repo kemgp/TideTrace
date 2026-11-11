@@ -5,6 +5,8 @@ import {useApp} from "../context/AppContext.jsx";
 import AdminIcon from "./AdminIcon.jsx";
 import NotificationMenu from "./NotificationMenu.jsx";
 import {readRoleHint,writeRoleHint} from "../api/roleHint.js";
+import {energyEnabled} from "../api/energy.js";
+import EnergyPill from "./EnergyPill.jsx";
 
 const WAVE=(
   <svg width={24} height={24} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
@@ -19,6 +21,9 @@ const userLinks=[
   {to:"/user/tides",label:"Tides",icon:"book"},
   {to:"/user/contributions",label:"Contributions",icon:"log"},
 ];
+
+// Shown only while Tide Energy is switched on.
+const energyLink={to:"/user/energy",label:"Energy",icon:"bolt"};
 
 // Reports (Traces and comments) and My decisions are reached from inside Review.
 const modLinks=[
@@ -138,7 +143,7 @@ export default function Navbar(){
       :role==="admin"
         ?adminLinks
         :role==="user"
-          ?userLinks
+          ?(energyEnabled()?[...userLinks,energyLink]:userLinks)
           :[];
 
   const isAuthPage=[
@@ -271,6 +276,8 @@ export default function Navbar(){
         </Link>
 
         <div className="nav-right">
+
+          {role==="user"&&energyEnabled()&&<EnergyPill/>}
 
           {role&&<NotificationMenu onNavigate={()=>setOpen(false)} />}
 

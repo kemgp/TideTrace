@@ -5,8 +5,9 @@ import ConfirmDialog from "./ConfirmDialog.jsx";
 import Card from "./Card.jsx";
 import Button from "./Button.jsx";
 import { useApp } from "../context/AppContext.jsx";
-import { PASS_MARK, QUESTION_COUNT, fromServer, gradePreview, isComplete, questionProblems, readyCount, toPayload } from "../api/quiz.js";
+import { PASS_MARK, QUESTION_COUNT, fromServer, gradePreview, isComplete, questionProblems, toPayload } from "../api/quiz.js";
 import "./QuizEditor.css";
+import "./energy.css";
 
 // The admin's quiz card on the lesson editor. Loads the quiz with its answer key, then hands it to the panel.
 export default function QuizEditor({ tideId, tideStatus, onDirtyChange }) {
@@ -18,8 +19,15 @@ export default function QuizEditor({ tideId, tideStatus, onDirtyChange }) {
   </Card>;
 }
 
+// The four checks from the mockup, worked out over all five questions.
+const publishChecks = (questions) => [
+  [questions.length === QUESTION_COUNT && questions.every((item) => item.prompt.trim()), "Five questions"],
+  [questions.every((item) => item.options.length === 4 && item.options.every((o) => o.trim())), "Four options for every question"],
+  [questions.every((item) => Number.isInteger(item.correct)), "One correct answer for every question"],
+  [questions.every((item) => item.explanation.trim()), "An explanation for every question"],
+];
 const sameQuiz = (a, b) => JSON.stringify(toPayload(a)) === JSON.stringify(toPayload(b));
-const statusLabel = (quiz) => !quiz.exists ? "No quiz yet" : quiz.status === "published" ? `Published, version ${quiz.version}` : `Draft, version ${quiz.version}`;
+const statusLabel = (quiz) => !quiz.exists ? "No quiz yet" : quiz.status === "published" ? "Published" : "Draft";
 
 function QuizPanel({ initial, tideId, tideStatus, reload, onDirtyChange }) {
   const { writeData } = useApp();
@@ -69,7 +77,7 @@ function QuizPanel({ initial, tideId, tideStatus, reload, onDirtyChange }) {
   // `publish` is the state the quiz should end up in.
   const save = (publish) => send(path, { method: "PUT", body: { version: saved.exists ? saved.version : null, publish, questions: toPayload(questions) } },
     (next) => next.status === (publish ? "published" : "draft"),
-    (next) => { setQuestions(fromServer(next)); setNotice(publish ? (published ? `Changes published as version ${next.version}.` : `Quiz published as version ${next.version}.`) : "Draft saved."); });
+    (next) => { setQuestions(fromServer(next)); setNotice(publish ? `Quiz version ${next.version} published.` : "Draft saved."); });
   const unpublish = () => send(`${path}/unpublish`, { method: "POST", body: { version: saved.version } },
     (next) => next.status === "draft",
     () => setNotice("Quiz unpublished. Members no longer see it."));
@@ -77,35 +85,37 @@ function QuizPanel({ initial, tideId, tideStatus, reload, onDirtyChange }) {
   return <div className="quiz-editor">
     <div className="quiz-head">
       <span className={`badge ${published ? "approved" : "pending"}`}>{statusLabel(saved)}</span>
-      <span className="hint">5 questions, 4 options each. Members pass with {PASS_MARK} of {QUESTION_COUNT}.</span>
     </div>
+    <p className="hint">Five questions, four options each, one correct answer. Members pass with {PASS_MARK} correct.</p>
     {tideStatus !== "published" && <p className="hint">Members see the quiz only while the lesson is published.</p>}
+    {published && <p className="notice is-warn">Saving changes publishes version {saved.version + 1}. Members with the quiz open are asked to reload. Energy already earned stays.</p>}
     <div className="quiz-chips" role="group" aria-label="Questions">
-      {questions.map((item, i) => <button key={i} type="button" className={`chip${i === index ? " on" : ""}`} aria-current={i === index ? "true" : undefined} onClick={() => setIndex(i)}>
-        Question {i + 1}{" "}<span className="sr-only">{questionProblems(item).length ? "incomplete" : "complete"}</span>
-      </button>)}
+      {questions.map((item, i) => { const ok = !questionProblems(item).length; return <button key={i} type="button" className={`chip${i === index ? " on" : ""}`} aria-pressed={i === index} aria-label={`Question ${i + 1}, ${ok ? "ready" : "needs attention"}`} onClick={() => setIndex(i)}>
+        Question {i + 1} <span aria-hidden="true">{ok ? "✓" : "!"}</span>
+      </button>; })}
     </div>
     <fieldset className="quiz-question" disabled={busy || blocked}>
       <label className="lbl" htmlFor="quiz-prompt">Question {index + 1}</label>
-      <textarea id="quiz-prompt" className="input" rows={2} maxLength={500} value={q.prompt} onChange={(event) => edit({ prompt: event.target.value })} />
-      <div role="radiogroup" aria-label={`Options for question ${index + 1}`} className="quiz-options">
+      <input id="quiz-prompt" className="input" maxLength={500} value={q.prompt} onChange={(event) => edit({ prompt: event.target.value })} />
+      <p className="lbl quiz-options-label" id="quiz-options-label">Options. Mark the correct one.</p>
+      <div role="radiogroup" aria-labelledby="quiz-options-label" className="quiz-options">
         {q.options.map((option, i) => <div className="quiz-option" key={i}>
-          <input className="input" aria-label={`Option ${i + 1}`} placeholder={`Option ${i + 1}`} maxLength={300} value={option} onChange={(event) => editOption(i, event.target.value)} />
-          <label className="quiz-correct"><input type="radio" name={`correct-${index}`} aria-label={`Option ${i + 1} is the correct answer`} checked={q.correct === i} onChange={() => edit({ correct: i })} /> Correct</label>
+          <label className="quiz-correct"><input type="radio" name={`correct-${index}`} aria-label={`Mark option ${i + 1} as correct`} checked={q.correct === i} onChange={() => edit({ correct: i })} /> Correct</label>
+          <input className="input" aria-label={`Option ${i + 1}`} maxLength={300} value={option} onChange={(event) => editOption(i, event.target.value)} />
         </div>)}
       </div>
+      {q.correct === null && (q.prompt.trim() || q.options.some((o) => o.trim())) && <p className="field-error" role="alert">Choose the correct answer.</p>}
       <label className="lbl" htmlFor="quiz-explanation">Explanation</label>
       <textarea id="quiz-explanation" className="input" rows={3} maxLength={1000} value={q.explanation} onChange={(event) => edit({ explanation: event.target.value })} />
-      <p className="hint">Members read this after they pass.</p>
+      <p className="hint">Shown to members only after they pass.</p>
     </fieldset>
 
-    <h4 className="quiz-sub">Before publishing</h4>
-    <p className="hint" style={{ margin: 0 }}>{readyCount(questions)} of {QUESTION_COUNT} questions are ready.</p>
-    <ul className="quiz-checklist" aria-label="Before publishing">
-      {questions.map((item, i) => { const problems = questionProblems(item); return <li key={i}>Question {i + 1}: {problems.length ? problems.join(". ") + "." : "Ready."}</li>; })}
+    <ul className="quiz-checks" aria-label="Publishing checks">
+      {publishChecks(questions).map(([done, text]) => <li key={text}><span className={done ? "ok" : "no"} aria-hidden="true">{done ? "✓" : "!"}</span> {text}<span className="sr-only">{done ? ". Done" : ". Not done"}</span></li>)}
     </ul>
-
-    {published && <p className="hint">Saving changes publishes version {saved.version + 1}. Members with the quiz open are asked to reload. Energy already earned stays.</p>}
+    {questions.some((item) => questionProblems(item).length > 0) && <ul className="quiz-problems" aria-label="What each question still needs">
+      {questions.map((item, i) => { const problems = questionProblems(item); return problems.length ? <li key={i}>Question {i + 1}: {problems.join(". ")}.</li> : null; })}
+    </ul>}
     <div className="row quiz-actions">
       {published
         ? <>
@@ -117,12 +127,13 @@ function QuizPanel({ initial, tideId, tideStatus, reload, onDirtyChange }) {
           <Button disabled={!complete || busy || blocked} onClick={() => save(true)}>Publish quiz</Button>
         </>}
       <Button variant="outline" disabled={!complete} onClick={() => setPreviewing((value) => !value)}>{previewing ? "Hide quiz preview" : "Preview quiz"}</Button>
+      <span className="hint">Admin previews earn no energy.</span>
       {blocked && <Button variant="outline" onClick={reload}>Reload quiz</Button>}
     </div>
-    {!complete && <p className="hint">Preview and publishing unlock when all 5 questions are ready.</p>}
+    {!complete && <p className="hint">{published ? "Save is available when all five questions are ready." : "Preview and publishing unlock when all five questions are ready."}</p>}
     {dirty && !blocked && <p className="hint">You have unsaved quiz changes.</p>}
     {busy && <p role="status">Saving quiz…</p>}
-    {notice && <p role="status">{notice}</p>}
+    {notice && <p className="notice is-success" role="status">{notice}</p>}
     {error && <p role="alert" style={{ color: "var(--danger)" }}>{error}</p>}
     {previewing && complete && <QuizPreview questions={questions} />}
     {asking && <ConfirmDialog title="Unpublish this quiz?" confirmLabel="Unpublish" busy={busy} onConfirm={unpublish} onCancel={() => { if (!busy) setAsking(false); }}>

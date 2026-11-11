@@ -17,9 +17,10 @@ export default function TracePhotoSelector({ id, label, inputRef, file, onSelect
         onDragOver={(event) => { event.preventDefault(); if (!disabled) setDragging(true); }}
         onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }}
         onDrop={(event) => { event.preventDefault(); setDragging(false); select(event.dataTransfer.files); }}>
-        <svg className="trace-photo-upload__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {file && <SelectedPhoto file={file} />}
+        {!file && <svg className="trace-photo-upload__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M15 33H11a8 8 0 0 1-2-15.7A12 12 0 0 1 32 13a10 10 0 0 1 5 20h-5M24 40V21m-7 7 7-7 7 7" />
-        </svg>
+        </svg>}
         <strong>Drag and drop your photo here</strong>
         <span>or</span>
         <input className="trace-photo-upload__input" ref={inputRef} id={id} type="file" accept={PHOTO_TYPES.join(",")}
@@ -30,7 +31,6 @@ export default function TracePhotoSelector({ id, label, inputRef, file, onSelect
       </div>
       {processing && <p role="status">Preparing smaller photo…</p>}
       {file && <div className="trace-photo-upload__row">
-        <SelectedPhoto file={file} />
         <div className="trace-photo-upload__details"><span className="trace-photo-upload__name">{file.name}</span><small>{file.size < 1024 * 1024 ? `${Math.max(1, Math.ceil(file.size / 1024))} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`} · {uploading ? "Uploading…" : "Ready to upload"}</small></div>
         {onRemove && <button className="trace-photo-upload__remove" type="button" disabled={removeDisabled} aria-label={removeLabel} title={removeLabel} onClick={onRemove}>×</button>}
       </div>}

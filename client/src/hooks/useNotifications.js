@@ -1,6 +1,9 @@
 import { PAGE_SIZE } from "../api/pagination.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// How often the unread count is checked while the tab is visible.
+export const FAST_CHECK_MS = 20000;
+
 export default function useNotifications(owner, readData, writeData) {
   const [page, setPage] = useState({ owner, offset: 0 });
   const offset = page.owner === owner ? page.offset : 0;
@@ -32,6 +35,23 @@ export default function useNotifications(owner, readData, writeData) {
     window.addEventListener("focus", refresh);
     return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
   }, [owner, refreshNotifications]);
+  // A light check between the full refreshes: only the unread count is read, and the list is reloaded when the count has gone up.
+  // This is how a new notice (for example an approved Trace) reaches an open page within about 20 seconds.
+  const knownCount = useRef(null);
+  useEffect(() => {
+    if (!owner) return undefined;
+    let controller = null;
+    const check = () => {
+      if (document.visibilityState === "hidden" || writing.current || controller) return;
+      controller = new AbortController();
+      const own = controller;
+      readData("notifications/unread-count", { signal: own.signal }).then((summary) => {
+        if (Number.isInteger(summary?.count) && Number.isInteger(knownCount.current) && summary.count > knownCount.current) refreshNotifications();
+      }).catch(() => {}).finally(() => { if (controller === own) controller = null; });
+    };
+    const timer = window.setInterval(check, FAST_CHECK_MS);
+    return () => { window.clearInterval(timer); controller?.abort(); };
+  }, [owner, readData, refreshNotifications]);
   const markNotificationsRead = useCallback(async (ids) => {
     if (!owner || writing.current) return;
     writing.current = true;
@@ -66,6 +86,7 @@ export default function useNotifications(owner, readData, writeData) {
   const lastCount = useRef({ owner: null, count: null });
   if (Number.isInteger(visible?.count)) lastCount.current = { owner, count: visible.count };
   const unreadCount = visible?.count ?? (owner && lastCount.current.owner === owner ? lastCount.current.count : null);
+  knownCount.current = unreadCount;
   return {
     notifications: (visible?.rows || []).map(row => ({ ...row, unread: !row.read_at, text: row.message, when: new Date(row.created_at).toLocaleString() })),
     unreadNotificationCount: unreadCount,

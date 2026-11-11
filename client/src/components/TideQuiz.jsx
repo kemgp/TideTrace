@@ -1,28 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import useRemoteData from "../hooks/useRemoteData.js";
 import RemoteState from "./RemoteState.jsx";
 import Button from "./Button.jsx";
 import { useApp } from "../context/AppContext.jsx";
+import { energyEnabled, notifyEnergyChanged } from "../api/energy.js";
 import "./TideQuiz.css";
+import "./energy.css";
 
 // The member's quiz under a completed lesson. Shows nothing when the lesson has no published quiz.
 // The server grades: a wrong attempt says only "not passed", and the answers appear after a pass.
-export default function TideQuiz({ tideId }) {
+export default function TideQuiz({ tideId, title }) {
   const { profile } = useApp();
-  return <Quiz key={`${profile.id}:${tideId}`} tideId={tideId} />;
+  return <Quiz key={`${profile.id}:${tideId}`} tideId={tideId} title={title} />;
 }
 
-function Quiz({ tideId }) {
+function Quiz({ tideId, title }) {
   const result = useRemoteData(`tides/${encodeURIComponent(tideId)}/quiz`, { object: true });
   // Kept here because loading the answers after a pass remounts the panel below.
   const [outcome, setOutcome] = useState(null);
+  // "Start quiz" is remembered here for the same reason, so a reload after an update goes straight back to the questions.
+  const [started, setStarted] = useState(false);
   if (result.loading || result.notFound) return null;
   if (result.error) return <section className="card tide-quiz" aria-label="Lesson quiz"><RemoteState {...result} /></section>;
   if (!result.data) return null;
-  return <QuizPanel tideId={tideId} quiz={result.data} reload={result.retry} outcome={outcome} onOutcome={setOutcome} />;
+  return <QuizPanel tideId={tideId} title={title} quiz={result.data} reload={result.retry} outcome={outcome} onOutcome={setOutcome} started={started} onStart={() => setStarted(true)} />;
 }
 
-function QuizPanel({ tideId, quiz, reload, outcome, onOutcome }) {
+function QuizPanel({ tideId, title, quiz, reload, outcome, onOutcome, started, onStart }) {
   const { writeData } = useApp();
   const total = quiz.questions.length;
   const [answers, setAnswers] = useState(() => quiz.questions.map(() => null));
@@ -49,8 +54,8 @@ function QuizPanel({ tideId, quiz, reload, outcome, onOutcome }) {
       const attempt = await writeData(`tides/${encodeURIComponent(tideId)}/quiz/attempts`, { method: "POST", body: { version: quiz.version, answers }, signal: controller.signal });
       if (controller.signal.aborted) return;
       if (typeof attempt?.passed !== "boolean") throw new Error("The result could not be verified.");
-      if (attempt.passed) { onOutcome({ awarded: Boolean(attempt.awarded), amount: Number(attempt.amount) || 0 }); reload(); }
-      else { setMissed(true); setWait(Number(attempt.retry_after) || 30); }
+      if (attempt.passed) { onOutcome({ awarded: Boolean(attempt.awarded), amount: Number(attempt.amount) || 0 }); if (attempt.awarded) notifyEnergyChanged(); reload(); }
+      else { setMissed(true); setAnswers(quiz.questions.map(() => null)); setWait(Number(attempt.retry_after) || 30); }
     } catch (failure) {
       if (controller.signal.aborted || failure.code === "CANCELLED") return;
       if (failure.code === "STALE_VERSION") { setStale(true); setError("This quiz was updated while you were answering. Reload it to see the latest questions."); }
@@ -62,39 +67,49 @@ function QuizPanel({ tideId, quiz, reload, outcome, onOutcome }) {
     }
   }
 
-  if (quiz.passed) return <section className="card tide-quiz" aria-label="Lesson quiz">
-    <h3>Quiz</h3>
-    <p role="status">You passed this quiz.{outcome?.awarded && outcome.amount > 0 ? ` You earned ${outcome.amount} Tide Energy.` : ""}</p>
-    <ol className="tide-quiz__review">
-      {quiz.questions.map((q) => <li key={q.id}>
-        <p className="tide-quiz__prompt">{q.prompt}</p>
-        <ul>{q.options.map((option, i) => <li key={i} className={i === q.correct_index ? "is-correct" : undefined}>{option}{i === q.correct_index && <> <span className="tide-quiz__tag">Correct answer</span></>}</li>)}</ul>
-        {q.explanation && <p className="hint">{q.explanation}</p>}
-      </li>)}
-    </ol>
+  const heading = title ? `Quiz: ${title}` : "Quiz";
+  if (quiz.passed) return <section className="tide-quiz" aria-label="Lesson quiz">
+    <p className="notice is-success" role="status">{outcome?.awarded && outcome.amount > 0 ? `Quiz passed. You earned ${outcome.amount} Tide Energy.` : "Quiz passed."}</p>
+    <h2 className="tide-quiz__title">Why these answers</h2>
+    <div className="tide-quiz__why">
+      {quiz.questions.map((q, n) => <div className="explain" key={q.id}>
+        <b>{n + 1}. {q.prompt}</b>Correct answer: {q.options[q.correct_index]}.{q.explanation ? ` ${q.explanation}` : ""}
+      </div>)}
+    </div>
+    {energyEnabled() && <Link className="btn outline sm" to="/user/energy">View energy history →</Link>}
+  </section>;
+
+  if (!started) return <section className="energy-card tide-quiz" aria-label="Lesson quiz">
+    <div className="tide-quiz__intro">
+      <div>
+        <h2>{heading}</h2>
+        <p className="hint">{total} questions. Pass with 4 correct to earn 15 more Tide Energy. Retry any time.</p>
+      </div>
+      <button type="button" className="btn blue" onClick={onStart}>Start quiz</button>
+    </div>
   </section>;
 
   const unanswered = answers.filter((a) => a === null).length;
-  return <section className="card tide-quiz" aria-label="Lesson quiz">
-    <h3>Check what you learned</h3>
-    <p className="hint">Answer all {total} questions. You pass with 4 correct. You can review the lesson and try again.</p>
+  const hint = wait > 0 ? "Wait a moment before the next attempt." : unanswered > 0 ? `${unanswered} left to answer` : "Ready to submit";
+  return <section className="tide-quiz" aria-label="Lesson quiz">
+    <h2 className="tide-quiz__title">{heading}</h2>
+    <p className="hint">Choose one answer for each question.</p>
+    {missed && <p className="notice is-error" role="alert">Not passed yet. Read the lesson again if you need to, then try again.</p>}
     <form onSubmit={submit} noValidate>
       <fieldset disabled={busy || stale} className="tide-quiz__fields">
-        {quiz.questions.map((q, n) => <fieldset key={q.id} className="tide-quiz__question">
+        {quiz.questions.map((q, n) => <fieldset key={q.id} className="quiz-q">
           <legend>{n + 1}. {q.prompt}</legend>
-          {q.options.map((option, i) => <label key={i} className="tide-quiz__option">
-            <input type="radio" name={`quiz-${q.id}`} checked={answers[n] === i} onChange={() => { setMissed(false); setAnswers((old) => old.map((a, k) => k === n ? i : a)); }} /> {option}
+          {q.options.map((option, i) => <label key={i} className="quiz-opt">
+            <input type="radio" name={`quiz-${q.id}`} checked={answers[n] === i} onChange={() => { setMissed(false); setAnswers((old) => old.map((a, k) => k === n ? i : a)); }} /><span>{option}</span>
           </label>)}
         </fieldset>)}
       </fieldset>
       <div className="row tide-quiz__actions">
-        <Button type="submit" loading={busy} disabled={unanswered > 0 || wait > 0 || stale}>Submit answers</Button>
+        <Button type="submit" loading={busy} disabled={unanswered > 0 || wait > 0 || stale}>{wait > 0 ? `Try again in ${wait}s` : "Submit answers"}</Button>
         {stale && <Button type="button" variant="outline" onClick={reload}>Reload quiz</Button>}
+        <span className="hint" aria-live="polite">{hint}</span>
       </div>
-      {unanswered > 0 && <p className="hint">{unanswered} {unanswered === 1 ? "question" : "questions"} left to answer.</p>}
-      {wait > 0 && <p className="hint">You can try again in {wait} {wait === 1 ? "second" : "seconds"}.</p>}
     </form>
-    {missed && <p role="status">Not passed yet. Review the lesson, then try again.</p>}
-    {error && <p role="alert" style={{ color: "var(--danger)" }}>{error}</p>}
+    {error && <p className="notice is-error" role="alert">{error}</p>}
   </section>;
 }

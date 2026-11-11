@@ -1,6 +1,21 @@
-# TideTrace — Handoff (updated 2026-11-10, feature/energy-quiz-taking branch)
+# TideTrace — Handoff (updated 2026-11-10, feature/energy-member branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+### Phase A mockup alignment for steps 3 and 4 — `feature/energy-member` (2026-11-11, uncommitted, client tests and build NOT run)
+- Quiz editor (`QuizEditor.jsx`): badge "Published v2"/"Draft v2", one-line hint, amber notice about the next version, question chips "Question N ✓/!" (`aria-pressed`, named "Question N, ready/needs attention"), "Correct" radio before each option, "Options. Mark the correct one.", inline "Choose the correct answer." (only once a question has text), four publishing checks, "Admin previews earn no energy.", (the lesson form already owns "Save published changes", "Return to draft" and "Archive", so the quiz keeps "Save changes" and "Unpublish quiz"), success notice "Quiz version N published.".
+- Not built: a separate quiz "Archive" (the mockup buttons belong to the lesson form). Prompt is a single-line prompt limit change (prompt is now a one-line input, max 500).
+- Member quiz (`TideQuiz.jsx`, `TideCompletion.jsx`): intro card with "Start quiz", heading "Quiz: {lesson title}", styled option rows, answers cleared after a miss, red "Not passed yet..." alert, button "Try again in Ns" during the cooldown plus a live hint, pass state "Quiz passed. You earned N Tide Energy." with "Why these answers" boxes and a link to /user/energy. Completion shows "Finishing a lesson earns 5 Tide Energy." and a success notice. Shared `.notice`, `.quiz-q`, `.quiz-opt` styles are in `components/energy.css`.
+- Copy that says "15 more" and "5" is fixed text; the quiz GET does not say whether awards are paused.
+- Tests updated: `tideQuiz.test.jsx`, `quizEditor.test.jsx` (plus new cases).
+
+### Phase A step 5: member energy — `feature/energy-member` (2026-11-10, uncommitted, client tests, build and SQL NOT run)
+- Built from the Phase A mockup (Claude Design artifact "TideTrace Phase A: Tide Energy mockups"). Everything is behind `VITE_ENERGY_ENABLED` / `ENERGY_ENABLED`; with the flags off nothing renders and nothing is requested.
+- Database: `20261111000100_quiz_ready.sql` adds `get_quiz_ready()` (security definer, stable, own rows only). It returns `{state: none|ready|done, tide_id, title, active, earned}`. `done` only covers quiz passes from the last 3 days, so the card does not displace "Continue learning" for good (the mockup shows it with no end). Apply it to staging, then run `supabase/tests/quiz-ready.sql` through `node supabase/tests/local-check.mjs <pglite path>` on the Mac.
+- Server: `GET /api/energy/quiz-ready` in `energyRoutes` (404 when the flag is off, 401 without sign-in, no query parameters). 168 server tests pass.
+- Client: `EnergyPill` in the navbar (members only, reads `energy?limit=1`, rereads on every page change, hides on error), an "Energy" nav link, dashboard `EnergyCard` and `QuizReadyCard` (replaces "Continue learning" while a quiz is waiting or was just passed), and `/user/energy` (balance, how you earn, disabled reward previews, history with All/Traces/Tides/Quizzes filter, paging, loading/empty/error states, reversals shown as negative rows). Styles are in `components/energy.css` with dark-mode variants. Tests: `client/test/energyMember.test.jsx`.
+- Known gaps: reward names and the "+20 / +5 / +15" earn list are fixed copy from the mockup, not read from settings. Steps 3 and 4 still differ from the mockup in copy and layout; a follow-up PR will align them.
+- Next: step 6 (moderator flags).
 
 ### Phase A step 4: taking the quiz — `feature/energy-quiz-taking` (2026-11-10, uncommitted, client tests and build NOT run)
 - Branched from `feature/energy-quiz-authoring` (step 3), not `staging`, because both change `energy.js`, `app.js`, `api.test.js` and `handoff.md`. Merge step 3 first, then open this PR into `staging`. If step 3 is already merged, rebase onto `staging` first.
