@@ -10,6 +10,8 @@ import { useApp } from "../../context/AppContext.jsx";
 import TraceCard from "../../components/TraceCard.jsx";
 import NeedsAttention from "../../components/NeedsAttention.jsx";
 import NextLesson from "../../components/NextLesson.jsx";
+import { EnergyCard, QuizReadyCard } from "../../components/EnergyCards.jsx";
+import { energyEnabled } from "../../api/energy.js";
 import WhatsNew from "../../components/WhatsNew.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import { attentionLine, attentionLink, statItems } from "../../api/dashboardText.js";
@@ -43,6 +45,10 @@ export default function Dashboard() {
   });
   const recent = (recentResult.data || []).map(displayTrace);
   const fix = attentionLink(totals.data);
+  // With Tide Energy on, a finished lesson whose quiz is waiting (or was just passed) takes the "Continue learning" slot.
+  const energyOn = energyEnabled();
+  const quizReady = useRemoteData(energyOn ? "energy/quiz-ready" : null, { object: true });
+  const quizCard = ["ready", "done"].includes(quizReady.data?.state) ? quizReady.data : null;
 
   return (
     <>
@@ -93,7 +99,9 @@ export default function Dashboard() {
           </section>
         </div>
         <div className="dash-side">
-          <section className="dash-learning" aria-label="Continue learning"><NextLesson /></section>
+          {energyOn && <EnergyCard />}
+          {quizCard && <QuizReadyCard card={quizCard} />}
+          {!quizCard && !(energyOn && quizReady.loading) && <section className="dash-learning" aria-label="Continue learning"><NextLesson /></section>}
           <WhatsNew />
         </div>
       </div>

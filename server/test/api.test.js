@@ -1749,7 +1749,7 @@ test("Tide Energy is off unless ENERGY_ENABLED is exactly true or false", () => 
 
 test("every Tide Energy route answers 404 while the flag is off, before sign-in and without calling Supabase", async () => {
   const { app, calls } = fixture({ role: "admin" });
-  const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"]];
+  const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/energy/quiz-ready"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"]];
   for (const [method, path] of routes) {
     const anonymous = await request(app)[method](path).send({ active: true }).expect(404);
     assert.equal(anonymous.body.error.code, "NOT_FOUND");
@@ -1770,6 +1770,17 @@ test("members read their own energy through the database function with a validat
   const before = businessCalls(calls).length;
   for (const query of ["kind=everything", "limit=0", "limit=51", "offset=-1", "user_id=" + userId]) await bearer(request(app).get(`/api/energy?${query}`)).expect(400);
   assert.equal(businessCalls(calls).length, before);
+});
+
+test("members read the quiz-ready card through the database function", async () => {
+  const card = { state: "ready", tide_id: "11111111-1111-4111-8111-111111111111", title: "Mangroves", active: true, earned: null };
+  const { app, calls } = fixture({ appConfig: energyConfig, handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_quiz_ready" ? json(card) : undefined });
+  await request(app).get("/api/energy/quiz-ready").expect(401);
+  const response = await bearer(request(app).get("/api/energy/quiz-ready")).expect(200);
+  assert.deepEqual(response.body.data, card);
+  assert.equal(businessCalls(calls).length, 1);
+  await bearer(request(app).get("/api/energy/quiz-ready?user_id=" + userId)).expect(400);
+  assert.equal(businessCalls(calls).length, 1);
 });
 
 test("suspended members cannot read energy", async () => {

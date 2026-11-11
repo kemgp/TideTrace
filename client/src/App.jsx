@@ -25,6 +25,8 @@ import EditSubmission from "./pages/user/contributions/EditSubmission.jsx";
 import Tides from "./pages/user/tides/Tides.jsx";
 import ViewTide from "./pages/user/tides/ViewTide.jsx";
 import Notifications from "./pages/user/notifications/Notifications.jsx";
+import Energy from "./pages/user/Energy.jsx";
+import {energyEnabled} from "./api/energy.js";
 import Profile from "./pages/user/profile/Profile.jsx";
 import ModAnalytics from "./pages/moderator/Analytics.jsx";
 import "./pages/moderator/moderator.css";
@@ -415,6 +417,18 @@ function AppShell(){
                 </RequireRole>
               }
             />
+            {energyEnabled()&&(
+              <Route
+                path="/user/energy"
+                element={
+                  <RequireRole role="user">
+                    <div className="view">
+                      <Energy/>
+                    </div>
+                  </RequireRole>
+                }
+              />
+            )}
             <Route
               path="/user/notifications"
               element={
