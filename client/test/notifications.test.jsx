@@ -120,8 +120,8 @@ it("keeps the last unread count while a refresh is running, then updates it", as
   hold = true;
   count = 3;
   act(() => result.current.refreshNotifications());
-  // No current result yet, but the badge keeps its last known number.
-  expect(result.current.notificationsLoading).toBe(true);
+  // No current result yet, but the badge keeps its last known number and the list stays on screen (no loading flash).
+  expect(result.current.notificationsLoading).toBe(false);
   expect(result.current.unreadNotificationCount).toBe(2);
   await act(async () => release());
   await waitFor(() => expect(result.current.unreadNotificationCount).toBe(3));

@@ -80,7 +80,12 @@ export default function useNotifications(owner, readData, writeData) {
       writing.current = false;
     }
   }, [owner, key, writeData]);
-  const visible = owner && result?.key === key ? result : null;
+  const current = owner && result?.key === key ? result : null;
+  // While a refresh runs (tab focus, the 60 second timer) keep showing the last list for the same account and page,
+  // so the panel and the Notifications page do not flash back to "loading" and return.
+  const lastShown = useRef({ owner: null, offset: null, value: null });
+  if (current) lastShown.current = { owner, offset, value: current };
+  const visible = current || (owner && lastShown.current.owner === owner && lastShown.current.offset === offset ? lastShown.current.value : null);
   // While a refresh runs (for example when the tab regains focus) there is no current result.
   // Keep showing the last known count for the same account so the nav badge does not vanish and return.
   const lastCount = useRef({ owner: null, count: null });
