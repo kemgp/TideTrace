@@ -105,3 +105,8 @@ html.dark-mode .quiz-q{border-color:var(--d-border);}
 html.dark-mode .quiz-opt span{background:var(--d-surface);border-color:var(--d-border);}
 html.dark-mode .quiz-opt input:checked + span{background:var(--d-surface-2);border-color:#a9b8ff;}
 html.dark-mode .quiz-opt input:checked + span::before{border-color:#a9b8ff;background:radial-gradient(circle,#a9b8ff 0 45%,transparent 50%);}
+
+/* Staff view of a Trace award (My decisions and the staff Trace detail). */
+.award-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 8px; }
+.award-line p { margin: 0; }
+.award-line .award-flag-state { color: var(--soft); }

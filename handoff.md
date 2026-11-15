@@ -1,23 +1,56 @@
-# TideTrace — Handoff (updated 2026-11-10, feature/energy-member branch)
+# TideTrace — Handoff (updated 2026-11-14, feature/energy-flags branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
-### Phase A mockup alignment for steps 3 and 4 — `feature/energy-member` (2026-11-11, uncommitted, client tests and build NOT run)
-- Quiz editor (`QuizEditor.jsx`): badge "Published v2"/"Draft v2", one-line hint, amber notice about the next version, question chips "Question N ✓/!" (`aria-pressed`, named "Question N, ready/needs attention"), "Correct" radio before each option, "Options. Mark the correct one.", inline "Choose the correct answer." (only once a question has text), four publishing checks, "Admin previews earn no energy.", (the lesson form already owns "Save published changes", "Return to draft" and "Archive", so the quiz keeps "Save changes" and "Unpublish quiz"), success notice "Quiz version N published.".
+### Remaining work, in order (reviewed 2026-11-14 against git and the code)
+
+Git check: every branch except the energy ones is merged into `main` and `staging`, so the "uncommitted" and "NOT run" labels on entries dated 2026-11-09 and earlier are historical. `main` has Phase A steps 1 and 2 only; steps 3 to 5 are on `staging`; step 6 is uncommitted on local-only `feature/energy-flags`.
+
+1. **Finish Phase A.** Step 6: run client tests and build on the Mac, commit, push, PR into `staging`, staging check. Step 7: admin routes (`/api/admin/energy/activity`, `/awards/:id`, `/flags/:id/dismiss`, `/awards/:id/reverse`; the database functions already exist), Energy activity view in `InsightsSwitch`, case page `/admin/energy/awards/:id`, "Open energy flags" in Needs you, the migration revoking the direct `tide_completions` insert grant, regenerate `staging-setup.sql`. Step 8: hosted checks (plan section 8.3), migrations on production first, then `staging` to `main`.
+2. **Checks that can bite.** Confirm production has `20261110000100_tide_energy.sql` (the completion route on `main` already calls `complete_tide`). Explain `tide-lessons.sql:56` and `tide-chapters.sql:53` on a real Supabase project (draft lesson files may be readable anonymously). Diagnose the map on staging. Protect `main` in GitHub. Add an SQL check for `20261108000100_admin_needs_you.sql`.
+3. **Design rules the code does not follow yet.** "New Trace" is still the white `banner-action` on Traces and My Contributions; most `PageHeader` pages still render `h2`; about 15 places print locale timestamps instead of "24 Oct 2026"; loading regions still say "Loading content".
+4. **Speed and code health: see `docs/plans/speed-and-code-health-plan.md` (written 2026-11-14, not started).** It supersedes old Phase D. Main causes found: three Supabase round trips per signed-in request (`authenticate`), one API call per card photo with 60 second links, no client cache, one 784 KB bundle, no CI or formatter.
+5. **Phase B and C (Adopt-a-Barangay, simulated donations).** Only the briefs exist. Each needs its planning session (`phase-b-plan.md`, `phase-c-plan.md`) before any build.
+6. **Micro-interactions (old Phase C).** Toast exit animation, menu transitions, form step checks, badge pop, empty-state illustrations, map pin drop. Not started.
+7. **Cleanup.** Dead `forgot-password.css`, unused skeleton variants, `TraceMarker` component, `.mod-review-media` rule, unreachable `role === "mod"` actions branch, `.parked-dashboard-polish/`, the stale mock-data line in `README.md`, brand icons not wired into `index.html`, about 50 merged local branches, and this file (trim sections 4 to 7).
+8. **Needs a decision before building.** Archive sort (server `sort` param), multi-photo upload, notification deep links to a Trace, cover image on the lesson page, staff flag to hide test content, a moderator "my flags" screen, award status on queue cards.
+9. **Before the demo.** 200% zoom, dark mode on the new energy screens, real-device Safari, keyboard pass, staging sample lessons with quizzes, and `docs/legal/` updated for the ledger, quiz attempts and flags.
+
+### Phase A step 6: moderator flags — `feature/energy-flags` (2026-11-14, uncommitted, client tests and build NOT run)
+- Branched from `staging` after PR #52. The database side already shipped in step 1 (`staff_energy_awards`, `flag_energy_award`, `staff_my_energy_flags`); this step adds routes and screens.
+- Server: `energyStaffRoutes` in `routes/energy.js`, mounted at `/api/moderation/energy` before the generic staff router (so its guard only covers those paths). Moderator or admin only, 404 while `ENERGY_ENABLED` is off. `GET /awards?trace_ids=` (1 to 100 ids, comma separated), `POST /awards/:id/flags` (`{reason}` trimmed, 1 to 2000 characters, 201), `GET /flags?limit&offset`. Every rule (own award, already reversed, one open flag) is the database's; a second open flag is 409 `ALREADY_EXISTS`, your own award 403. 172 server tests pass (4 new, plus the flag-off 404 list).
+- Client: `components/EnergyAward.jsx` (`useAwards(traceIds)` reads one page of awards; the component shows status, flag state and the "Flag award" dialog). Used on `ModerationHistory` (My decisions, moderators) and on the admin history page (`pages/admin/History.jsx`, a separate component at `/admin/review/history`) for approved Trace decisions, and on the staff Trace detail for approved Traces, including ones the author deleted. No flag button on a Trace you wrote.
+- Status text: "Award issued: N Tide Energy", "Award reversed: N Tide Energy", "No award yet" (energy not active) and "No award: before activation" (energy active but no ledger row, which also covers an owner whose account was inactive at approval). The flag line reads "Flag open", "Flag dismissed." or "Flag resolved: the award was reversed." with the admin's reason. After a dismissal the moderator can flag again.
+- Dialog "Flag this award?": "Why should an admin look?" (required), blue "Send flag". Errors stay in the dialog (`role="alert"`). The outcome is inline ("Flag sent. An admin will review it."), no toast, because the moderator stays on the page. Everything is hidden, and no request is made, while `VITE_ENERGY_ENABLED` is off.
+- Not built: a screen for `GET /api/moderation/energy/flags` (the route exists; outcomes reach moderators as notifications). Review queue cards do not show award status (the plan keeps it to My decisions and Trace detail).
+- Tests: `client/test/energyFlags.test.jsx` (14). JSX syntax was checked in the cloud session only; run `cd client && npm test && npm run build` on the Mac.
+- Staging check: member submits a Trace, moderator approves it, then "Flag award" on My decisions shows "Flag open" and the admin gets an `energy_flag` notification. Dismiss and reverse come in step 7.
+- Next: step 7 (admin investigations, then the migration that revokes the direct `tide_completions` insert grant).
+
+### Phase A status: steps 1 to 5 live on staging (2026-11-14)
+- Merged into `staging`: steps 1 to 5 and the mockup alignment (PR #51 was the last), plus the redemption note in the plan (PR #52, section 9: reversing energy that was already spent leaves a negative balance; decide the rewards-phase rule before building redemption).
+- Staging setup that must be in place: `20261111000100_quiz_ready.sql` applied to the staging Supabase project; `ENERGY_ENABLED=true` on the Render staging service; `VITE_ENERGY_ENABLED=true` for Vercel Preview scoped to the `staging` branch (baked in at build time, so redeploy without the build cache); and Tide Energy activated in admin Settings › Energy. Awards only issue after activation, so Traces approved earlier never earn.
+- Live updates (flag on): `useNotifications` checks the unread count every 20 seconds while the tab is visible (`FAST_CHECK_MS`) and reloads the list when it grew. `useEnergyNotices` turns the first new "You earned N Tide Energy" notification into a success toast and an admin reversal into an info toast, and calls `notifyEnergyChanged()` so the navbar pill rereads the balance. The first loaded list is a baseline and never toasts. Completing a lesson or passing a quiz also calls `notifyEnergyChanged()`. Supabase Realtime is a possible later replacement for the polling (free tier limits and costs were looked at; webhooks cannot reach browsers).
+- Trace upload: the selected photo now previews inside the dashed drop box (`TracePhotoSelector.jsx`, `SelectedPhoto.jsx`, `TracePhotoUpload.css`).
+- Staging accounts: the seed accounts (`member1-3@example.com`, `moderator1-2@example.com`) are placeholders and cannot receive email; their passwords were set by hand in the staging Auth dashboard. To reset one without email: SQL editor on staging only, `update auth.users set encrypted_password = extensions.crypt('<throwaway>', extensions.gen_salt('bf')) where email = '<address>'`. Password-reset emails also need the staging Auth Site URL set to `https://staging-tide-trace.vercel.app` and `/auth/callback` in the redirect list, otherwise the link lands on `localhost:3000`.
+- Open: map not loading on staging was never diagnosed (check the Google Maps key referrers, billing and the Vercel env var). Multiple photo upload per Trace is not built (single photo today).
+
+### Phase A mockup alignment for steps 3 and 4 — `feature/energy-member` (2026-11-11, merged into `staging`)
+- Quiz editor (`QuizEditor.jsx`): badge "Published"/"Draft"/"No quiz yet" (no version number), one-line hint, amber notice about the next version, question chips "Question N ✓/!" (`aria-pressed`, named "Question N, ready/needs attention"), "Correct" radio before each option, "Options. Mark the correct one.", inline "Choose the correct answer." (only once a question has text), four publishing checks, "Admin previews earn no energy.", (the lesson form already owns "Save published changes", "Return to draft" and "Archive", so the quiz keeps "Save changes" and "Unpublish quiz"), success notice "Quiz version N published.".
 - Not built: a separate quiz "Archive" (the mockup buttons belong to the lesson form). Prompt is a single-line prompt limit change (prompt is now a one-line input, max 500).
 - Member quiz (`TideQuiz.jsx`, `TideCompletion.jsx`): intro card with "Start quiz", heading "Quiz: {lesson title}", styled option rows, answers cleared after a miss, red "Not passed yet..." alert, button "Try again in Ns" during the cooldown plus a live hint, pass state "Quiz passed. You earned N Tide Energy." with "Why these answers" boxes and a link to /user/energy. Completion shows "Finishing a lesson earns 5 Tide Energy." and a success notice. Shared `.notice`, `.quiz-q`, `.quiz-opt` styles are in `components/energy.css`.
 - Copy that says "15 more" and "5" is fixed text; the quiz GET does not say whether awards are paused.
 - Tests updated: `tideQuiz.test.jsx`, `quizEditor.test.jsx` (plus new cases).
 
-### Phase A step 5: member energy — `feature/energy-member` (2026-11-10, uncommitted, client tests, build and SQL NOT run)
+### Phase A step 5: member energy — `feature/energy-member` (2026-11-10, merged into `staging`)
 - Built from the Phase A mockup (Claude Design artifact "TideTrace Phase A: Tide Energy mockups"). Everything is behind `VITE_ENERGY_ENABLED` / `ENERGY_ENABLED`; with the flags off nothing renders and nothing is requested.
 - Database: `20261111000100_quiz_ready.sql` adds `get_quiz_ready()` (security definer, stable, own rows only). It returns `{state: none|ready|done, tide_id, title, active, earned}`. `done` only covers quiz passes from the last 3 days, so the card does not displace "Continue learning" for good (the mockup shows it with no end). Apply it to staging, then run `supabase/tests/quiz-ready.sql` through `node supabase/tests/local-check.mjs <pglite path>` on the Mac.
 - Server: `GET /api/energy/quiz-ready` in `energyRoutes` (404 when the flag is off, 401 without sign-in, no query parameters). 168 server tests pass.
 - Client: `EnergyPill` in the navbar (members only, reads `energy?limit=1`, rereads on every page change, hides on error), an "Energy" nav link, dashboard `EnergyCard` and `QuizReadyCard` (replaces "Continue learning" while a quiz is waiting or was just passed), and `/user/energy` (balance, how you earn, disabled reward previews, history with All/Traces/Tides/Quizzes filter, paging, loading/empty/error states, reversals shown as negative rows). Styles are in `components/energy.css` with dark-mode variants. Tests: `client/test/energyMember.test.jsx`.
-- Known gaps: reward names and the "+20 / +5 / +15" earn list are fixed copy from the mockup, not read from settings. Steps 3 and 4 still differ from the mockup in copy and layout; a follow-up PR will align them.
+- Known gaps: reward names and the "+20 / +5 / +15" earn list are fixed copy from the mockup, not read from settings. Steps 3 and 4 were aligned with the mockup afterwards (see the alignment entry).
 - Next: step 6 (moderator flags).
 
-### Phase A step 4: taking the quiz — `feature/energy-quiz-taking` (2026-11-10, uncommitted, client tests and build NOT run)
+### Phase A step 4: taking the quiz — `feature/energy-quiz-taking` (2026-11-10, merged into `staging`)
 - Branched from `feature/energy-quiz-authoring` (step 3), not `staging`, because both change `energy.js`, `app.js`, `api.test.js` and `handoff.md`. Merge step 3 first, then open this PR into `staging`. If step 3 is already merged, rebase onto `staging` first.
 - Server: `GET /api/tides/:id/quiz` and `POST /api/tides/:id/quiz/attempts` (`energyQuizRoutes`, any signed-in role, 404 while `ENERGY_ENABLED` is off, per-route guards). `errors.js` maps `TT429` to 429 `QUIZ_COOLDOWN` with `details.retry_after`. 167 server tests pass.
 - Client: `components/TideQuiz.jsx` + `.css`, shown under the completed lesson on `ViewTide` behind `energyEnabled()`. `ApiError` now keeps `details`. `TideCompletion` says "Completed. You earned N Tide Energy." when the server reports an award.
@@ -26,7 +59,7 @@ Current state of the project, what was changed in the latest session, and what i
 - Run on the Mac: `cd client && npm test && npm run build` (new `client/test/tideQuiz.test.jsx`).
 - Next: step 5, member energy pill, dashboard cards and `/user/energy`.
 
-### Phase A step 3: quiz authoring — `feature/energy-quiz-authoring` (2026-11-10, uncommitted, client tests and build NOT run)
+### Phase A step 3: quiz authoring — `feature/energy-quiz-authoring` (2026-11-10, merged into `staging`)
 - Server: `GET/PUT /api/admin/tides/:id/quiz` and `POST .../quiz/unpublish` in `routes/energy.js` (admin only, 404 while `ENERGY_ENABLED` is off, guards per route so other admin routes are unaffected). 162 server tests pass.
 - Client: `api/quiz.js` (pure helpers), `components/QuizEditor.jsx` + `.css`, wired into `EditTide.jsx` behind `energyEnabled()`. The lesson editor's unsaved-changes guard includes unsaved quiz edits.
 - Behaviour: 5 question chips, 4 options with "Correct" radios, explanation, "Before publishing" checklist. Publish is locked until all 5 are ready. Draft saves may be partial. Published edits show the next-version warning. A 409 stale save blocks saving until "Reload quiz". Unpublish asks first and keeps unsaved edits. "Preview quiz" grades locally (pass 4 of 5) and makes no request.
@@ -34,7 +67,7 @@ Current state of the project, what was changed in the latest session, and what i
 - Run on the Mac: `cd client && npm test && npm run build` (new `client/test/quizEditor.test.jsx`). Then eyeball it with `VITE_ENERGY_ENABLED=true`.
 - Next: step 4, member quiz-taking on ViewTide (map `TT429` to 429 in `errors.js` there).
 
-### Phase A step 2: server foundation and Settings › Energy — `feature/energy-server` (2026-11-10, uncommitted)
+### Phase A step 2: server foundation and Settings › Energy — `feature/energy-server` (2026-11-10, merged into `staging`)
 
 - Branched from `staging` after the step 1 merge. Plan: `docs/plans/phase-a-plan.md`, step 2.
 - Flags, both default off: `ENERGY_ENABLED` (server, `config.js`; must be `true` or `false`, anything else fails at start) and `VITE_ENERGY_ENABLED` (client, read by `energyEnabled()` in `client/src/api/energy.js`). Documented in `DEPLOYMENT.md` and both `.env.example` files. Set both together, only after the migration is applied there.
@@ -46,7 +79,7 @@ Current state of the project, what was changed in the latest session, and what i
 - Server tests (`node --test`, 155) passed in the cloud session. Client tests could NOT run there (macOS binaries): run `cd client && npm test && npm run build` on the Mac before merging.
 - Staging checks after deploy, flags still off: lessons still complete, Settings has no Tide Energy tab, `/api/energy` returns 404. Then set both flags on staging and use Settings › Tide Energy.
 
-### Phase A step 1: Tide Energy schema — `feature/energy-schema` (2026-11-10, uncommitted, database only)
+### Phase A step 1: Tide Energy schema — `feature/energy-schema` (2026-11-10, merged into `staging`)
 
 - Branched from `staging` (`33ca4a1`). Plan: `docs/plans/phase-a-plan.md` section 6. No API or client code yet.
 - New migration `supabase/migrations/20261110000100_tide_energy.sql` (additive, rerunnable, inert until an admin activates energy). Adds the append-only `energy_ledger`, quizzes (questions public, answer key and attempts in `private`), quiz passes, energy flags, the `energy` settings key with validation and audit, and the functions in the plan: `complete_tide`, `get_tide_quiz`, `submit_tide_quiz`, admin quiz authoring, `get_my_energy`, `get_energy_status`, staff award status and flagging, admin dismiss/reverse, activity and award detail, `set_energy_active` / `get_energy_settings`.
