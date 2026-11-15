@@ -1749,7 +1749,8 @@ test("Tide Energy is off unless ENERGY_ENABLED is exactly true or false", () => 
 
 test("every Tide Energy route answers 404 while the flag is off, before sign-in and without calling Supabase", async () => {
   const { app, calls } = fixture({ role: "admin" });
-  const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/energy/quiz-ready"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"]];
+  const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/energy/quiz-ready"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"],
+    ["get", `/api/moderation/energy/awards?trace_ids=${traceId}`], ["post", `/api/moderation/energy/awards/${traceId}/flags`], ["get", "/api/moderation/energy/flags"]];
   for (const [method, path] of routes) {
     const anonymous = await request(app)[method](path).send({ active: true }).expect(404);
     assert.equal(anonymous.body.error.code, "NOT_FOUND");
@@ -1787,6 +1788,70 @@ test("suspended members cannot read energy", async () => {
   const { app, calls } = fixture({ appConfig: energyConfig, status: "suspended" });
   await bearer(request(app).get("/api/energy")).expect(403);
   assert.equal(businessCalls(calls).length, 0);
+});
+
+test("only staff read award status, and the Trace list is validated", async () => {
+  const status = { active: true, awards: [{ trace_id: traceId, ledger_id: "22222222-2222-4222-8222-222222222222", amount: 20, reversed: false, open_flag: false, my_flags: [] }] };
+  const handler = ({ url }) => url.pathname === "/rest/v1/rpc/staff_energy_awards" ? json(status) : undefined;
+  const member = fixture({ appConfig: energyConfig, role: "user", handler });
+  await bearer(request(member.app).get(`/api/moderation/energy/awards?trace_ids=${traceId}`)).expect(403);
+  assert.equal(businessCalls(member.calls).length, 0);
+  for (const role of ["moderator", "admin"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler });
+    await request(app).get(`/api/moderation/energy/awards?trace_ids=${traceId}`).expect(401);
+    const response = await bearer(request(app).get(`/api/moderation/energy/awards?trace_ids=${traceId},${traceId}`)).expect(200);
+    assert.deepEqual(response.body.data, status);
+    assert.deepEqual(businessCalls(calls)[0].body, { p_trace_ids: [traceId, traceId] });
+    const before = businessCalls(calls).length;
+    const tooMany = Array.from({ length: 101 }, () => traceId).join(",");
+    for (const query of ["", "trace_ids=", "trace_ids=not-a-uuid", `trace_ids=${tooMany}`, `trace_ids=${traceId}&user_id=${userId}`]) await bearer(request(app).get(`/api/moderation/energy/awards?${query}`)).expect(400);
+    assert.equal(businessCalls(calls).length, before);
+  }
+});
+
+test("staff flag an award with a trimmed reason, and the database decides everything else", async () => {
+  const ledgerId = "22222222-2222-4222-8222-222222222222";
+  const flag = { id: "33333333-3333-4333-8333-333333333333", ledger_id: ledgerId, status: "open", reason: "Looks copied" };
+  const member = fixture({ appConfig: energyConfig, role: "user" });
+  await bearer(request(member.app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "No" }).expect(403);
+  assert.equal(businessCalls(member.calls).length, 0);
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/flag_energy_award" ? json(flag) : undefined });
+  await request(app).post(`/api/moderation/energy/awards/${ledgerId}/flags`).send({ reason: "Looks copied" }).expect(401);
+  const response = await bearer(request(app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "  Looks copied  " }).expect(201);
+  assert.deepEqual(response.body.data, flag);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_ledger_id: ledgerId, p_reason: "Looks copied" });
+  const before = businessCalls(calls).length;
+  const bodies = [{}, { reason: "" }, { reason: "   " }, { reason: "x".repeat(2001) }, { reason: "Fine", amount: 0 }, { reason: "Fine", flagged_by: userId }];
+  for (const body of bodies) await bearer(request(app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send(body).expect(400);
+  await bearer(request(app).post("/api/moderation/energy/awards/not-a-uuid/flags")).send({ reason: "Fine" }).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("a second open flag and a flag on your own award come back as clear errors", async () => {
+  const ledgerId = "22222222-2222-4222-8222-222222222222";
+  const duplicate = fixture({ appConfig: energyConfig, role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/flag_energy_award" ? json({ code: "23505", message: "This award already has an open flag" }, 409) : undefined });
+  const second = await bearer(request(duplicate.app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "Again" }).expect(409);
+  assert.equal(second.body.error.code, "ALREADY_EXISTS");
+  const own = fixture({ appConfig: energyConfig, role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/flag_energy_award" ? json({ code: "42501", message: "Cannot flag your own award" }, 403) : undefined });
+  const forbidden = await bearer(request(own.app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "Mine" }).expect(403);
+  assert.equal(forbidden.body.error.code, "FORBIDDEN");
+});
+
+test("staff read their own flags with a validated page", async () => {
+  const flags = [{ id: "33333333-3333-4333-8333-333333333333", status: "open", title: "Reef survey" }];
+  const handler = ({ url }) => url.pathname === "/rest/v1/rpc/staff_my_energy_flags" ? json(flags) : undefined;
+  const member = fixture({ appConfig: energyConfig, role: "user", handler });
+  await bearer(request(member.app).get("/api/moderation/energy/flags")).expect(403);
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "moderator", handler });
+  await request(app).get("/api/moderation/energy/flags").expect(401);
+  const response = await bearer(request(app).get("/api/moderation/energy/flags")).expect(200);
+  assert.deepEqual(response.body.data, flags);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_limit: 20, p_offset: 0 });
+  await bearer(request(app).get("/api/moderation/energy/flags?limit=5&offset=10")).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_limit: 5, p_offset: 10 });
+  const before = businessCalls(calls).length;
+  for (const query of ["limit=0", "limit=51", "offset=-1", "status=open"]) await bearer(request(app).get(`/api/moderation/energy/flags?${query}`)).expect(400);
+  assert.equal(businessCalls(calls).length, before);
 });
 
 test("only admins read and change the Tide Energy switch", async () => {

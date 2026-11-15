@@ -8,7 +8,7 @@ import { authRoutes } from "./routes/auth.js";
 import { contentRoutes } from "./routes/content.js";
 import { adminRoutes, staffRoutes } from "./routes/staff.js";
 import { mediaRoutes } from "./routes/media.js";
-import { energyQuizAdminRoutes, energyQuizRoutes, energyRoutes, energySettingsRoutes } from "./routes/energy.js";
+import { energyQuizAdminRoutes, energyQuizRoutes, energyRoutes, energySettingsRoutes, energyStaffRoutes } from "./routes/energy.js";
 
 export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
   const app = express();
@@ -37,6 +37,7 @@ export function createApp({ config = readConfig(), fetchImpl = fetch } = {}) {
   app.use("/api", energyQuizRoutes(gateway, config));
   app.use("/api", contentRoutes(gateway));
   app.use("/api", mediaRoutes(gateway));
+  app.use("/api/moderation/energy", energyStaffRoutes(gateway, config));
   app.use("/api/moderation", staffRoutes(gateway));
   app.use("/api/admin", adminRoutes(gateway));
   app.use((req, res, next) => next(new HttpError(404, "NOT_FOUND", "API route not found.")));

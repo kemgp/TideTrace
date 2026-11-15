@@ -92,3 +92,30 @@ export function energyQuizRoutes(gateway, config) {
   });
   return router;
 }
+
+// Staff view of Trace awards: whether a reviewed Trace earned energy, and the flags the caller raised on it. Mounted under
+// /api/moderation/energy ahead of the generic staff router, so the guard only covers these paths. Every rule (own award,
+// already reversed, one open flag, reason length) is enforced by the database function; this layer checks the request shape.
+export function energyStaffRoutes(gateway, config) {
+  const router = Router();
+  router.use(energyGuard(config));
+  router.use(authenticate(gateway, { roles: ["moderator", "admin"] }));
+  router.get("/awards", async (req, res) => {
+    const input = z.object({
+      trace_ids: z.string().transform((value) => value.split(",")).pipe(z.array(uuid).min(1).max(100)),
+    }).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("staff_energy_awards", { p_trace_ids: input.trace_ids })) });
+  });
+  router.post("/awards/:id/flags", async (req, res) => {
+    const input = z.object({ reason: z.string().trim().min(1).max(2000) }).strict().parse(req.body);
+    res.status(201).json({ data: await result(req.db.rpc("flag_energy_award", { p_ledger_id: uuid.parse(req.params.id), p_reason: input.reason })) });
+  });
+  router.get("/flags", async (req, res) => {
+    const input = z.object({
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+      offset: z.coerce.number().int().min(0).max(100000).default(0),
+    }).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("staff_my_energy_flags", { p_limit: input.limit, p_offset: input.offset })) });
+  });
+  return router;
+}
