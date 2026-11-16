@@ -119,3 +119,33 @@ export function energyStaffRoutes(gateway, config) {
   });
   return router;
 }
+
+// Admin energy investigations. Shares the /api/admin prefix with the generic admin routes, so each route carries its own guard.
+// The database does the work and the checks (reason required, award not already reversed, never your own award, open flags only);
+// this layer validates the shape of the request. Reversal is final: the database allows it once per award.
+export function energyAdminRoutes(gateway, config) {
+  const router = Router();
+  const open = [energyGuard(config), authenticate(gateway, { roles: ["admin"] })];
+  const reason = z.string().trim().min(1).max(2000);
+  router.get("/energy/activity", ...open, async (req, res) => {
+    const input = z.object({
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+      offset: z.coerce.number().int().min(0).max(100000).default(0),
+      kind: z.enum(["trace", "tide", "quiz"]).optional(),
+    }).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("admin_energy_activity", { p_limit: input.limit, p_offset: input.offset, p_kind: input.kind ?? null })) });
+  });
+  router.get("/energy/awards/:id", ...open, async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("admin_energy_award", { p_ledger_id: uuid.parse(req.params.id) })) });
+  });
+  router.post("/energy/flags/:id/dismiss", ...open, async (req, res) => {
+    const input = z.object({ reason }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("dismiss_energy_flag", { p_flag_id: uuid.parse(req.params.id), p_reason: input.reason })) });
+  });
+  router.post("/energy/awards/:id/reverse", ...open, async (req, res) => {
+    const input = z.object({ reason }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("reverse_energy_award", { p_ledger_id: uuid.parse(req.params.id), p_reason: input.reason })) });
+  });
+  return router;
+}

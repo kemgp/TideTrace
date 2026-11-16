@@ -1750,7 +1750,8 @@ test("Tide Energy is off unless ENERGY_ENABLED is exactly true or false", () => 
 test("every Tide Energy route answers 404 while the flag is off, before sign-in and without calling Supabase", async () => {
   const { app, calls } = fixture({ role: "admin" });
   const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/energy/quiz-ready"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"],
-    ["get", `/api/moderation/energy/awards?trace_ids=${traceId}`], ["post", `/api/moderation/energy/awards/${traceId}/flags`], ["get", "/api/moderation/energy/flags"]];
+    ["get", `/api/moderation/energy/awards?trace_ids=${traceId}`], ["post", `/api/moderation/energy/awards/${traceId}/flags`], ["get", "/api/moderation/energy/flags"],
+    ["get", "/api/admin/energy/activity"], ["get", `/api/admin/energy/awards/${traceId}`], ["post", `/api/admin/energy/flags/${traceId}/dismiss`], ["post", `/api/admin/energy/awards/${traceId}/reverse`]];
   for (const [method, path] of routes) {
     const anonymous = await request(app)[method](path).send({ active: true }).expect(404);
     assert.equal(anonymous.body.error.code, "NOT_FOUND");
@@ -1852,6 +1853,68 @@ test("staff read their own flags with a validated page", async () => {
   const before = businessCalls(calls).length;
   for (const query of ["limit=0", "limit=51", "offset=-1", "status=open"]) await bearer(request(app).get(`/api/moderation/energy/flags?${query}`)).expect(400);
   assert.equal(businessCalls(calls).length, before);
+});
+
+test("only admins read energy activity and award cases, with a validated page", async () => {
+  const activity = { active: true, totals: { open_flags: 1, awards: 3, energy_issued: 45, reversals: 0 }, open_flags: [], awards: [] };
+  const handler = ({ url }) => url.pathname === "/rest/v1/rpc/admin_energy_activity" ? json(activity) : url.pathname === "/rest/v1/rpc/admin_energy_award" ? json({ id: ledgerId, flags: [] }) : undefined;
+  const ledgerId = "22222222-2222-4222-8222-222222222222";
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler });
+    await bearer(request(app).get("/api/admin/energy/activity")).expect(403);
+    await bearer(request(app).get(`/api/admin/energy/awards/${ledgerId}`)).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler });
+  await request(app).get("/api/admin/energy/activity").expect(401);
+  const response = await bearer(request(app).get("/api/admin/energy/activity")).expect(200);
+  assert.deepEqual(response.body.data, activity);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_limit: 20, p_offset: 0, p_kind: null });
+  await bearer(request(app).get("/api/admin/energy/activity?limit=5&offset=10&kind=quiz")).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_limit: 5, p_offset: 10, p_kind: "quiz" });
+  await bearer(request(app).get(`/api/admin/energy/awards/${ledgerId}`)).expect(200);
+  assert.deepEqual(businessCalls(calls)[2].body, { p_ledger_id: ledgerId });
+  const before = businessCalls(calls).length;
+  for (const query of ["kind=everything", "limit=0", "limit=51", "offset=-1", "owner_id=" + userId]) await bearer(request(app).get(`/api/admin/energy/activity?${query}`)).expect(400);
+  await bearer(request(app).get("/api/admin/energy/awards/not-a-uuid")).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("only admins dismiss a flag or reverse an award, each with a trimmed reason and nothing else", async () => {
+  const id = "22222222-2222-4222-8222-222222222222";
+  const handler = ({ url }) => /\/(dismiss_energy_flag|reverse_energy_award)$/.test(url.pathname) ? json({ id, status: "done" }) : undefined;
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler });
+    await bearer(request(app).post(`/api/admin/energy/flags/${id}/dismiss`)).send({ reason: "Fine" }).expect(403);
+    await bearer(request(app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Fine" }).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler });
+  await request(app).post(`/api/admin/energy/awards/${id}/reverse`).send({ reason: "Fine" }).expect(401);
+  await bearer(request(app).post(`/api/admin/energy/flags/${id}/dismiss`)).send({ reason: "  Original photo  " }).expect(200);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_flag_id: id, p_reason: "Original photo" });
+  await bearer(request(app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "  Copied from a website  " }).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_ledger_id: id, p_reason: "Copied from a website" });
+  const before = businessCalls(calls).length;
+  const bodies = [{}, { reason: "" }, { reason: "   " }, { reason: "x".repeat(2001) }, { reason: "Fine", amount: 0 }, { reason: "Fine", owner_id: userId }];
+  for (const body of bodies) {
+    await bearer(request(app).post(`/api/admin/energy/flags/${id}/dismiss`)).send(body).expect(400);
+    await bearer(request(app).post(`/api/admin/energy/awards/${id}/reverse`)).send(body).expect(400);
+  }
+  await bearer(request(app).post("/api/admin/energy/awards/not-a-uuid/reverse")).send({ reason: "Fine" }).expect(400);
+  await bearer(request(app).post("/api/admin/energy/flags/not-a-uuid/dismiss")).send({ reason: "Fine" }).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("reversing twice, your own award, and an unknown award come back as clear errors", async () => {
+  const id = "22222222-2222-4222-8222-222222222222";
+  const failing = (code, message, status) => fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname.endsWith("/reverse_energy_award") ? json({ code, message }, status) : undefined });
+  const twice = await bearer(request(failing("22023", "This award was already reversed", 400).app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Again" }).expect(400);
+  assert.equal(twice.body.error.code, "INVALID_DATA");
+  const own = await bearer(request(failing("42501", "Cannot reverse your own award", 403).app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Mine" }).expect(403);
+  assert.equal(own.body.error.code, "FORBIDDEN");
+  const missing = await bearer(request(failing("P0002", "Award not found", 404).app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Gone" }).expect(404);
+  assert.equal(missing.body.error.code, "NOT_FOUND");
 });
 
 test("only admins read and change the Tide Energy switch", async () => {
