@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { waitLabel } from "../moderator/modTools.jsx";
+import { energyEnabled } from "../../api/energy.js";
 
 // One strip for the work that is waiting on an admin. Each count is a link to the place where it is handled.
 // `result` is the useDashboard() result. Held Traces and the oldest wait come from totals added in
@@ -15,6 +16,7 @@ export default function NeedsYou({ result }) {
     { field: ["open_reports", "Open reports"], to: "/admin/reports", note: "On Traces and comments" },
     { field: ["pending", "Pending Traces"], to: "/admin/review", note: pending === 0 ? "Nothing is waiting" : oldest ? `Longest wait: ${oldest.replace("Waiting ", "")}` : "Review the queue" },
   ];
+  if (energyEnabled()) items.push({ field: ["open_energy_flags", "Open energy flags"], to: "/admin/energy", note: data?.open_energy_flags === 0 ? "Nothing is waiting" : "Review flagged awards" });
   return <section className="needs-you" aria-label="Needs you">
     <h3 className="sec-t">Needs you</h3>
     <ul className="needs-you__list">

@@ -1,5 +1,5 @@
 import React from "react";
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
@@ -64,4 +64,21 @@ it("opens the review queue already filtered to held Traces", async () => {
   await waitFor(() => expect(fetcher.mock.calls.some(([url]) => url.startsWith("/api/moderation/traces?status=pending") && url.includes("hold=only"))).toBe(true));
   fireEvent.click(screen.getByRole("button", { name: "All pending" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "All pending" }).getAttribute("aria-pressed")).toBe("true"));
+});
+
+afterEach(() => vi.unstubAllEnvs());
+
+it("adds open energy flags only when Tide Energy is on", async () => {
+  vi.stubEnv("VITE_ENERGY_ENABLED", "true");
+  setup("/admin/dashboard", totals({ held_traces: 0, open_energy_flags: 3 }));
+  const strip = await screen.findByRole("region", { name: "Needs you" });
+  const flags = within(strip).getByRole("link", { name: /Open energy flags/ });
+  await waitFor(() => expect(flags.textContent).toContain("3"));
+  expect(flags.getAttribute("href")).toBe("/admin/energy");
+});
+
+it("hides open energy flags when Tide Energy is off", async () => {
+  setup("/admin/dashboard", totals({ held_traces: 0, open_energy_flags: 3 }));
+  const strip = await screen.findByRole("region", { name: "Needs you" });
+  expect(within(strip).queryByRole("link", { name: /Open energy flags/ })).toBeNull();
 });
