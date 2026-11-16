@@ -190,3 +190,7 @@ TT_DISPOSABLE_DB=yes DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322
 ```
 
 Its fixtures cannot be removed (the ledger is append-only), so reset that database afterwards (`supabase db reset`).
+
+Apply `migrations/20261111000100_quiz_ready.sql` before enabling the Phase A flags: it adds `get_quiz_ready()` for the dashboard card.
+
+Apply `migrations/20261116000100_revoke_completion_insert.sql` only after the API that calls `complete_tide` (`PUT /api/tides/:id/completion`) is live on every environment using that database. It removes the direct insert grant and policy on `tide_completions`, so a completion can be written only by `complete_tide`, which issues the award in the same transaction. Reads are unchanged. If an older API is still running, lesson completion would fail until it is updated. To undo, grant `insert (user_id, tide_id)` again and recreate the `completions_insert` policy from `20260927000100_tide_completions.sql`.

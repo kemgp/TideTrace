@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-14, feature/energy-flags branch)
+# TideTrace — Handoff (updated 2026-11-15, feature/energy-admin-server branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -15,6 +15,14 @@ Git check: every branch except the energy ones is merged into `main` and `stagin
 7. **Cleanup.** Dead `forgot-password.css`, unused skeleton variants, `TraceMarker` component, `.mod-review-media` rule, unreachable `role === "mod"` actions branch, `.parked-dashboard-polish/`, the stale mock-data line in `README.md`, brand icons not wired into `index.html`, about 50 merged local branches, and this file (trim sections 4 to 7).
 8. **Needs a decision before building.** Archive sort (server `sort` param), multi-photo upload, notification deep links to a Trace, cover image on the lesson page, staff flag to hide test content, a moderator "my flags" screen, award status on queue cards.
 9. **Before the demo.** 200% zoom, dark mode on the new energy screens, real-device Safari, keyboard pass, staging sample lessons with quizzes, and `docs/legal/` updated for the ledger, quiz attempts and flags.
+
+### Phase A step 7a: admin energy routes and completion-grant migration — `feature/energy-admin-server` (2026-11-15, uncommitted, SQL tests NOT run)
+- Step 7 is split into three PRs: 7a (this one: server and migration), 7b (Energy activity view and case page), 7c (admin dashboard "Open energy flags" item, notice wording check, handoff).
+- Server: `energyAdminRoutes` in `routes/energy.js`, mounted on `/api/admin` with per-route guards (admin only, 404 while `ENERGY_ENABLED` is off). `GET /api/admin/energy/activity?limit&offset&kind`, `GET /api/admin/energy/awards/:id`, `POST /api/admin/energy/flags/:id/dismiss` and `POST /api/admin/energy/awards/:id/reverse` (both `{reason}`, trimmed, 1 to 2000). The database enforces the rest (reason, once only, never your own award, open flags only). 175 server tests pass.
+- Migration `20261116000100_revoke_completion_insert.sql`: drops the `completions_insert` policy and revokes insert on `tide_completions`, so only `complete_tide` writes completions. Apply it to staging only after the step 2 API is live there (it is). Rollback is in `supabase/README.md`.
+- `access-control.sql` updated: completions now go through `complete_tide`; direct inserts are rejected with 42501; archived and draft lessons raise P0002, a suspended member 42501.
+- `staging-setup.sql` regenerated with the two migrations it was missing (`quiz_ready` from step 5 and this one).
+- Run on the Mac: `node supabase/tests/local-check.mjs <path to pglite dist/index.js>`. Then apply the migration on staging and check that a member can still complete a lesson.
 
 ### Phase A step 6: moderator flags — `feature/energy-flags` (2026-11-14, uncommitted, client tests and build NOT run)
 - Branched from `staging` after PR #52. The database side already shipped in step 1 (`staff_energy_awards`, `flag_energy_award`, `staff_my_energy_flags`); this step adds routes and screens.
