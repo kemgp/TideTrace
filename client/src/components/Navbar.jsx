@@ -208,7 +208,7 @@ export default function Navbar(){
     }
 
     if(link.label==="Insights"){
-      return path==="/admin/review/history";
+      return path==="/admin/review/history" || path.startsWith("/admin/energy");
     }
 
     return false;

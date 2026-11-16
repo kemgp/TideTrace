@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
 import useDashboard from "../hooks/useDashboard.js";
+import { energyEnabled } from "../api/energy.js";
 
 // A segmented control that moves between pages. It looks like the app's other segmented controls
 // (`archive-view-switch`) but is made of links, so the current page is marked with aria-current.
@@ -34,11 +35,12 @@ export function PeopleSwitch() {
   ]} />;
 }
 
-// Insights: platform analytics and the moderation history.
+// Insights: platform analytics, the moderation history and (when Tide Energy is on) energy activity.
 export function InsightsSwitch() {
   const { pathname } = useLocation();
   return <SegmentedLinks label="Insights views" items={[
     { to: "/admin/analytics", text: "Analytics", active: pathname === "/admin/analytics" },
     { to: "/admin/review/history", text: "History", active: pathname === "/admin/review/history" },
+    ...(energyEnabled() ? [{ to: "/admin/energy", text: "Energy activity", active: pathname === "/admin/energy" }] : []),
   ]} />;
 }
