@@ -110,3 +110,14 @@ html.dark-mode .quiz-opt input:checked + span::before{border-color:#a9b8ff;backg
 .award-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 8px; }
 .award-line p { margin: 0; }
 .award-line .award-flag-state { color: var(--soft); }
+
+/* Admin energy activity and case page */
+.energy-admin-row{color:inherit;text-decoration:none;border-radius:10px;}
+.energy-admin-row:hover{background:var(--bg);}
+.energy-admin-row:focus-visible{outline:var(--focus-width) solid var(--focus-ring);outline-offset:2px;}
+.energy-case form{display:grid;gap:10px;}
+.energy-outcome{display:grid;gap:8px;border:0;padding:0;margin:0;}
+.energy-outcome legend{font-weight:600;margin-bottom:6px;padding:0;}
+.energy-outcome label{display:flex;gap:8px;align-items:center;}
+.energy-timeline{list-style:none;margin:0;padding:0;}
+html.dark-mode .energy-admin-row:hover{background:var(--d-surface-2);}

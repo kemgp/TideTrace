@@ -1,6 +1,13 @@
-# TideTrace — Handoff (updated 2026-11-15, feature/energy-admin-server branch)
+# TideTrace — Handoff (updated 2026-11-16, feature/energy-admin-screens branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
+
+
+### 2026-11-16: Phase A step 7b (admin Energy activity and case page), not yet run on the Mac
+
+- New `client/src/pages/admin/EnergyActivity.jsx` (`/admin/energy`: four totals, open flags, recent awards with All/Traces/Tides/Quizzes chips and pagination) and `EnergyCase.jsx` (`/admin/energy/awards/:id`: award, moderator flag, audit history, Decision card with dismiss or reverse, danger confirm dialog before reversing, inline outcome, locked note once reversed, note when the source was deleted).
+- Routes only exist when `VITE_ENERGY_ENABLED` is true. "Energy activity" added to `InsightsSwitch` (same condition); Navbar "Insights" stays highlighted on `/admin/energy*`. CSS appended to `components/energy.css`. Tests: `client/test/energyAdmin.test.jsx`.
+- Next: run `cd client && npm test && npm run build`, then 7c (admin "Needs you" open energy flags item using `open_energy_flags`, check notification wording), then step 8 release.
 
 ### Remaining work, in order (reviewed 2026-11-14 against git and the code)
 

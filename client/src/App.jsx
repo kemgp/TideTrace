@@ -45,6 +45,8 @@ import AdminProfile from "./pages/admin/Profile";
 import AdminSettings from "./pages/admin/Settings.jsx";
 import AdminAnalytics from "./pages/admin/Analytics.jsx";
 import AdminHistory from "./pages/admin/History.jsx";
+import EnergyActivity from "./pages/admin/EnergyActivity.jsx";
+import EnergyCase from "./pages/admin/EnergyCase.jsx";
 import "./pages/admin/admin.css";
 const WAVE=(
   <svg width={24} height={24} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
@@ -637,6 +639,30 @@ function AppShell(){
                 </RequireRole>
               }
             />
+            {energyEnabled()&&(
+              <Route
+                path="/admin/energy"
+                element={
+                  <RequireRole role="admin">
+                    <div className="view">
+                      <EnergyActivity/>
+                    </div>
+                  </RequireRole>
+                }
+              />
+            )}
+            {energyEnabled()&&(
+              <Route
+                path="/admin/energy/awards/:id"
+                element={
+                  <RequireRole role="admin">
+                    <div className="view">
+                      <EnergyCase/>
+                    </div>
+                  </RequireRole>
+                }
+              />
+            )}
             <Route
               path="/admin/profile"
               element={
