@@ -1,7 +1,14 @@
-# TideTrace — Handoff (updated 2026-11-16, feature/energy-admin-screens branch)
+# TideTrace — Handoff (updated 2026-11-16, feature/energy-admin-dashboard branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
+
+
+### 2026-11-16: Phase A step 7c (admin dashboard flags item), not yet run on the Mac
+
+- `NeedsYou.jsx` gets a fourth item, "Open energy flags", linking to `/admin/energy`, shown only when `VITE_ENERGY_ENABLED` is true. It reads `open_energy_flags` from the dashboard totals. The strip grid is now `auto-fit` so three or four items both fit. Tests added in `client/test/needsYou.test.jsx`.
+- Notification wording checked against `20261110000100_tide_energy.sql` (flag outcome dismissed or reversed, member reversal): no em-dashes, past tense, no change needed, so no new migration.
+- Step 7 is complete once this merges. Next: step 8 (release: staging checks, then `staging` to `main` with migrations first).
 
 ### 2026-11-16: Phase A step 7b (admin Energy activity and case page), not yet run on the Mac
 
