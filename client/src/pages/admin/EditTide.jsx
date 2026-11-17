@@ -14,6 +14,7 @@ import { MAX_IMPORT_BYTES, MAX_IMPORT_CHARS, prepareImport } from "../../api/imp
 import LessonImages from "./LessonImages.jsx";
 import QuizEditor from "../../components/QuizEditor.jsx";
 import { energyEnabled } from "../../api/energy.js";
+import { compressIfPossible } from "../../api/compressPhoto.js";
 
 const toFields = (lesson) => ({ title: lesson?.title || "", slug: lesson?.slug || "", body: lesson?.body || "", summary: lesson?.summary || "", category_id: lesson?.category_id || "", paged: Boolean(lesson?.paged) });
 const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -121,8 +122,10 @@ function Editor({ initial }) {
   const inspect = async (kind, file) => {
     const isCover = kind === "cover";
     if (isCover ? !COVER_TYPES.includes(file.type) : file.type !== "application/pdf") return { error: isCover ? "Choose a JPEG, PNG or WebP image." : "Choose a PDF. In PowerPoint, use File, Export, PDF." };
-    if (file.size > (isCover ? 5 : 25) * 1024 * 1024) return { error: `That file is too large. The limit is ${isCover ? 5 : 25} MB.` };
-    if (isCover) return {};
+    // Covers are resized to 1600 px WebP first where the browser can; the 5 MB limit applies to what is uploaded.
+    const prepared = isCover ? await compressIfPossible(file) : file;
+    if (prepared.size > (isCover ? 5 : 25) * 1024 * 1024) return { error: `That file is too large. The limit is ${isCover ? 5 : 25} MB.` };
+    if (isCover) return { file: prepared };
     let pages;
     try { pages = await countPdfPages(file); } catch { return { error: "That PDF could not be read. Export it again and retry." }; }
     return pages >= 1 && pages <= 500 ? { pages } : { error: "Slides can have 1 to 500 pages." };
@@ -140,9 +143,10 @@ function Editor({ initial }) {
     try {
       const checked = await inspect(kind, file);
       if (checked.error) { setAssetError(checked.error); return; }
-      if (!saved) { setPending((old) => ({ ...old, [kind]: { file, pages: checked.pages } })); return; }
+      const upload = checked.file || file;
+      if (!saved) { setPending((old) => ({ ...old, [kind]: { file: upload, pages: checked.pages } })); return; }
       try {
-        setSaved(await send(saved.id, kind, file, checked.pages));
+        setSaved(await send(saved.id, kind, upload, checked.pages));
         showToast(kind === "cover" ? "Cover image saved" : "Slides saved");
       } catch (failure) { setAssetError(failure.message); }
     } finally { setAssetBusy(""); }

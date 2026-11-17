@@ -405,6 +405,11 @@ test("uploads enforce file signatures, draft ownership and generated paths", asy
   assert.match(upload.url.pathname, new RegExp(`/trace-media/${userId}/${traceId}/[0-9a-f-]+\\.png$`));
   assert.equal(upload.headers.get("x-upsert"), "false");
   assert.equal(upload.headers.get("authorization"), "Bearer member-token");
+  // Paths are never reused, so browsers may keep the file for a year.
+  assert.equal(upload.headers.get("cache-control"), "max-age=31536000");
+  // Videos are not compressed, so Trace uploads stop at 8 MB.
+  const video = Buffer.concat([Buffer.from([0, 0, 0, 0]), Buffer.from("ftyp"), Buffer.alloc(8 * 1024 * 1024)]);
+  await bearer(request(app).post(`/api/traces/${traceId}/media`)).set("Content-Type", "video/mp4").send(video).expect(413);
 });
 
 test("submitted evidence cannot be overwritten and attachment retry cannot use another owner", async () => {
@@ -415,14 +420,49 @@ test("submitted evidence cannot be overwritten and attachment retry cannot use a
   assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
 });
 
-test("media links are short lived and signed under caller permissions", async () => {
+const mediaRow = (trace) => ({ object_path: `${userId}/${traceId}/file.png`, mime_type: "image/png", trace: { status: "approved", is_hidden: false, deleted_at: null, ...trace } });
+
+test("public Trace photos get one signed link that is reused for an hour", async () => {
+  let signed = 0;
   const { app, calls } = fixture({ handler: ({ url }) => {
-    if (url.pathname === "/rest/v1/trace_media") return json([{ object_path: `${userId}/${traceId}/file.png` }]);
-    if (url.pathname.startsWith("/storage/v1/object/sign/")) return json({ signedURL: "/object/sign/trace-media/file.png?token=signed" });
+    if (url.pathname === "/rest/v1/trace_media") return json([mediaRow()]);
+    if (url.pathname.startsWith("/storage/v1/object/sign/")) { signed += 1; return json({ signedURL: `/object/sign/trace-media/file.png?token=signed-${signed}` }); }
   } });
-  const response = await bearer(request(app).get(`/api/media/${mediaId}/url`)).expect(200);
-  assert.equal(response.body.data.expires_in, 60);
-  assert.equal(calls[1].body.expiresIn, 60);
+  const first = await bearer(request(app).get(`/api/media/${mediaId}/url`)).expect(200);
+  const second = await request(app).get(`/api/media/${mediaId}/url`).expect(200);
+  assert.equal(first.body.data.url, second.body.data.url);
+  assert.match(first.body.data.url, /token=signed-1$/);
+  assert.equal(signed, 1);
+  assert.equal(calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).body.expiresIn, 3600);
+  assert.ok(second.body.data.expires_in > 15 * 60 && second.body.data.expires_in <= 3600);
+  // The access check still runs on every request; only the link is reused.
+  assert.equal(calls.filter(({ url }) => url.pathname === "/rest/v1/trace_media").length, 2);
+});
+
+for (const [label, trace] of [["pending", { status: "pending" }], ["draft", { status: "draft" }], ["hidden", { is_hidden: true }], ["revision", { status: "revision_requested" }]]) {
+  test(`${label} Trace photos never get a shareable link`, async () => {
+    const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/trace_media" ? json([mediaRow(trace)]) : undefined });
+    const response = await bearer(request(app).get(`/api/media/${mediaId}/url`)).expect(200);
+    assert.deepEqual(response.body.data, { url: null, private: true });
+    assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+  });
+}
+
+test("restricted photos are sent through the API under the caller's permissions, never cached", async () => {
+  const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 4]);
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/trace_media") return json([mediaRow({ status: "pending" })]);
+    if (url.pathname === `/storage/v1/object/trace-media/${userId}/${traceId}/file.png`) return new Response(bytes, { status: 200, headers: { "Content-Type": "image/png" } });
+  } });
+  const response = await bearer(request(app).get(`/api/media/${mediaId}/file`)).buffer(true).parse((res, done) => { const parts = []; res.on("data", (part) => parts.push(part)); res.on("end", () => done(null, Buffer.concat(parts))); }).expect(200);
+  assert.equal(response.headers["content-type"], "image/png");
+  assert.equal(response.headers["cache-control"], "private, no-store");
+  assert.deepEqual(response.body, bytes);
+  const download = calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/trace-media/"));
+  assert.equal(download.headers.get("authorization"), "Bearer member-token");
+  const hidden = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/trace_media" ? json([]) : undefined });
+  await bearer(request(hidden.app).get(`/api/media/${mediaId}/file`)).expect(404);
+  assert.equal(hidden.calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
 });
 
 test("auth tokens are isolated between requests", async () => {
@@ -1503,17 +1543,20 @@ test("admins can remove a lesson's slides and the file is deleted", async () => 
   assert.deepEqual(calls.find(({ method, url }) => method === "DELETE" && url.pathname === "/storage/v1/object/tide-assets").body.prefixes, [`${tideId}/slides-old.pdf`]);
 });
 
-test("lesson file links are short lived signed URLs, with the page count for slides", async () => {
+test("lesson file links are reused hour-long signed URLs, with the page count for slides", async () => {
   const { app, calls } = fixture({ handler: ({ url }) => {
     if (url.pathname === "/rest/v1/tides") return json([{ slides_path: `${tideId}/slides-a.pdf`, slides_pages: 9, cover_path: `${tideId}/cover-a.png` }]);
     if (url.pathname.startsWith("/storage/v1/object/sign/")) return json({ signedURL: "/object/sign/tide-assets/file?token=signed" });
   } });
   const slides = await request(app).get(`/api/tides/${tideId}/slides`).expect(200);
   assert.equal(slides.body.data.pages, 9);
-  assert.equal(slides.body.data.expires_in, 600);
+  assert.ok(slides.body.data.expires_in > 15 * 60 && slides.body.data.expires_in <= 3600);
   const cover = await request(app).get(`/api/tides/${tideId}/cover`).expect(200);
   assert.equal("pages" in cover.body.data, false);
-  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).every(({ body }) => body.expiresIn === 600), true);
+  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).every(({ body }) => body.expiresIn === 3600), true);
+  const again = await request(app).get(`/api/tides/${tideId}/slides`).expect(200);
+  assert.equal(again.body.data.url, slides.body.data.url);
+  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).length, 2);
   const none = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([{ slides_path: null, slides_pages: null }]) : undefined });
   await request(none.app).get(`/api/tides/${tideId}/slides`).expect(404);
 });

@@ -8,6 +8,11 @@ import { uuid } from "../validation.js";
 import { cleanupProfilePhotos } from "../profilePhotos.js";
 
 const formats = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "video/mp4": "mp4" };
+// Every upload gets a new random path and is never overwritten, so browsers may keep it for a year.
+// How long a browser can actually reuse it still depends on the signed link it was loaded from.
+const CACHE_SECONDS = "31536000";
+// Trace evidence: photos arrive compressed by the browser; videos are not compressed, so cap them here.
+const TRACE_UPLOAD_LIMIT = "8mb";
 export function matchesFileType(buffer, type) {
   if (!Buffer.isBuffer(buffer) || buffer.length < 12) return false;
   if (type === "image/jpeg") return buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
@@ -42,7 +47,7 @@ export function mediaRoutes(gateway) {
   }, raw({ type: () => true, limit: "5mb" }), async (req, res) => {
     if (!matchesFileType(req.body, req.mediaType)) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
     const path = `${req.user.id}/${randomUUID()}.${formats[req.mediaType]}`;
-    await result(req.db.storage.from("profile-photos").upload(path, req.body, { contentType: req.mediaType, upsert: false }));
+    await result(req.db.storage.from("profile-photos").upload(path, req.body, { contentType: req.mediaType, upsert: false, cacheControl: CACHE_SECONDS }));
     const saved = await result(req.db.rpc("set_profile_photo", { p_object_path: path }));
     res.status(201).json({ data: { id: saved.id, avatar_path: saved.avatar_path } });
   });
@@ -50,14 +55,14 @@ export function mediaRoutes(gateway) {
     req.mediaType = req.get("Content-Type")?.split(";")[0].toLowerCase();
     if (!Object.hasOwn(formats, req.mediaType || "")) throw new HttpError(415, "UNSUPPORTED_MEDIA", "Upload a JPEG, PNG, WebP or MP4 as the raw request body.");
     next();
-  }, raw({ type: () => true, limit: "20mb" }), async (req, res) => {
+  }, raw({ type: () => true, limit: TRACE_UPLOAD_LIMIT }), async (req, res) => {
     const id = uuid.parse(req.params.id);
     const { sort_order } = z.object({ sort_order: z.coerce.number().int().min(0).max(1000).default(0) }).strict().parse(req.query);
     if (!matchesFileType(req.body, req.mediaType)) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
     const trace = first(await result(req.db.from("traces").select("id,author_id,status,is_hidden,deleted_at").eq("id", id).eq("author_id", req.user.id).limit(1)));
     if (!["draft", "revision_requested"].includes(trace.status) || trace.is_hidden || trace.deleted_at) throw new HttpError(403, "NOT_EDITABLE", "Only editable drafts can receive uploads.");
     const path = `${req.user.id}/${id}/${randomUUID()}.${formats[req.mediaType]}`;
-    await result(req.db.storage.from("trace-media").upload(path, req.body, { contentType: req.mediaType, upsert: false }));
+    await result(req.db.storage.from("trace-media").upload(path, req.body, { contentType: req.mediaType, upsert: false, cacheControl: CACHE_SECONDS }));
     let media;
     try {
       media = await result(req.db.rpc("attach_trace_media", { p_trace_id: id, p_object_path: path, p_sort_order: sort_order }));
@@ -78,11 +83,26 @@ export function mediaRoutes(gateway) {
     await result(req.db.rpc("detach_trace_media", { p_media_id: uuid.parse(req.params.id) }));
     res.sendStatus(204);
   });
+  // Table RLS and the Storage SELECT policy decide who may see a file (public, owner or staff).
+  const readableMedia = async (req) => first(await result(req.db.from("trace_media")
+    .select("object_path,mime_type,trace:traces!inner(status,is_hidden,deleted_at)")
+    .is("trace.deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
+  const isPublic = (media) => media.trace?.status === "approved" && media.trace?.is_hidden === false && !media.trace?.deleted_at;
+  // Photos of approved, visible Traces get a signed link that stays the same for up to an hour, so the
+  // browser reuses the download. Anything else (draft, pending, held, hidden) gets no link at all:
+  // the client fetches the file itself from /media/:id/file, so nothing shareable leaves the API.
   router.get("/media/:id/url", async (req, res) => {
-    // Storage SELECT and table RLS enforce public/owner/staff visibility.
-    const media = first(await result(req.db.from("trace_media").select("object_path,trace:traces!inner(deleted_at)").is("trace.deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
-    const data = await result(req.db.storage.from("trace-media").createSignedUrl(media.object_path, 60));
-    res.json({ data: { url: data.signedUrl, expires_in: 60 } });
+    const media = await readableMedia(req);
+    if (!isPublic(media)) return res.json({ data: { url: null, private: true } });
+    const link = await gateway.links.one(req.db, "trace-media", media.object_path);
+    res.json({ data: { url: link.url, expires_in: link.expiresIn } });
+  });
+  router.get("/media/:id/file", async (req, res) => {
+    const media = await readableMedia(req);
+    // Downloaded with the caller's token, so the Storage policy checks access a second time.
+    const file = await result(req.db.storage.from("trace-media").download(media.object_path));
+    res.set({ "Content-Type": media.mime_type, "Content-Disposition": "inline", "Cache-Control": "private, no-store" });
+    res.send(Buffer.from(await file.arrayBuffer()));
   });
   // Tide lesson files (cover image and PDF slides). Admin uploads; everyone reads through signed URLs.
   const tideAsset = {
@@ -103,7 +123,7 @@ export function mediaRoutes(gateway) {
       if (!matchesFileType(req.body, req.mediaType)) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
       first(await result(req.db.from("tides").select("id").eq("id", id).limit(1)));
       const path = `${id}/${kind}-${randomUUID()}.${tideExt[req.mediaType]}`;
-      await result(req.db.storage.from("tide-assets").upload(path, req.body, { contentType: req.mediaType, upsert: false }));
+      await result(req.db.storage.from("tide-assets").upload(path, req.body, { contentType: req.mediaType, upsert: false, cacheControl: CACHE_SECONDS }));
       let saved;
       try {
         saved = await result(req.db.rpc("set_tide_asset", { p_tide_id: id, p_kind: kind, p_object_path: path, p_pages: kind === "slides" ? query.pages : null }));
@@ -125,8 +145,8 @@ export function mediaRoutes(gateway) {
       const tide = first(await result(req.db.from("tides").select(column).eq("id", uuid.parse(req.params.id)).limit(1)));
       const objectPath = tide[`${kind}_path`];
       if (!objectPath) throw new HttpError(404, "NOT_FOUND", "Record not found.");
-      const data = await result(req.db.storage.from("tide-assets").createSignedUrl(objectPath, 600));
-      res.json({ data: { url: data.signedUrl, expires_in: 600, ...(kind === "slides" ? { pages: tide.slides_pages } : {}) } });
+      const link = await gateway.links.one(req.db, "tide-assets", objectPath);
+      res.json({ data: { url: link.url, expires_in: link.expiresIn, ...(kind === "slides" ? { pages: tide.slides_pages } : {}) } });
     });
   }
   // Images placed inside lesson text. Admins upload with a description (alt text); everyone reads signed links.
@@ -141,7 +161,7 @@ export function mediaRoutes(gateway) {
     if (!matchesFileType(req.body, req.mediaType)) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
     first(await result(req.db.from("tides").select("id").eq("id", id).limit(1)));
     const path = `${id}/image-${randomUUID()}.${formats[req.mediaType]}`;
-    await result(req.db.storage.from("tide-assets").upload(path, req.body, { contentType: req.mediaType, upsert: false }));
+    await result(req.db.storage.from("tide-assets").upload(path, req.body, { contentType: req.mediaType, upsert: false, cacheControl: CACHE_SECONDS }));
     let saved;
     try {
       saved = await result(req.db.rpc("add_tide_image", { p_tide_id: id, p_object_path: path, p_alt: alt }));
@@ -164,10 +184,8 @@ export function mediaRoutes(gateway) {
     const rows = await result(req.db.from("tide_images").select("id,alt,object_path").eq("tide_id", uuid.parse(req.params.id)).order("created_at").order("id").limit(100));
     let urls = new Map();
     if (rows.length) {
-      try {
-        const { data, error } = await req.db.storage.from("tide-assets").createSignedUrls(rows.map((row) => row.object_path), 3600);
-        if (!error) urls = new Map((data || []).filter((item) => !item.error && item.signedUrl).map((item) => [item.path, item.signedUrl]));
-      } catch { /* the lesson shows the descriptions instead */ }
+      try { urls = await gateway.links.many(req.db, "tide-assets", rows.map((row) => row.object_path)); }
+      catch { /* the lesson shows the descriptions instead */ }
     }
     res.json({ data: rows.map((row) => ({ id: row.id, alt: row.alt, url: urls.get(row.object_path) || null })) });
   });

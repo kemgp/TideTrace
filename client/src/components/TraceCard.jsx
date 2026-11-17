@@ -4,6 +4,7 @@ import TraceStatusBadge from "./TraceStatusBadge.jsx";
 import AdminIcon from "./AdminIcon.jsx";
 import {useApp} from "../context/AppContext.jsx";
 import {PHOTO_TYPES} from "../api/photos.js";
+import {forgetMedia,loadMedia} from "../api/mediaLinks.js";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 import {relativeTime} from "../api/relativeTime.js";
 
@@ -15,9 +16,12 @@ function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
   const [status,setStatus]=useState("loading");
   const [loaded,setLoaded]=useState(false);
 
+  const [photoId,setPhotoId]=useState("");
+
   useEffect(()=>{
     if(deferred)return;
     const controller=new AbortController();
+    let revoke=null;
     setUrl("");
     setStatus("loading");
     setLoaded(false);
@@ -46,15 +50,14 @@ function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
           return;
         }
 
-        const data=await readData(
-          `media/${encodeURIComponent(photo.id)}/url`,
-          {signal:controller.signal}
-        );
+        // Public photos reuse a remembered link; restricted ones arrive as a file (see mediaLinks.js).
+        const source=await loadMedia({id:photo.id,owner:profile?.id,read:readData,signal:controller.signal});
 
-        if(!controller.signal.aborted){
-          setUrl(data?.url||"");
-          setStatus(data?.url?"ready":"unavailable");
-        }
+        if(controller.signal.aborted){source.revoke?.();return;}
+        revoke=source.revoke;
+        setPhotoId(photo.id);
+        setUrl(source.url);
+        setStatus("ready");
       }catch(error){
         if(!controller.signal.aborted){
           setUrl("");
@@ -64,8 +67,8 @@ function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
     };
 
     loadPhoto();
-    return()=>controller.abort();
-  },[trace?.id,trace?.trace_media,readData,deferred,detailPath]);
+    return()=>{controller.abort();revoke?.();};
+  },[trace?.id,trace?.trace_media,readData,deferred,detailPath,profile?.id]);
 
   if(deferred)return <div className="trace-card-photo trace-card-photo-saver"><span>Data saver is on</span><button type="button" className="btn outline sm" onClick={()=>setRequested(true)}>Load photo</button></div>;
 
@@ -83,7 +86,7 @@ function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
           fetchPriority={priority?"high":"auto"}
           // Hidden (over the shimmer) until fully downloaded and decoded, so it appears whole instead of painting top to bottom.
           onLoad={(event)=>{const image=event.currentTarget;(image.decode?image.decode().catch(()=>{}):Promise.resolve()).then(()=>setLoaded(true));}}
-          onError={()=>{setUrl("");setStatus("unavailable");}}
+          onError={()=>{forgetMedia(profile?.id,photoId);setUrl("");setStatus("unavailable");}}
           style={{opacity:loaded?1:0,transition:"opacity .25s ease"}}
         />
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getData } from "../api/data.js";
 import { PHOTO_TYPES } from "../api/photos.js";
+import { loadMedia } from "../api/mediaLinks.js";
 
 const SHOWN = 10;
 const MIN_TILES = 4;
@@ -27,8 +28,9 @@ export default function useRecentTraces(active) {
     (async () => {
       try {
         const picked = pickTiles(await getData("traces?limit=24", { signal: controller.signal }));
-        const urls = await Promise.all(picked.map(tile => getData(`media/${encodeURIComponent(tile.photoId)}/url`, { signal: controller.signal })
-          .then(data => data?.url || "").catch(() => "")));
+        // Only public photos appear here, so each is a remembered, reusable link (never a file to revoke).
+        const urls = await Promise.all(picked.map(tile => loadMedia({ id: tile.photoId, read: getData, signal: controller.signal })
+          .then(media => media.revoke ? (media.revoke(), "") : media.url).catch(() => "")));
         const tiles = picked.map((tile, i) => ({ ...tile, url: urls[i] })).filter(tile => tile.url);
         if (alive) setState({ status: tiles.length >= MIN_TILES ? "ready" : "empty", tiles });
       } catch { if (alive) setState({ status: "empty", tiles: [] }); }
