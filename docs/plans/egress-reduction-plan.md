@@ -1,6 +1,6 @@
 # Egress reduction plan
 
-Written 2026-11-16. Status: not started. Do Phase 0 and Phase 1 before Phase A step 8 (release to `main`).
+Written 2026-11-16. Status: PR 1a built on `feature/reduce-egress` (17 Nov): E1, E2, the 8 MB cap and restricted photos sent through the API. PR 1b (E3) next. Do Phase 0 and Phase 1 before Phase A step 8 (release to `main`).
 
 ## Why
 

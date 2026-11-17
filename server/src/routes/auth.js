@@ -52,10 +52,8 @@ export function authRoutes(gateway, config) {
     let avatar_url = null;
     if (req.profile.avatar_path) {
       // A storage outage must not prevent sign-in or account recovery.
-      try {
-        const { data, error } = await req.db.storage.from("profile-photos").createSignedUrl(req.profile.avatar_path, 3600);
-        if (!error) avatar_url = data?.signedUrl || null;
-      } catch { /* Keep the initials fallback until the next session refresh. */ }
+      try { avatar_url = (await gateway.links.one(req.db, "profile-photos", req.profile.avatar_path)).url; }
+      catch { /* Keep the initials fallback until the next session refresh. */ }
     }
     res.json({ data: { ...req.profile, email: req.user.email, avatar_url } });
   });

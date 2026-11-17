@@ -88,7 +88,7 @@ export function AppProvider({children}){
     }
   },[sessions,showToast]);
 
-  const readData=useCallback(async(path,{signal}={})=>{
+  const readData=useCallback(async(path,{signal,as}={})=>{
     const owner=sessions.getSnapshot().account?.profile.id;
     let current=sessions.getSnapshot().account;
 
@@ -106,7 +106,7 @@ export function AppProvider({children}){
     let data;
 
     try{
-      data=await getData(path,{token:current.accessToken,signal});
+      data=await getData(path,{token:current.accessToken,signal,as});
     }catch(error){
       if(error.status===403){
         await sessions.retrySession();
@@ -120,7 +120,7 @@ export function AppProvider({children}){
 
       if(!current||current.profile.id!==owner||signal?.aborted)throw error;
 
-      data=await getData(path,{token:current.accessToken,signal});
+      data=await getData(path,{token:current.accessToken,signal,as});
     }
 
     if(sessions.getSnapshot().account?.profile.id!==owner){

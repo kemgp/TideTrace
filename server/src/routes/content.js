@@ -11,14 +11,12 @@ export const traceSelect = "*,category:categories(id,name),author:profiles!trace
 const publicTraces = (db) => db.from("traces").select(traceSelect).eq("status", "approved").eq("is_hidden", false).is("deleted_at", null);
 
 // Cards show the cover image, so sign all covers of a page in one storage call. A failure only drops the images.
-async function withCoverUrls(db, rows) {
+async function withCoverUrls(db, links, rows) {
   const paths = [...new Set(rows.map((row) => row.cover_path).filter(Boolean))];
   if (!paths.length) return rows;
   let urls = new Map();
-  try {
-    const { data, error } = await db.storage.from("tide-assets").createSignedUrls(paths, 3600);
-    if (!error) urls = new Map((data || []).filter((item) => !item.error && item.signedUrl).map((item) => [item.path, item.signedUrl]));
-  } catch { /* fall back to the colour block */ }
+  try { urls = await links.many(db, "tide-assets", paths); }
+  catch { /* fall back to the colour block */ }
   return rows.map((row) => ({ ...row, image_url: urls.get(row.cover_path) || null }));
 }
 
@@ -59,7 +57,7 @@ export function contentRoutes(gateway) {
     let feed = (query.q ? req.db.rpc("search_public_traces", { p_query: query.q }).select(traceSelect) : publicTraces(req.db))
       .order("published_at", { ascending: false }).order("id");
     if (query.category_id) feed = feed.eq("category_id", query.category_id);
-    send(res, await withAuthorPhotos(req.db, await result(paginate(feed, query))));
+    send(res, await withAuthorPhotos(req.db, gateway.links, await result(paginate(feed, query))));
   });
   router.get("/traces/map", async (req, res) => {
     const number = (min, max) => z.string().trim().min(1).pipe(z.coerce.number().min(min).max(max));
@@ -89,12 +87,12 @@ export function contentRoutes(gateway) {
     const trace = first(await result(publicTraces(req.db).eq("id", id).limit(1)));
     const rows = await result(publicTraces(req.db).eq("category_id", trace.category_id).neq("id", id)
       .order("published_at", { ascending: false }).order("id").limit(3));
-    send(res, await withAuthorPhotos(req.db, rows));
+    send(res, await withAuthorPhotos(req.db, gateway.links, rows));
   });
   router.get("/traces/:id", async (req, res) => {
     // Always a public detail; private submissions have a separate member route.
     const row = first(await result(publicTraces(req.db).eq("id", uuid.parse(req.params.id)).limit(1)));
-    send(res, (await withAuthorPhotos(req.db, [row]))[0]);
+    send(res, (await withAuthorPhotos(req.db, gateway.links, [row]))[0]);
   });
   router.get("/traces/:id/comments", async (req, res) => {
     const id = uuid.parse(req.params.id);
@@ -102,7 +100,7 @@ export function contentRoutes(gateway) {
     first(await result(publicTraces(req.db).eq("id", id).limit(1)));
     const rows = await result(paginate(req.db.from("comments").select("*,author:profiles!comments_author_id_fkey(id,display_name,avatar_path)")
       .eq("trace_id", id).eq("status", "visible").order("created_at").order("id"), pagination));
-    send(res, await withAuthorPhotos(req.db, rows));
+    send(res, await withAuthorPhotos(req.db, gateway.links, rows));
   });
   router.get("/tides", async (req, res) => {
     const query = page.extend({
@@ -123,7 +121,7 @@ export function contentRoutes(gateway) {
       else if (done.length) tides = tides.not("id", "in", `(${done.join(",")})`);
     }
     const rows = await result(paginate(tides.order("published_at", { ascending: false }).order("id"), query));
-    send(res, await withCoverUrls(req.db, rows));
+    send(res, await withCoverUrls(req.db, gateway.links, rows));
   });
   router.get("/tides/:id", async (req, res) => {
     send(res, first(await result(req.db.from("tides").select("*").eq("status", "published").eq("id", uuid.parse(req.params.id)).limit(1))));
@@ -182,11 +180,11 @@ export function contentRoutes(gateway) {
     contributions = contributions.eq("is_hidden", query.status === "removed");
     if (query.status && query.status !== "removed") contributions = contributions.eq("status", query.status);
     const rows = await result(paginate(contributions.order("created_at", { ascending: false }).order("id"), query));
-    send(res, await withReviewerNotes(req.db, await withAuthorPhotos(req.db, rows)));
+    send(res, await withReviewerNotes(req.db, await withAuthorPhotos(req.db, gateway.links, rows)));
   });
   router.get("/contributions/:id", member, async (req, res) => {
     const row = first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).is("deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
-    send(res, await withPrivateLocation(req.db, (await withAuthorPhotos(req.db, [row]))[0]));
+    send(res, await withPrivateLocation(req.db, (await withAuthorPhotos(req.db, gateway.links, [row]))[0]));
   });
   router.get("/contributions/:id/reviews", member, async (req, res) => {
     const id = uuid.parse(req.params.id);

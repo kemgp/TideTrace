@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { HttpError, upstreamError } from "./errors.js";
+import { createSignedLinks } from "./signedLinks.js";
 
 export function createSupabase(config, fetchImpl = fetch) {
   const timedFetch = async (input, init = {}) => {
@@ -12,6 +13,8 @@ export function createSupabase(config, fetchImpl = fetch) {
     }
   };
   return {
+    // Reused signed Storage links, one cache per app (see signedLinks.js).
+    links: createSignedLinks(),
     // A fresh client per request prevents one caller's session leaking into another.
     client(token) {
       return createClient(config.url, config.key, {

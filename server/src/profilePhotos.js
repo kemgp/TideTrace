@@ -1,15 +1,14 @@
 import { result } from "./errors.js";
 
-// Sign each distinct author photo once per response, under the caller's RLS.
+// Sign each distinct author photo once per response, under the caller's RLS, reusing recent links
+// (`links` is the app's signedLinks cache) so browsers keep the photo cached.
 // A missing photo or Storage outage must not hide otherwise readable Traces.
-export async function withAuthorPhotos(db, rows) {
+export async function withAuthorPhotos(db, links, rows) {
   const paths = [...new Set(rows.map((row) => row.author?.avatar_path).filter(Boolean))];
   let urls = new Map();
   if (paths.length) {
-    try {
-      const { data, error } = await db.storage.from("profile-photos").createSignedUrls(paths, 3600);
-      if (!error) urls = new Map((data || []).filter((item) => !item.error && item.signedUrl).map((item) => [item.path, item.signedUrl]));
-    } catch { /* Use initials until the next read succeeds. */ }
+    try { urls = await links.many(db, "profile-photos", paths); }
+    catch { /* Use initials until the next read succeeds. */ }
   }
   return rows.map((row) => {
     if (!row.author) return row;

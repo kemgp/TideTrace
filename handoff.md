@@ -1,8 +1,22 @@
-# TideTrace — Handoff (updated 2026-11-16, feature/energy-admin-dashboard branch)
+# TideTrace — Handoff (updated 2026-11-17, feature/reduce-egress branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
 
+
+
+### 2026-11-17: Egress PR 1a (reuse photo links, restricted photos through the API), not yet run on the Mac
+
+Why: production went over the Supabase Free plan egress (7.70 GB of 5 GB, cycle 18 Oct to 18 Nov). About 98% was Storage: old uncompressed Trace photos loaded with a new signed link on every view, so nothing was ever cached. Restrictions start 07 Dec if the organization stays over, and there is no second grace period. Plan: `docs/plans/egress-reduction-plan.md`.
+
+- Server: new `server/src/signedLinks.js` (one cache per app on `gateway.links`): a signed link is reused until less than 15 minutes of its hour remain, capped at 5,000 entries. Each request still runs its own RLS query first; only the link is reused.
+- `GET /api/media/:id/url`: approved, visible Traces get a reused 1-hour link; draft, pending, revision, held and hidden photos return `{ url: null, private: true }`. New `GET /api/media/:id/file` sends restricted files through the API under the caller's token (`Cache-Control: private, no-store`).
+- Tide covers, slides (was 600 s) and lesson images, author photos and `/auth/me` photos use the cache. New uploads set `cacheControl` to one year (paths are never reused). Trace uploads are capped at 8 MB (was 20 MB).
+- Client: `api/mediaLinks.js` + `hooks/useMediaSource.js` remember public links for the session per account and fetch restricted files as `blob:` addresses (revoked on unmount). Used by `TraceCard`, `TraceThumb`, `TracePhotos` and the landing strip. `requestData` accepts `as: "blob"`.
+- Lesson covers and lesson images are resized to 1600 px WebP before upload when the browser can (`compressIfPossible`); the 5 MB check applies to the resized file.
+- Tests: `server/test/signedLinks.test.js`, new cases in `server/test/api.test.js` (183 server tests pass), `client/test/mediaLinks.test.jsx`.
+- To do by hand: set the `trace-media` bucket file size limit to 8 MB in the dashboard (staging and production). The `trace_media.size_bytes` check still allows 20 MB; tighten it in PR 1b's migration.
+- Next: PR 1b (thumbnails, display copies, backfill), then Phase A step 8.
 
 ### 2026-11-16: Phase A step 7c (admin dashboard flags item), not yet run on the Mac
 
