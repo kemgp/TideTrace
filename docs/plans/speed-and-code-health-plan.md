@@ -24,7 +24,7 @@ Each step is one branch from `staging` and one pull request, in the order given.
 
 **S1. Send photo links with the list (largest visible win).**
 - Server: in `content.js`, sign Trace photo paths in one batch with `createSignedUrls`, the way `withCoverUrls` already does for lesson covers, and add `url` to each `trace_media` row on `GET /traces`, `/traces/:id`, `/traces/:id/related`, `/contributions` and the moderation list.
-- Use a one hour expiry, rounded so the same photo gets the same address for the whole hour (the browser cache then works).
+- Use a one hour expiry. Supabase cannot sign the same link twice, so reuse links from the server-side cache in `egress-reduction-plan.md` (E1) instead of rounding.
 - Client: `TraceCard`, `TraceThumb` and `useRecentTraces` use the supplied `url` and fall back to `media/:id/url` only when it is missing.
 - Keep `GET /media/:id/url` for the photo viewer and retries.
 - Check: opening the archive makes one API call, not seven. Hidden and deleted Traces still return no link (existing storage rules).
@@ -51,7 +51,7 @@ Each step is one branch from `staging` and one pull request, in the order given.
 - Self-host the three font families, only the weights in use.
 - Check: `npm run build` shows a member entry under about 300 KB and no bundle-size warning.
 
-**S6. Right-sized photos.**
+**S6. Right-sized photos.** Moved into `egress-reduction-plan.md` (E3).
 - At upload, `compressPhoto.js` also produces a card-sized copy (about 640px wide, WebP) stored beside the original; cards and thumbnails use it, the detail page and viewer use the original.
 - Add `width`, `height` and `loading="lazy"` on card images (the first row stays eager).
 - Needs a small additive migration for the second path. Old Traces keep using the original.
