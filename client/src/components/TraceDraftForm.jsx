@@ -1,5 +1,6 @@
 import TracePhotoSelector from "./TracePhotoSelector.jsx";
 import { compressPhoto } from "../api/compressPhoto.js";
+import { addThumbnail, prepareTracePhoto } from "../api/photoUpload.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
@@ -135,10 +136,13 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
         setStage("Uploading photo…");
         let uploaded = null;
         try {
-          const media = await writeData(`traces/${encodeURIComponent(saved.id)}/media`, { method: "POST", file: photo, signal: controller.signal });
+          const sent = await prepareTracePhoto(photo, { dataSaver: Boolean(profile.data_saver) });
+          const media = await writeData(`traces/${encodeURIComponent(saved.id)}/media`, { method: "POST", file: sent, signal: controller.signal });
           if (controller.signal.aborted) return;
           if (!media?.id || media.trace_id !== saved.id || !PHOTO_TYPES.includes(media.mime_type)) throw new ApiError("Upload response could not be verified.", "INVALID_RESPONSE");
           uploaded = media;
+          await addThumbnail(writeData, media.id, sent, controller.signal);
+          if (controller.signal.aborted) return;
           if (action === "save") {
             const latest = await readData(`contributions/${encodeURIComponent(saved.id)}`, { signal: controller.signal });
             if (controller.signal.aborted) return;

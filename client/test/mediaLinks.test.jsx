@@ -93,3 +93,45 @@ it("resizes lesson images when the browser can, and uploads the original when it
   vi.stubGlobal("Image", class { set src(value) { queueMicrotask(() => this.onerror()); } });
   expect(await compressIfPossible(original)).toBe(original);
 });
+
+it("asks for the thumbnail with ?size=thumb and remembers it apart from the full photo", async () => {
+  forgetAllMedia();
+  const read = vi.fn(async (path) => ({ url: `https://project.supabase.co/${path.includes("size=thumb") ? "thumb" : "display"}.webp?t=1`, expires_in: 3600 }));
+  const thumb = await loadMedia({ id: mediaId, owner: "member-a", read, size: "thumb" });
+  const display = await loadMedia({ id: mediaId, owner: "member-a", read });
+  await loadMedia({ id: mediaId, owner: "member-a", read, size: "thumb" });
+  expect(read.mock.calls.map(([path]) => path)).toEqual([`media/${mediaId}/url?size=thumb`, `media/${mediaId}/url`]);
+  expect(thumb.url).toContain("thumb.webp");
+  expect(display.url).toContain("display.webp");
+  const restricted = vi.fn(async (path, options = {}) => options.as === "blob" ? new Blob(["x"], { type: "image/webp" }) : { url: null, private: true });
+  await loadMedia({ id: "draft-photo", owner: "member-a", read: restricted, size: "thumb" });
+  expect(restricted).toHaveBeenLastCalledWith("media/draft-photo/file?size=thumb", { signal: undefined, as: "blob" });
+});
+
+it("compresses every Trace photo before upload and adds a thumbnail after it is saved", async () => {
+  const { addThumbnail, prepareTracePhoto } = await import("../src/api/photoUpload.js");
+  const original = new File(["x".repeat(100)], "coast.jpg", { type: "image/jpeg" });
+  // Without a usable canvas the original is sent, and no thumbnail is made.
+  expect(await prepareTracePhoto(original)).toBe(original);
+  const writeData = vi.fn(async () => ({}));
+  await addThumbnail(writeData, mediaId, original);
+  expect(writeData).not.toHaveBeenCalled();
+  const huge = new File(["x"], "huge.jpg", { type: "image/jpeg" });
+  Object.defineProperty(huge, "size", { value: 9 * 1024 * 1024 });
+  await expect(prepareTracePhoto(huge)).rejects.toThrow("Choose a photo under 8 MB");
+  // With a canvas: a 1600 px WebP to upload, then a 480 px WebP sent as the thumbnail.
+  const widths = [];
+  vi.stubGlobal("Image", class { naturalWidth = 4000; naturalHeight = 3000; set src(value) { queueMicrotask(() => this.onload()); } });
+  HTMLCanvasElement.prototype.getContext.mockImplementation((type) => type === "2d" ? { drawImage: vi.fn() } : null);
+  vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(function (done) { widths.push(this.width); done(new Blob(["s".repeat(this.width === 1600 ? 10 : 2)], { type: "image/webp" })); });
+  const sent = await prepareTracePhoto(original);
+  expect(sent.type).toBe("image/webp");
+  await addThumbnail(writeData, mediaId, sent);
+  expect(widths).toEqual([1600, 480]);
+  expect(writeData).toHaveBeenCalledWith(`media/${mediaId}/thumb`, expect.objectContaining({ method: "POST" }));
+  expect(writeData.mock.calls[0][1].file.type).toBe("image/webp");
+  // Data Saver already compressed the photo when it was chosen.
+  expect(await prepareTracePhoto(original, { dataSaver: true })).toBe(original);
+  // A failed thumbnail upload never breaks the photo upload.
+  await expect(addThumbnail(vi.fn(async () => { throw new Error("offline"); }), mediaId, sent)).resolves.toBeUndefined();
+});

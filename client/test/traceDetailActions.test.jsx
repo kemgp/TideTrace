@@ -20,7 +20,7 @@ function setup({ trace = base, comments = () => [] } = {}) {
     if (url === "/api/auth/me") return ok({ id: "current-user", display_name: "Test member", status: "active", role: "user" });
     if (url === `/api/traces/${traceId}`) return ok(trace);
     if (url.startsWith(`/api/traces/${traceId}/comments?`)) return ok(comments(Number(new URL(url, "http://x").searchParams.get("offset"))));
-    const media = url.match(/^\/api\/media\/([^/]+)\/url$/);
+    const media = url.match(/^\/api\/media\/([^/]+)\/url(?:\?size=thumb)?$/);
     if (media) return ok({ url: `https://example.test/${media[1]}.jpg`, expires_in: 60 });
     return ok([]);
   });

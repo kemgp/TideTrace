@@ -3,7 +3,7 @@ import { Router, raw } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { authenticate } from "../middleware.js";
-import { HttpError, first, result } from "../errors.js";
+import { HttpError, first, result, upstreamError } from "../errors.js";
 import { uuid } from "../validation.js";
 import { cleanupProfilePhotos } from "../profilePhotos.js";
 
@@ -85,24 +85,52 @@ export function mediaRoutes(gateway) {
   });
   // Table RLS and the Storage SELECT policy decide who may see a file (public, owner or staff).
   const readableMedia = async (req) => first(await result(req.db.from("trace_media")
-    .select("object_path,mime_type,trace:traces!inner(status,is_hidden,deleted_at)")
+    .select("object_path,mime_type,thumb_path,display_path,trace:traces!inner(status,is_hidden,deleted_at)")
     .is("trace.deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
+  // Which file to send: ?size=thumb (cards, lists) is the 480 px copy; otherwise (the Trace page) the 1600 px
+  // display copy. Each falls back to the next larger file that exists, ending at the original. Copies are made
+  // at upload or by scripts/backfill-media-variants.mjs; the original itself is never changed.
+  const sizeQuery = z.object({ size: z.enum(["thumb", "display"]).optional() }).strict();
+  const pick = (media, size) => {
+    const path = size === "thumb" ? media.thumb_path || media.display_path || media.object_path
+      : media.display_path || media.object_path;
+    return { path, type: path === media.object_path ? media.mime_type : "image/webp" };
+  };
   const isPublic = (media) => media.trace?.status === "approved" && media.trace?.is_hidden === false && !media.trace?.deleted_at;
   // Photos of approved, visible Traces get a signed link that stays the same for up to an hour, so the
   // browser reuses the download. Anything else (draft, pending, held, hidden) gets no link at all:
   // the client fetches the file itself from /media/:id/file, so nothing shareable leaves the API.
   router.get("/media/:id/url", async (req, res) => {
+    const { size } = sizeQuery.parse(req.query);
     const media = await readableMedia(req);
     if (!isPublic(media)) return res.json({ data: { url: null, private: true } });
-    const link = await gateway.links.one(req.db, "trace-media", media.object_path);
+    const link = await gateway.links.one(req.db, "trace-media", pick(media, size).path);
     res.json({ data: { url: link.url, expires_in: link.expiresIn } });
   });
   router.get("/media/:id/file", async (req, res) => {
+    const { size } = sizeQuery.parse(req.query);
     const media = await readableMedia(req);
+    const chosen = pick(media, size);
     // Downloaded with the caller's token, so the Storage policy checks access a second time.
-    const file = await result(req.db.storage.from("trace-media").download(media.object_path));
-    res.set({ "Content-Type": media.mime_type, "Content-Disposition": "inline", "Cache-Control": "private, no-store" });
+    const file = await result(req.db.storage.from("trace-media").download(chosen.path));
+    res.set({ "Content-Type": chosen.type, "Content-Disposition": "inline", "Cache-Control": "private, no-store" });
     res.send(Buffer.from(await file.arrayBuffer()));
+  });
+  // The browser sends a 480 px WebP right after a photo is added to a draft. It is stored beside the original
+  // (<name>.thumb.webp) and attached by set_trace_media_thumb, which checks the author and the draft.
+  router.post("/media/:id/thumb", member, (req, res, next) => {
+    req.mediaType = req.get("Content-Type")?.split(";")[0].toLowerCase();
+    if (req.mediaType !== "image/webp") throw new HttpError(415, "UNSUPPORTED_MEDIA", "Send the thumbnail as a WebP image.");
+    next();
+  }, raw({ type: () => true, limit: "512kb" }), async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    if (!matchesFileType(req.body, "image/webp")) throw new HttpError(400, "INVALID_MEDIA", "The file does not match its declared content type.");
+    const media = first(await result(req.db.from("trace_media").select("object_path").eq("id", id).limit(1)));
+    const path = `${media.object_path.replace(/\.[a-z0-9]+$/, "")}.thumb.webp`;
+    const { error } = await req.db.storage.from("trace-media").upload(path, req.body, { contentType: "image/webp", upsert: false, cacheControl: CACHE_SECONDS });
+    // A retry after an uncertain response finds the file already there; attaching it again is safe.
+    if (error && !/exist|duplicate/i.test(`${error.message} ${error.error || ""}`)) throw upstreamError(error);
+    res.status(201).json({ data: await result(req.db.rpc("set_trace_media_thumb", { p_media_id: id, p_thumb_path: path })) });
   });
   // Tide lesson files (cover image and PDF slides). Admin uploads; everyone reads through signed URLs.
   const tideAsset = {

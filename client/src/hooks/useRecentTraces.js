@@ -29,7 +29,7 @@ export default function useRecentTraces(active) {
       try {
         const picked = pickTiles(await getData("traces?limit=24", { signal: controller.signal }));
         // Only public photos appear here, so each is a remembered, reusable link (never a file to revoke).
-        const urls = await Promise.all(picked.map(tile => loadMedia({ id: tile.photoId, read: getData, signal: controller.signal })
+        const urls = await Promise.all(picked.map(tile => loadMedia({ id: tile.photoId, size: "thumb", read: getData, signal: controller.signal })
           .then(media => media.revoke ? (media.revoke(), "") : media.url).catch(() => "")));
         const tiles = picked.map((tile, i) => ({ ...tile, url: urls[i] })).filter(tile => tile.url);
         if (alive) setState({ status: tiles.length >= MIN_TILES ? "ready" : "empty", tiles });

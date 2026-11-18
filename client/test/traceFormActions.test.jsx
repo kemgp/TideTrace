@@ -56,7 +56,7 @@ function flowSetup({ uploadFailure, submitFailure, slowUpload } = {}) {
       return slowUpload || response(photo);
     }
     if (url === detail) return response(saved);
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
     if (url === submitPath) {
       saved = { ...saved, status: "pending", version: 3 };
       if (submitFailure) throw new TypeError("Lost submission response");
@@ -176,7 +176,7 @@ it("saves and resubmits revised form fields using the same Trace and new version
     if (url === detail) return response(saved);
     if (options.method === "PUT") { saved = { ...saved, ...JSON.parse(options.body), version: 5 }; return response(saved); }
     if (url === submitPath) { saved = { ...saved, status: "pending", version: 6 }; return response(saved); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   open(`/user/contributions/${saved.id}/edit`);
   await fillForm({ addPhoto: false });
@@ -278,7 +278,7 @@ it("locks the saved draft selector against drops, picks and removal while upload
     if (url === detail) return response(saved);
     if (url === media) { saved = { ...saved, trace_media: [photo], version: 2 }; return pending; }
     if (url === submitPath) return response({ ...saved, status: "pending", version: 3 });
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   open(`/user/contributions/${trace().id}`);
   const input = await screen.findByLabelText("Choose a photo");
