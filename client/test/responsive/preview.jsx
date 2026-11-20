@@ -42,7 +42,7 @@ if (frameMode) {
     else if (route === "categories" || route === "admin/categories") data = [category];
     else if (route === "notifications/unread-count") data = { count: 1 };
     else if (route === "notifications") data = [{ id: "notification-1", message: "Your observation has been reviewed. ".repeat(8), created_at: trace.created_at, read_at: null }];
-    else if (route.endsWith("/url")) data = { url: `${location.origin}/test/responsive/photo.svg` };
+    else if (route.split("?")[0].endsWith("/url")) data = { url: `${location.origin}/test/responsive/photo.svg` };
     else if (route.includes("reports/")) data = report;
     else if (route.endsWith("reports")) data = [report];
     else if (route === "moderation/history") data = [{ id: "decision-1", action: "review_trace", trace, trace_id: trace.id, to_state: "approved", reason: "Evidence reviewed and approved.", actor: profile, created_at: trace.created_at }];

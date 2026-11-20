@@ -16,6 +16,8 @@ export function upstreamError(error) {
   if (code === "weak_password") return new HttpError(400, "WEAK_PASSWORD", "Choose a stronger password that meets the account password requirements.");
   if (code === "same_password") return new HttpError(400, "SAME_PASSWORD", "Choose a password different from your current password.");
   if (["reauthentication_needed", "reauthentication_not_valid"].includes(code)) return new HttpError(401, "RECOVERY_EXPIRED", "Request a new password recovery email, then try again using its newest link or code.");
+  // A quiz attempt too soon after the last one. The database puts the seconds left in the error detail.
+  if (code === "TT429") return new HttpError(429, "QUIZ_COOLDOWN", "Wait a moment before trying the quiz again.", { retry_after: Math.max(1, Number.parseInt(error.details, 10) || 30) });
   if (code === "40001") return new HttpError(409, "STALE_VERSION", "This record changed. Reload it before retrying.");
   if (code === "42501") return new HttpError(403, "FORBIDDEN", "You do not have permission to perform this action.");
   if (code === "23505") return new HttpError(409, "ALREADY_EXISTS", "This record already exists.");

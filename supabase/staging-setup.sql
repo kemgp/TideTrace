@@ -2308,3 +2308,114 @@ grant execute on function public.moderate_trace(uuid, integer, public.trace_stat
  public.get_energy_settings(), public.set_energy_active(boolean), public.get_dashboard_summary() to authenticated;
 commit;
 
+
+-- ===== 20261111000100_quiz_ready.sql =====
+-- Member dashboard card: the finished lesson whose quiz is waiting, or one passed in the last three days.
+-- Reads only the caller's own completions, passes and ledger rows. Changes no data. Safe to reapply.
+-- state: 'ready' (finished, quiz published, not passed), 'done' (passed in the last 3 days) or 'none'.
+begin;
+
+create or replace function public.get_quiz_ready() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare actor uuid := auth.uid(); pick record;
+begin
+ if actor is null or private.current_role() is null then raise exception 'Active account required' using errcode='42501'; end if;
+ select t.id, t.title, (p.user_id is not null) as passed into pick
+ from public.tide_completions c
+ join public.tides t on t.id = c.tide_id and t.status = 'published'
+ join public.tide_quizzes q on q.tide_id = t.id and q.status = 'published'
+ left join public.tide_quiz_passes p on p.user_id = c.user_id and p.tide_id = t.id
+ where c.user_id = actor and (p.user_id is null or p.first_passed_at > now() - interval '3 days')
+ order by (p.user_id is null) desc, coalesce(p.first_passed_at, c.completed_at) desc
+ limit 1;
+ if not found then return jsonb_build_object('state', 'none'); end if;
+ return jsonb_build_object('state', case when pick.passed then 'done' else 'ready' end,
+  'tide_id', pick.id, 'title', pick.title, 'active', private.energy_active(),
+  'earned', (select coalesce(sum(l.amount), 0)::integer from public.energy_ledger l
+    where l.owner_id = actor and l.source_id = pick.id and l.award_type in ('tide_completion', 'quiz_pass')
+    and not exists (select 1 from public.energy_ledger r where r.reverses_id = l.id)));
+end $$;
+
+revoke all on function public.get_quiz_ready() from public, anon, authenticated;
+grant execute on function public.get_quiz_ready() to authenticated;
+commit;
+
+-- ===== 20261116000100_revoke_completion_insert.sql =====
+-- Phase A step 7: lesson completion is written only by public.complete_tide (security definer), which also issues the
+-- Tide Energy award in the same transaction. Close the direct insert path so nothing can record a completion without it.
+-- Apply after 20261110000100_tide_energy.sql, and only once the API calling PUT /api/tides/:id/completion
+-- (which calls complete_tide) is live everywhere. Safe to run again.
+begin;
+drop policy if exists completions_insert on public.tide_completions;
+revoke insert on public.tide_completions from public, anon, authenticated;
+revoke insert (user_id, tide_id, completed_at) on public.tide_completions from public, anon, authenticated;
+-- Reads stay as they were: members read their own completions through completions_read.
+commit;
+
+-- ===== 20261118000100_trace_media_copies.sql =====
+-- Smaller copies of Trace photos (egress reduction, PR 1b). See docs/plans/egress-reduction-plan.md (E3).
+-- thumb_path:   480 px WebP for cards, the map, the landing strip and list icons.
+-- display_path: 1600 px WebP for the Trace page, made only for older photos stored without compression.
+-- The original (object_path) is never changed: it stays the evidence as submitted.
+-- Copies sit beside the original and share its file name: <name>.thumb.webp and <name>.display.webp.
+begin;
+
+alter table public.trace_media add column if not exists thumb_path text;
+alter table public.trace_media add column if not exists display_path text;
+create unique index if not exists trace_media_thumb_path on public.trace_media(thumb_path) where thumb_path is not null;
+create unique index if not exists trace_media_display_path on public.trace_media(display_path) where display_path is not null;
+alter table public.trace_media drop constraint if exists trace_media_copy_paths;
+alter table public.trace_media add constraint trace_media_copy_paths check (
+ (thumb_path is null or thumb_path = regexp_replace(object_path, '\.[a-z0-9]+$', '') || '.thumb.webp') and
+ (display_path is null or display_path = regexp_replace(object_path, '\.[a-z0-9]+$', '') || '.display.webp')
+);
+
+-- Trace uploads are capped at 8 MB (API and bucket) since photos are compressed in the browser and videos
+-- are not. Tighten the table check too, unless an older row is already bigger.
+update storage.buckets set file_size_limit = 8388608 where id = 'trace-media';
+do $$
+begin
+ if not exists (select 1 from public.trace_media where size_bytes > 8388608) then
+  alter table public.trace_media drop constraint if exists trace_media_size_bytes_check;
+  alter table public.trace_media add constraint trace_media_size_bytes_check check (size_bytes between 1 and 8388608);
+ end if;
+end $$;
+
+-- The author attaches the thumbnail of a photo on their own editable draft. The file must already be
+-- uploaded beside the original as a small WebP owned by the caller. The Trace version does not change:
+-- a thumbnail changes nothing the author or a reviewer reads, and a bump would stale the open draft form.
+create or replace function public.set_trace_media_thumb(p_media_id uuid, p_thumb_path text)
+returns public.trace_media language plpgsql security definer set search_path = '' as $$
+declare m public.trace_media; t public.traces; object_metadata jsonb;
+begin
+ select * into m from public.trace_media where id = p_media_id for update;
+ if not found then raise exception 'Record not found.' using errcode = 'PT404'; end if;
+ select * into t from public.traces where id = m.trace_id;
+ if private.current_role() is null or t.author_id <> auth.uid() or t.status not in ('draft', 'revision_requested') or t.is_hidden or t.deleted_at is not null then
+  raise exception 'Submission is not editable' using errcode = '42501';
+ end if;
+ if m.mime_type not like 'image/%' or p_thumb_path is distinct from regexp_replace(m.object_path, '\.[a-z0-9]+$', '') || '.thumb.webp' then
+  raise exception 'Invalid thumbnail path' using errcode = '22023';
+ end if;
+ select metadata into object_metadata from storage.objects
+  where bucket_id = 'trace-media' and name = p_thumb_path and owner_id = auth.uid()::text;
+ if not found then raise exception 'Upload the thumbnail before attaching it' using errcode = '22023'; end if;
+ if object_metadata->>'mimetype' is distinct from 'image/webp' or coalesce((object_metadata->>'size')::bigint, 0) not between 1 and 524288 then
+  raise exception 'Thumbnails must be WebP images up to 512 KB' using errcode = '22023';
+ end if;
+ update public.trace_media set thumb_path = p_thumb_path where id = m.id returning * into m;
+ return m;
+end $$;
+revoke all on function public.set_trace_media_thumb(uuid, text) from public, anon, authenticated;
+grant execute on function public.set_trace_media_thumb(uuid, text) to authenticated;
+
+-- Copies are readable by exactly the people who can read the original.
+drop policy if exists tidetrace_media_read on storage.objects;
+create policy tidetrace_media_read on storage.objects for select to anon, authenticated using (
+ bucket_id = 'trace-media' and exists (
+  select 1 from public.trace_media m
+  where (m.object_path = name or m.thumb_path = name or m.display_path = name) and private.can_read_trace(m.trace_id)
+ )
+);
+
+commit;

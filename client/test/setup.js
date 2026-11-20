@@ -6,6 +6,8 @@ const urlMethods = ["createObjectURL", "revokeObjectURL"];
 const originalMethods = urlMethods.map((name) => Object.getOwnPropertyDescriptor(browserURL, name));
 
 beforeEach(() => {
+  // Tests start with Tide Energy off, whatever client/.env.local says. A test that needs it on stubs it itself.
+  vi.stubEnv("VITE_ENERGY_ENABLED", "");
   // jsdom lacks object URLs. Keep its URL constructor, Blob and File intact;
   // distinct handles let preview tests detect revoking the wrong selection.
   let nextURL = 0;
@@ -26,6 +28,7 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   urlMethods.forEach((name, index) => {
     if (originalMethods[index]) Object.defineProperty(browserURL, name, originalMethods[index]);
     else delete browserURL[name];

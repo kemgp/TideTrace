@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware.js";
 import { HttpError, result } from "../errors.js";
+import { uuid } from "../validation.js";
 
 // While ENERGY_ENABLED is off every Tide Energy route answers 404 before anything else runs (before sign-in checks too),
 // so a switched-off deploy looks the same as one that never had the feature.
@@ -22,6 +23,11 @@ export function energyRoutes(gateway, config) {
     }).strict().parse(req.query);
     res.json({ data: await result(req.db.rpc("get_my_energy", { p_limit: input.limit, p_offset: input.offset, p_kind: input.kind ?? null })) });
   });
+  // Dashboard card: the lesson that has a quiz waiting, or a recent pass. Registered after "/" so the paths never collide.
+  router.get("/quiz-ready", async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("get_quiz_ready")) });
+  });
   return router;
 }
 
@@ -36,6 +42,110 @@ export function energySettingsRoutes(gateway, config) {
   router.put("/", async (req, res) => {
     const input = z.object({ active: z.boolean() }).strict().parse(req.body);
     res.json({ data: await result(req.db.rpc("set_energy_active", { p_active: input.active })) });
+  });
+  return router;
+}
+
+// Admin quiz authoring. These share the /api/admin prefix with the generic admin routes, so each route carries its own guard:
+// a router-wide guard here would turn every other admin route into a 404 while the flag is off.
+// The database validates and versions the quiz; this layer only checks the shape of the request.
+const quizQuestion = z.object({
+  prompt: z.string().max(500),
+  options: z.array(z.string().max(300)).length(4),
+  correct: z.number().int().min(0).max(3).nullable(),
+  explanation: z.string().max(1000),
+}).strict();
+const quizVersion = z.number().int().positive();
+
+export function energyQuizAdminRoutes(gateway, config) {
+  const router = Router();
+  const open = [energyGuard(config), authenticate(gateway, { roles: ["admin"] })];
+  router.get("/tides/:id/quiz", ...open, async (req, res) => {
+    res.json({ data: await result(req.db.rpc("admin_get_tide_quiz", { p_tide_id: uuid.parse(req.params.id) })) });
+  });
+  // `version` is the version the editor loaded (null for a quiz that does not exist yet); a stale one answers 409.
+  router.put("/tides/:id/quiz", ...open, async (req, res) => {
+    const input = z.object({ version: quizVersion.nullable(), publish: z.boolean(), questions: z.array(quizQuestion).max(5) }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("admin_save_tide_quiz", {
+      p_tide_id: uuid.parse(req.params.id), p_expected_version: input.version, p_questions: input.questions, p_publish: input.publish,
+    })) });
+  });
+  // Hides the quiz from members without touching its content. Earned energy and passes stay.
+  router.post("/tides/:id/quiz/unpublish", ...open, async (req, res) => {
+    const input = z.object({ version: quizVersion }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("admin_unpublish_tide_quiz", { p_tide_id: uuid.parse(req.params.id), p_expected_version: input.version })) });
+  });
+  return router;
+}
+
+// Member quiz. Grading happens in the database: the key never leaves it until the member has passed, and an attempt returns
+// only pass or fail. Per-route guards for the same reason as the admin quiz routes (these share the /api prefix).
+export function energyQuizRoutes(gateway, config) {
+  const router = Router();
+  const open = [energyGuard(config), authenticate(gateway)];
+  router.get("/tides/:id/quiz", ...open, async (req, res) => {
+    res.json({ data: await result(req.db.rpc("get_tide_quiz", { p_tide_id: uuid.parse(req.params.id) })) });
+  });
+  router.post("/tides/:id/quiz/attempts", ...open, async (req, res) => {
+    const input = z.object({ version: z.number().int().positive(), answers: z.array(z.number().int().min(0).max(3)).length(5) }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("submit_tide_quiz", { p_tide_id: uuid.parse(req.params.id), p_version: input.version, p_answers: input.answers })) });
+  });
+  return router;
+}
+
+// Staff view of Trace awards: whether a reviewed Trace earned energy, and the flags the caller raised on it. Mounted under
+// /api/moderation/energy ahead of the generic staff router, so the guard only covers these paths. Every rule (own award,
+// already reversed, one open flag, reason length) is enforced by the database function; this layer checks the request shape.
+export function energyStaffRoutes(gateway, config) {
+  const router = Router();
+  router.use(energyGuard(config));
+  router.use(authenticate(gateway, { roles: ["moderator", "admin"] }));
+  router.get("/awards", async (req, res) => {
+    const input = z.object({
+      trace_ids: z.string().transform((value) => value.split(",")).pipe(z.array(uuid).min(1).max(100)),
+    }).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("staff_energy_awards", { p_trace_ids: input.trace_ids })) });
+  });
+  router.post("/awards/:id/flags", async (req, res) => {
+    const input = z.object({ reason: z.string().trim().min(1).max(2000) }).strict().parse(req.body);
+    res.status(201).json({ data: await result(req.db.rpc("flag_energy_award", { p_ledger_id: uuid.parse(req.params.id), p_reason: input.reason })) });
+  });
+  router.get("/flags", async (req, res) => {
+    const input = z.object({
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+      offset: z.coerce.number().int().min(0).max(100000).default(0),
+    }).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("staff_my_energy_flags", { p_limit: input.limit, p_offset: input.offset })) });
+  });
+  return router;
+}
+
+// Admin energy investigations. Shares the /api/admin prefix with the generic admin routes, so each route carries its own guard.
+// The database does the work and the checks (reason required, award not already reversed, never your own award, open flags only);
+// this layer validates the shape of the request. Reversal is final: the database allows it once per award.
+export function energyAdminRoutes(gateway, config) {
+  const router = Router();
+  const open = [energyGuard(config), authenticate(gateway, { roles: ["admin"] })];
+  const reason = z.string().trim().min(1).max(2000);
+  router.get("/energy/activity", ...open, async (req, res) => {
+    const input = z.object({
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+      offset: z.coerce.number().int().min(0).max(100000).default(0),
+      kind: z.enum(["trace", "tide", "quiz"]).optional(),
+    }).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("admin_energy_activity", { p_limit: input.limit, p_offset: input.offset, p_kind: input.kind ?? null })) });
+  });
+  router.get("/energy/awards/:id", ...open, async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    res.json({ data: await result(req.db.rpc("admin_energy_award", { p_ledger_id: uuid.parse(req.params.id) })) });
+  });
+  router.post("/energy/flags/:id/dismiss", ...open, async (req, res) => {
+    const input = z.object({ reason }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("dismiss_energy_flag", { p_flag_id: uuid.parse(req.params.id), p_reason: input.reason })) });
+  });
+  router.post("/energy/awards/:id/reverse", ...open, async (req, res) => {
+    const input = z.object({ reason }).strict().parse(req.body);
+    res.json({ data: await result(req.db.rpc("reverse_energy_award", { p_ledger_id: uuid.parse(req.params.id), p_reason: input.reason })) });
   });
   return router;
 }

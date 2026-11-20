@@ -25,6 +25,8 @@ import EditSubmission from "./pages/user/contributions/EditSubmission.jsx";
 import Tides from "./pages/user/tides/Tides.jsx";
 import ViewTide from "./pages/user/tides/ViewTide.jsx";
 import Notifications from "./pages/user/notifications/Notifications.jsx";
+import Energy from "./pages/user/Energy.jsx";
+import {energyEnabled} from "./api/energy.js";
 import Profile from "./pages/user/profile/Profile.jsx";
 import ModAnalytics from "./pages/moderator/Analytics.jsx";
 import "./pages/moderator/moderator.css";
@@ -43,6 +45,8 @@ import AdminProfile from "./pages/admin/Profile";
 import AdminSettings from "./pages/admin/Settings.jsx";
 import AdminAnalytics from "./pages/admin/Analytics.jsx";
 import AdminHistory from "./pages/admin/History.jsx";
+import EnergyActivity from "./pages/admin/EnergyActivity.jsx";
+import EnergyCase from "./pages/admin/EnergyCase.jsx";
 import "./pages/admin/admin.css";
 const WAVE=(
   <svg width={24} height={24} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
@@ -415,6 +419,18 @@ function AppShell(){
                 </RequireRole>
               }
             />
+            {energyEnabled()&&(
+              <Route
+                path="/user/energy"
+                element={
+                  <RequireRole role="user">
+                    <div className="view">
+                      <Energy/>
+                    </div>
+                  </RequireRole>
+                }
+              />
+            )}
             <Route
               path="/user/notifications"
               element={
@@ -623,6 +639,30 @@ function AppShell(){
                 </RequireRole>
               }
             />
+            {energyEnabled()&&(
+              <Route
+                path="/admin/energy"
+                element={
+                  <RequireRole role="admin">
+                    <div className="view">
+                      <EnergyActivity/>
+                    </div>
+                  </RequireRole>
+                }
+              />
+            )}
+            {energyEnabled()&&(
+              <Route
+                path="/admin/energy/awards/:id"
+                element={
+                  <RequireRole role="admin">
+                    <div className="view">
+                      <EnergyCase/>
+                    </div>
+                  </RequireRole>
+                }
+              />
+            )}
             <Route
               path="/admin/profile"
               element={

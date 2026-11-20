@@ -106,7 +106,7 @@ it("recovers an uploaded file by submitting again without uploading its bytes ag
     if (url === submit) { saved = { ...saved, status: "pending", version: 3 }; return response(saved); }
     if (url === upload) return { ok: false, status: 502, json: async () => ({ error: { code: "MEDIA_ATTACH_FAILED", message: "Attachment failed", details: { object_path: photo.object_path } } }) };
     if (url === `${upload}/attach`) { saved = { ...saved, trace_media: [photo], version: 2 }; return response(photo); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   open(`/user/contributions/${trace().id}`);
   await choose();
@@ -123,7 +123,7 @@ it("requires reloading saved attachments after an uncertain upload instead of re
   const calls = setup((url) => {
     if (url === detail) return response(saved);
     if (url === upload) { saved = trace({ trace_media: [photo] }); throw new TypeError("Lost response"); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   open(`/user/contributions/${trace().id}`);
   await choose();
@@ -140,7 +140,7 @@ it("refreshes a failed preview with a new signed URL", async () => {
   let attempt = 0;
   const calls = setup((url) => {
     if (url === detail) return response(trace({ trace_media: [photo] }));
-    if (url.endsWith("/url")) return response({ url: `https://project.supabase.co/photo.png?attempt=${++attempt}` });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: `https://project.supabase.co/photo.png?attempt=${++attempt}` });
   });
   open(`/user/contributions/${trace().id}`);
   const image = await screen.findByAltText("Trace photo 1");
@@ -198,7 +198,7 @@ it("selects and previews a photo on the initial form, then saves before uploadin
     if (url === upload) { expect(saved).toBeTruthy(); saved = { ...saved, trace_media: [photo], version: 2 }; return pending; }
     if (url === submit) { saved = { ...saved, status: "pending", version: 3 }; return response(saved); }
     if (url === detail) return response(saved);
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   const file = png();
   await prepareInitialPhoto(file);
@@ -252,7 +252,7 @@ it("recovers an initial attachment failure without creating another draft or upl
     if (url === submit) { saved = { ...saved, status: "pending", version: 3 }; return response(saved); }
     if (url === upload) return { ok: false, status: 502, json: async () => ({ error: { code: "MEDIA_ATTACH_FAILED", message: "Attachment failed", details: { object_path: photo.object_path } } }) };
     if (url === `${upload}/attach`) { saved = { ...saved, trace_media: [photo], version: 2 }; return response(photo); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   fireEvent.click(screen.getByRole("button", { name: "Submit Trace" }));
@@ -269,7 +269,7 @@ it("requires checking saved attachments when the initial photo upload outcome is
     if (url === "/api/traces") return response(trace({ trace_media: [] }));
     if (url === upload) throw new TypeError("Lost upload response");
     if (url === detail) return response(trace({ trace_media: [photo] }));
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   fireEvent.click(screen.getByRole("button", { name: "Submit Trace" }));
@@ -292,7 +292,7 @@ it("shows draft save then upload progress, blocks duplicate actions, and waits f
     if (url === "/api/traces") return savePending;
     if (url === upload) return uploadPending;
     if (url === detail) return readPending;
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   const button = screen.getByRole("button", { name: "Save draft" });
@@ -321,7 +321,7 @@ it("reopens the photo saved with a draft and later submits its current version w
     if (url === detail) return response(saved);
     if (url.startsWith("/api/contributions?")) return response([saved]);
     if (url === submit) { expect(JSON.parse(options.body)).toEqual({ version: 2 }); saved = { ...saved, status: "pending", version: 3 }; return response(saved); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save draft" })));
@@ -349,7 +349,7 @@ it("retains a category-only draft and selected photo after a definite upload fai
       return pending;
     }
     if (url === detail) return response(saved);
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   for (const label of ["Title", "Description", "Location"]) fireEvent.change(screen.getByLabelText(label), { target: { value: "" } });
@@ -381,7 +381,7 @@ it.each([false, true])("recovers draft attachment without uploading bytes again,
       return { ok: false, status: 502, json: async () => ({ error: { code: "MEDIA_ATTACH_FAILED", message: "Attachment failed", details: { object_path: photo.object_path } } }) };
     }
     if (url === `${upload}/attach`) { saved = { ...saved, trace_media: [photo], version: 2 }; return response(photo); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save draft" })));
@@ -407,7 +407,7 @@ it.each(["network", "invalid", "server"])("blocks a second draft upload after an
       if (outcome === "network") throw new TypeError("Lost response");
       return outcome === "invalid" ? response({}) : failure();
     }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save draft" })));
@@ -433,7 +433,7 @@ it("checks saved attachments after photo verification fails without uploading ag
     if (url === "/api/traces") return response(saved);
     if (url === upload) { saved = { ...saved, trace_media: [photo], version: 2 }; return response(photo); }
     if (url === detail) return readsWork ? response(saved) : failure();
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save draft" })));
@@ -474,7 +474,7 @@ it("loads the version and concurrent edits saved during draft upload before edit
     if (url === upload) { saved = { ...saved, title: "Concurrent title", trace_media: [photo], version: 5 }; return response(photo); }
     if (url === detail) return response(saved);
     if (url === `/api/traces/${trace().id}`) { expect(JSON.parse(options.body).version).toBe(5); saved = { ...saved, ...JSON.parse(options.body), version: 6 }; return response(saved); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save draft" })));
@@ -498,7 +498,7 @@ it("requires an explicit new selection when an uncertain upload reload finds no 
       saved = { ...saved, trace_media: [photo], version: 2 };
       return response(photo);
     }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save draft" })));
@@ -520,7 +520,7 @@ it("reloads after an uncertain attachment retry and never reuploads the existing
     if (url === "/api/traces" || url === detail) return response(saved);
     if (url === upload) return { ok: false, status: 502, json: async () => ({ error: { code: "MEDIA_ATTACH_FAILED", message: "Attachment failed", details: { object_path: photo.object_path } } }) };
     if (url === `${upload}/attach`) { saved = { ...saved, trace_media: [photo], version: 4, title: "Concurrent edit" }; throw new TypeError("Lost attachment response"); }
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
   await prepareInitialPhoto();
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save draft" })));

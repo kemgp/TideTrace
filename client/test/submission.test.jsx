@@ -37,7 +37,7 @@ function submissionSetup(handler) {
   return setup((url, options) => {
     const result = handler(url, options);
     if (result) return result;
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
 }
 async function ready() {

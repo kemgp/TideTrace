@@ -6,7 +6,8 @@ export function getData(path, options) {
   return requestData(path, options);
 }
 
-export async function requestData(path, { token, signal, method = "GET", body, file } = {}) {
+// `as: "blob"` returns the response body as a file (for photos the API sends itself); errors still come back as JSON.
+export async function requestData(path, { token, signal, method = "GET", body, file, as } = {}) {
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener("abort", abort, { once: true });
@@ -18,6 +19,7 @@ export async function requestData(path, { token, signal, method = "GET", body, f
       ...(file ? { body: file } : body !== undefined ? { body: JSON.stringify(body) } : {}), signal: controller.signal, cache: "no-store",
     });
     if (response.status === 204 && response.ok) return null;
+    if (as === "blob" && response.ok) return await response.blob();
     let payload;
     try { payload = await response.json(); }
     catch { throw new ApiError("The service is unavailable. Please try again.", "INVALID_RESPONSE", response.status); }

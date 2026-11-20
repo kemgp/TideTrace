@@ -6,5 +6,5 @@ export default function SelectedPhoto({ file }) {
     setUrl(preview);
     return () => URL.revokeObjectURL(preview);
   }, [file]);
-  return url ? <img src={url} alt="Selected photo preview" className="trace-photo-upload__thumbnail" /> : null;
+  return url ? <img src={url} alt="Selected photo preview" className="trace-photo-upload__preview" /> : null;
 }

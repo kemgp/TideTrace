@@ -1,8 +1,127 @@
-# TideTrace — Handoff (updated 2026-11-10, feature/energy-server branch)
+# TideTrace — Handoff (updated 2026-11-20, staging branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
-### Phase A step 2: server foundation and Settings › Energy — `feature/energy-server` (2026-11-10, uncommitted)
+
+
+
+
+
+### 2026-11-20: Release checklist for Phase A step 8
+
+- Egress PR 1b merged into `staging` and checked there (small card images, sharp Trace page, new uploads get thumbnails; staging backfill 4 photos, 0 failed).
+- `docs/plans/phase-a-release.md`: the step 8 checklist. Production gets Phase A with Tide Energy off plus both egress PRs: check production's migrations, apply the missing ones (`tide_energy` if absent, `quiz_ready`, `revoke_completion_insert`, `trace_media_copies`), run the photo backfill, merge `staging` into `main`, smoke test, rollback notes. Turning energy on is a separate later step and needs the legal pages updated first.
+
+### 2026-11-18: Egress PR 1b (thumbnails, display copies, compress every photo), not yet run on the Mac
+
+PR 1a is merged into `staging` and passed its three staging checks (photos from memory cache on the second view, draft photos shown from `blob:` addresses, a 7 MB lesson cover stored as a 256 kB WebP).
+
+- Found while building: Trace photos were only compressed when Data Saver was on; everyone else uploaded the original. With PR 1a's 8 MB cap, a large phone photo would have been refused. PR 1b now resizes every Trace photo to 1600 px WebP before upload (`client/src/api/photoUpload.js`, used by `TracePhotos` and `TraceDraftForm`), and refuses a photo still over 8 MB with a clear message.
+- Migration `supabase/migrations/20261118000100_trace_media_copies.sql`: `trace_media.thumb_path` and `display_path` (named `<name>.thumb.webp` / `<name>.display.webp` beside the original, enforced by a check), `set_trace_media_thumb()` (author, editable draft, WebP up to 512 KB, no version bump), Storage read policy covers the copies, `trace-media` bucket limit 8 MB, `size_bytes` check 8 MB unless an older row is bigger. Tests: `supabase/tests/media-copies.sql` (wired into `local-check.mjs`; all SQL checks pass). `staging-setup.sql` regenerated.
+- Server: `POST /api/media/:id/thumb` (WebP up to 512 KB, stored beside the photo, then attached). `GET /api/media/:id/url|file?size=thumb` sends the thumbnail; without `size` the display copy; each falls back to the original. 186 server tests pass.
+- Client: after a photo is saved the browser sends a 480 px thumbnail (best effort). Cards, list icons and the landing strip ask for `?size=thumb`; the Trace page gets the display copy. Test mocks that matched `endsWith("/url")` now ignore the query.
+- `scripts/backfill-media-variants.mjs`: makes the copies for older photos. Dry run by default (reads the database only), `--apply` to write; service role key from the environment, never printed; originals untouched.
+- Release (step 8) additions: apply this migration to production before deploying, then run the backfill on production (dry run, then `--apply`).
+
+### 2026-11-17: Egress PR 1a (reuse photo links, restricted photos through the API), not yet run on the Mac
+
+Why: production went over the Supabase Free plan egress (7.70 GB of 5 GB, cycle 18 Oct to 18 Nov). About 98% was Storage: old uncompressed Trace photos loaded with a new signed link on every view, so nothing was ever cached. Restrictions start 07 Dec if the organization stays over, and there is no second grace period. Plan: `docs/plans/egress-reduction-plan.md`.
+
+- Server: new `server/src/signedLinks.js` (one cache per app on `gateway.links`): a signed link is reused until less than 15 minutes of its hour remain, capped at 5,000 entries. Each request still runs its own RLS query first; only the link is reused.
+- `GET /api/media/:id/url`: approved, visible Traces get a reused 1-hour link; draft, pending, revision, held and hidden photos return `{ url: null, private: true }`. New `GET /api/media/:id/file` sends restricted files through the API under the caller's token (`Cache-Control: private, no-store`).
+- Tide covers, slides (was 600 s) and lesson images, author photos and `/auth/me` photos use the cache. New uploads set `cacheControl` to one year (paths are never reused). Trace uploads are capped at 8 MB (was 20 MB).
+- Client: `api/mediaLinks.js` + `hooks/useMediaSource.js` remember public links for the session per account and fetch restricted files as `blob:` addresses (revoked on unmount). Used by `TraceCard`, `TraceThumb`, `TracePhotos` and the landing strip. `requestData` accepts `as: "blob"`.
+- Lesson covers and lesson images are resized to 1600 px WebP before upload when the browser can (`compressIfPossible`); the 5 MB check applies to the resized file.
+- Tests: `server/test/signedLinks.test.js`, new cases in `server/test/api.test.js` (183 server tests pass), `client/test/mediaLinks.test.jsx`.
+- To do by hand: set the `trace-media` bucket file size limit to 8 MB in the dashboard (staging and production). The `trace_media.size_bytes` check still allows 20 MB; tighten it in PR 1b's migration.
+- Next: PR 1b (thumbnails, display copies, backfill), then Phase A step 8.
+
+### 2026-11-16: Phase A step 7c (admin dashboard flags item), not yet run on the Mac
+
+- `NeedsYou.jsx` gets a fourth item, "Open energy flags", linking to `/admin/energy`, shown only when `VITE_ENERGY_ENABLED` is true. It reads `open_energy_flags` from the dashboard totals. The strip grid is now `auto-fit` so three or four items both fit. Tests added in `client/test/needsYou.test.jsx`.
+- Notification wording checked against `20261110000100_tide_energy.sql` (flag outcome dismissed or reversed, member reversal): no em-dashes, past tense, no change needed, so no new migration.
+- Step 7 is complete once this merges. Next: step 8 (release: staging checks, then `staging` to `main` with migrations first).
+
+### 2026-11-16: Phase A step 7b (admin Energy activity and case page), not yet run on the Mac
+
+- New `client/src/pages/admin/EnergyActivity.jsx` (`/admin/energy`: four totals, open flags, recent awards with All/Traces/Tides/Quizzes chips and pagination) and `EnergyCase.jsx` (`/admin/energy/awards/:id`: award, moderator flag, audit history, Decision card with dismiss or reverse, danger confirm dialog before reversing, inline outcome, locked note once reversed, note when the source was deleted).
+- Routes only exist when `VITE_ENERGY_ENABLED` is true. "Energy activity" added to `InsightsSwitch` (same condition); Navbar "Insights" stays highlighted on `/admin/energy*`. CSS appended to `components/energy.css`. Tests: `client/test/energyAdmin.test.jsx`.
+- Next: run `cd client && npm test && npm run build`, then 7c (admin "Needs you" open energy flags item using `open_energy_flags`, check notification wording), then step 8 release.
+
+### Remaining work, in order (reviewed 2026-11-14 against git and the code)
+
+Git check: every branch except the energy ones is merged into `main` and `staging`, so the "uncommitted" and "NOT run" labels on entries dated 2026-11-09 and earlier are historical. `main` has Phase A steps 1 and 2 only; steps 3 to 5 are on `staging`; step 6 is uncommitted on local-only `feature/energy-flags`.
+
+1. **Finish Phase A.** Step 6: run client tests and build on the Mac, commit, push, PR into `staging`, staging check. Step 7: admin routes (`/api/admin/energy/activity`, `/awards/:id`, `/flags/:id/dismiss`, `/awards/:id/reverse`; the database functions already exist), Energy activity view in `InsightsSwitch`, case page `/admin/energy/awards/:id`, "Open energy flags" in Needs you, the migration revoking the direct `tide_completions` insert grant, regenerate `staging-setup.sql`. Step 8: hosted checks (plan section 8.3), migrations on production first, then `staging` to `main`.
+2. **Checks that can bite.** Confirm production has `20261110000100_tide_energy.sql` (the completion route on `main` already calls `complete_tide`). Explain `tide-lessons.sql:56` and `tide-chapters.sql:53` on a real Supabase project (draft lesson files may be readable anonymously). Diagnose the map on staging. Protect `main` in GitHub. Add an SQL check for `20261108000100_admin_needs_you.sql`.
+3. **Design rules the code does not follow yet.** "New Trace" is still the white `banner-action` on Traces and My Contributions; most `PageHeader` pages still render `h2`; about 15 places print locale timestamps instead of "24 Oct 2026"; loading regions still say "Loading content".
+4. **Speed and code health: see `docs/plans/speed-and-code-health-plan.md` (written 2026-11-14, not started).** It supersedes old Phase D. Main causes found: three Supabase round trips per signed-in request (`authenticate`), one API call per card photo with 60 second links, no client cache, one 784 KB bundle, no CI or formatter.
+5. **Phase B and C (Adopt-a-Barangay, simulated donations).** Only the briefs exist. Each needs its planning session (`phase-b-plan.md`, `phase-c-plan.md`) before any build.
+6. **Micro-interactions (old Phase C).** Toast exit animation, menu transitions, form step checks, badge pop, empty-state illustrations, map pin drop. Not started.
+7. **Cleanup.** Dead `forgot-password.css`, unused skeleton variants, `TraceMarker` component, `.mod-review-media` rule, unreachable `role === "mod"` actions branch, `.parked-dashboard-polish/`, the stale mock-data line in `README.md`, brand icons not wired into `index.html`, about 50 merged local branches, and this file (trim sections 4 to 7).
+8. **Needs a decision before building.** Archive sort (server `sort` param), multi-photo upload, notification deep links to a Trace, cover image on the lesson page, staff flag to hide test content, a moderator "my flags" screen, award status on queue cards.
+9. **Before the demo.** 200% zoom, dark mode on the new energy screens, real-device Safari, keyboard pass, staging sample lessons with quizzes, and `docs/legal/` updated for the ledger, quiz attempts and flags.
+
+### Phase A step 7a: admin energy routes and completion-grant migration — `feature/energy-admin-server` (2026-11-15, uncommitted, SQL tests NOT run)
+- Step 7 is split into three PRs: 7a (this one: server and migration), 7b (Energy activity view and case page), 7c (admin dashboard "Open energy flags" item, notice wording check, handoff).
+- Server: `energyAdminRoutes` in `routes/energy.js`, mounted on `/api/admin` with per-route guards (admin only, 404 while `ENERGY_ENABLED` is off). `GET /api/admin/energy/activity?limit&offset&kind`, `GET /api/admin/energy/awards/:id`, `POST /api/admin/energy/flags/:id/dismiss` and `POST /api/admin/energy/awards/:id/reverse` (both `{reason}`, trimmed, 1 to 2000). The database enforces the rest (reason, once only, never your own award, open flags only). 175 server tests pass.
+- Migration `20261116000100_revoke_completion_insert.sql`: drops the `completions_insert` policy and revokes insert on `tide_completions`, so only `complete_tide` writes completions. Apply it to staging only after the step 2 API is live there (it is). Rollback is in `supabase/README.md`.
+- `access-control.sql` updated: completions now go through `complete_tide`; direct inserts are rejected with 42501; archived and draft lessons raise P0002, a suspended member 42501.
+- `staging-setup.sql` regenerated with the two migrations it was missing (`quiz_ready` from step 5 and this one).
+- Run on the Mac: `node supabase/tests/local-check.mjs <path to pglite dist/index.js>`. Then apply the migration on staging and check that a member can still complete a lesson.
+
+### Phase A step 6: moderator flags — `feature/energy-flags` (2026-11-14, uncommitted, client tests and build NOT run)
+- Branched from `staging` after PR #52. The database side already shipped in step 1 (`staff_energy_awards`, `flag_energy_award`, `staff_my_energy_flags`); this step adds routes and screens.
+- Server: `energyStaffRoutes` in `routes/energy.js`, mounted at `/api/moderation/energy` before the generic staff router (so its guard only covers those paths). Moderator or admin only, 404 while `ENERGY_ENABLED` is off. `GET /awards?trace_ids=` (1 to 100 ids, comma separated), `POST /awards/:id/flags` (`{reason}` trimmed, 1 to 2000 characters, 201), `GET /flags?limit&offset`. Every rule (own award, already reversed, one open flag) is the database's; a second open flag is 409 `ALREADY_EXISTS`, your own award 403. 172 server tests pass (4 new, plus the flag-off 404 list).
+- Client: `components/EnergyAward.jsx` (`useAwards(traceIds)` reads one page of awards; the component shows status, flag state and the "Flag award" dialog). Used on `ModerationHistory` (My decisions, moderators) and on the admin history page (`pages/admin/History.jsx`, a separate component at `/admin/review/history`) for approved Trace decisions, and on the staff Trace detail for approved Traces, including ones the author deleted. No flag button on a Trace you wrote.
+- Status text: "Award issued: N Tide Energy", "Award reversed: N Tide Energy", "No award yet" (energy not active) and "No award: before activation" (energy active but no ledger row, which also covers an owner whose account was inactive at approval). The flag line reads "Flag open", "Flag dismissed." or "Flag resolved: the award was reversed." with the admin's reason. After a dismissal the moderator can flag again.
+- Dialog "Flag this award?": "Why should an admin look?" (required), blue "Send flag". Errors stay in the dialog (`role="alert"`). The outcome is inline ("Flag sent. An admin will review it."), no toast, because the moderator stays on the page. Everything is hidden, and no request is made, while `VITE_ENERGY_ENABLED` is off.
+- Not built: a screen for `GET /api/moderation/energy/flags` (the route exists; outcomes reach moderators as notifications). Review queue cards do not show award status (the plan keeps it to My decisions and Trace detail).
+- Tests: `client/test/energyFlags.test.jsx` (14). JSX syntax was checked in the cloud session only; run `cd client && npm test && npm run build` on the Mac.
+- Staging check: member submits a Trace, moderator approves it, then "Flag award" on My decisions shows "Flag open" and the admin gets an `energy_flag` notification. Dismiss and reverse come in step 7.
+- Next: step 7 (admin investigations, then the migration that revokes the direct `tide_completions` insert grant).
+
+### Phase A status: steps 1 to 5 live on staging (2026-11-14)
+- Merged into `staging`: steps 1 to 5 and the mockup alignment (PR #51 was the last), plus the redemption note in the plan (PR #52, section 9: reversing energy that was already spent leaves a negative balance; decide the rewards-phase rule before building redemption).
+- Staging setup that must be in place: `20261111000100_quiz_ready.sql` applied to the staging Supabase project; `ENERGY_ENABLED=true` on the Render staging service; `VITE_ENERGY_ENABLED=true` for Vercel Preview scoped to the `staging` branch (baked in at build time, so redeploy without the build cache); and Tide Energy activated in admin Settings › Energy. Awards only issue after activation, so Traces approved earlier never earn.
+- Live updates (flag on): `useNotifications` checks the unread count every 20 seconds while the tab is visible (`FAST_CHECK_MS`) and reloads the list when it grew. `useEnergyNotices` turns the first new "You earned N Tide Energy" notification into a success toast and an admin reversal into an info toast, and calls `notifyEnergyChanged()` so the navbar pill rereads the balance. The first loaded list is a baseline and never toasts. Completing a lesson or passing a quiz also calls `notifyEnergyChanged()`. Supabase Realtime is a possible later replacement for the polling (free tier limits and costs were looked at; webhooks cannot reach browsers).
+- Trace upload: the selected photo now previews inside the dashed drop box (`TracePhotoSelector.jsx`, `SelectedPhoto.jsx`, `TracePhotoUpload.css`).
+- Staging accounts: the seed accounts (`member1-3@example.com`, `moderator1-2@example.com`) are placeholders and cannot receive email; their passwords were set by hand in the staging Auth dashboard. To reset one without email: SQL editor on staging only, `update auth.users set encrypted_password = extensions.crypt('<throwaway>', extensions.gen_salt('bf')) where email = '<address>'`. Password-reset emails also need the staging Auth Site URL set to `https://staging-tide-trace.vercel.app` and `/auth/callback` in the redirect list, otherwise the link lands on `localhost:3000`.
+- Open: map not loading on staging was never diagnosed (check the Google Maps key referrers, billing and the Vercel env var). Multiple photo upload per Trace is not built (single photo today).
+
+### Phase A mockup alignment for steps 3 and 4 — `feature/energy-member` (2026-11-11, merged into `staging`)
+- Quiz editor (`QuizEditor.jsx`): badge "Published"/"Draft"/"No quiz yet" (no version number), one-line hint, amber notice about the next version, question chips "Question N ✓/!" (`aria-pressed`, named "Question N, ready/needs attention"), "Correct" radio before each option, "Options. Mark the correct one.", inline "Choose the correct answer." (only once a question has text), four publishing checks, "Admin previews earn no energy.", (the lesson form already owns "Save published changes", "Return to draft" and "Archive", so the quiz keeps "Save changes" and "Unpublish quiz"), success notice "Quiz version N published.".
+- Not built: a separate quiz "Archive" (the mockup buttons belong to the lesson form). Prompt is a single-line prompt limit change (prompt is now a one-line input, max 500).
+- Member quiz (`TideQuiz.jsx`, `TideCompletion.jsx`): intro card with "Start quiz", heading "Quiz: {lesson title}", styled option rows, answers cleared after a miss, red "Not passed yet..." alert, button "Try again in Ns" during the cooldown plus a live hint, pass state "Quiz passed. You earned N Tide Energy." with "Why these answers" boxes and a link to /user/energy. Completion shows "Finishing a lesson earns 5 Tide Energy." and a success notice. Shared `.notice`, `.quiz-q`, `.quiz-opt` styles are in `components/energy.css`.
+- Copy that says "15 more" and "5" is fixed text; the quiz GET does not say whether awards are paused.
+- Tests updated: `tideQuiz.test.jsx`, `quizEditor.test.jsx` (plus new cases).
+
+### Phase A step 5: member energy — `feature/energy-member` (2026-11-10, merged into `staging`)
+- Built from the Phase A mockup (Claude Design artifact "TideTrace Phase A: Tide Energy mockups"). Everything is behind `VITE_ENERGY_ENABLED` / `ENERGY_ENABLED`; with the flags off nothing renders and nothing is requested.
+- Database: `20261111000100_quiz_ready.sql` adds `get_quiz_ready()` (security definer, stable, own rows only). It returns `{state: none|ready|done, tide_id, title, active, earned}`. `done` only covers quiz passes from the last 3 days, so the card does not displace "Continue learning" for good (the mockup shows it with no end). Apply it to staging, then run `supabase/tests/quiz-ready.sql` through `node supabase/tests/local-check.mjs <pglite path>` on the Mac.
+- Server: `GET /api/energy/quiz-ready` in `energyRoutes` (404 when the flag is off, 401 without sign-in, no query parameters). 168 server tests pass.
+- Client: `EnergyPill` in the navbar (members only, reads `energy?limit=1`, rereads on every page change, hides on error), an "Energy" nav link, dashboard `EnergyCard` and `QuizReadyCard` (replaces "Continue learning" while a quiz is waiting or was just passed), and `/user/energy` (balance, how you earn, disabled reward previews, history with All/Traces/Tides/Quizzes filter, paging, loading/empty/error states, reversals shown as negative rows). Styles are in `components/energy.css` with dark-mode variants. Tests: `client/test/energyMember.test.jsx`.
+- Known gaps: reward names and the "+20 / +5 / +15" earn list are fixed copy from the mockup, not read from settings. Steps 3 and 4 were aligned with the mockup afterwards (see the alignment entry).
+- Next: step 6 (moderator flags).
+
+### Phase A step 4: taking the quiz — `feature/energy-quiz-taking` (2026-11-10, merged into `staging`)
+- Branched from `feature/energy-quiz-authoring` (step 3), not `staging`, because both change `energy.js`, `app.js`, `api.test.js` and `handoff.md`. Merge step 3 first, then open this PR into `staging`. If step 3 is already merged, rebase onto `staging` first.
+- Server: `GET /api/tides/:id/quiz` and `POST /api/tides/:id/quiz/attempts` (`energyQuizRoutes`, any signed-in role, 404 while `ENERGY_ENABLED` is off, per-route guards). `errors.js` maps `TT429` to 429 `QUIZ_COOLDOWN` with `details.retry_after`. 167 server tests pass.
+- Client: `components/TideQuiz.jsx` + `.css`, shown under the completed lesson on `ViewTide` behind `energyEnabled()`. `ApiError` now keeps `details`. `TideCompletion` says "Completed. You earned N Tide Energy." when the server reports an award.
+- Behaviour: nothing shows when the lesson has no published quiz. Submit stays disabled until all 5 are answered and during the cooldown (30 seconds, counted down on screen). A miss says only "Not passed yet", never a score. A pass reloads the quiz and shows the correct answers and explanations. A 409 asks for "Reload quiz". Errors stay inline; no toasts.
+- Known limit: a chaptered lesson shows the quiz only once the member reaches the last chapter and completes it, because that is where the completion button is.
+- Run on the Mac: `cd client && npm test && npm run build` (new `client/test/tideQuiz.test.jsx`).
+- Next: step 5, member energy pill, dashboard cards and `/user/energy`.
+
+### Phase A step 3: quiz authoring — `feature/energy-quiz-authoring` (2026-11-10, merged into `staging`)
+- Server: `GET/PUT /api/admin/tides/:id/quiz` and `POST .../quiz/unpublish` in `routes/energy.js` (admin only, 404 while `ENERGY_ENABLED` is off, guards per route so other admin routes are unaffected). 162 server tests pass.
+- Client: `api/quiz.js` (pure helpers), `components/QuizEditor.jsx` + `.css`, wired into `EditTide.jsx` behind `energyEnabled()`. The lesson editor's unsaved-changes guard includes unsaved quiz edits.
+- Behaviour: 5 question chips, 4 options with "Correct" radios, explanation, "Before publishing" checklist. Publish is locked until all 5 are ready. Draft saves may be partial. Published edits show the next-version warning. A 409 stale save blocks saving until "Reload quiz". Unpublish asks first and keeps unsaved edits. "Preview quiz" grades locally (pass 4 of 5) and makes no request.
+- No toasts: outcomes show inline next to the card.
+- Run on the Mac: `cd client && npm test && npm run build` (new `client/test/quizEditor.test.jsx`). Then eyeball it with `VITE_ENERGY_ENABLED=true`.
+- Next: step 4, member quiz-taking on ViewTide (map `TT429` to 429 in `errors.js` there).
+
+### Phase A step 2: server foundation and Settings › Energy — `feature/energy-server` (2026-11-10, merged into `staging`)
 
 - Branched from `staging` after the step 1 merge. Plan: `docs/plans/phase-a-plan.md`, step 2.
 - Flags, both default off: `ENERGY_ENABLED` (server, `config.js`; must be `true` or `false`, anything else fails at start) and `VITE_ENERGY_ENABLED` (client, read by `energyEnabled()` in `client/src/api/energy.js`). Documented in `DEPLOYMENT.md` and both `.env.example` files. Set both together, only after the migration is applied there.
@@ -14,7 +133,7 @@ Current state of the project, what was changed in the latest session, and what i
 - Server tests (`node --test`, 155) passed in the cloud session. Client tests could NOT run there (macOS binaries): run `cd client && npm test && npm run build` on the Mac before merging.
 - Staging checks after deploy, flags still off: lessons still complete, Settings has no Tide Energy tab, `/api/energy` returns 404. Then set both flags on staging and use Settings › Tide Energy.
 
-### Phase A step 1: Tide Energy schema — `feature/energy-schema` (2026-11-10, uncommitted, database only)
+### Phase A step 1: Tide Energy schema — `feature/energy-schema` (2026-11-10, merged into `staging`)
 
 - Branched from `staging` (`33ca4a1`). Plan: `docs/plans/phase-a-plan.md` section 6. No API or client code yet.
 - New migration `supabase/migrations/20261110000100_tide_energy.sql` (additive, rerunnable, inert until an admin activates energy). Adds the append-only `energy_ledger`, quizzes (questions public, answer key and attempts in `private`), quiz passes, energy flags, the `energy` settings key with validation and audit, and the functions in the plan: `complete_tide`, `get_tide_quiz`, `submit_tide_quiz`, admin quiz authoring, `get_my_energy`, `get_energy_status`, staff award status and flagging, admin dismiss/reverse, activity and award detail, `set_energy_active` / `get_energy_settings`.

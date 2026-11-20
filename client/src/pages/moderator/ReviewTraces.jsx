@@ -12,6 +12,7 @@ import PageHeader from "../../components/PageHeader.jsx";
 import TraceCard from "../../components/TraceCard.jsx";
 import TraceStatusBadge from "../../components/TraceStatusBadge.jsx";
 import TraceFeedback from "../../components/TraceFeedback.jsx";
+import EnergyAward, { useAwards } from "../../components/EnergyAward.jsx";
 import TraceLocationPrivacy from "../../components/TraceLocationPrivacy.jsx";
 import TraceMap from "../../components/TraceMap.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
@@ -141,6 +142,7 @@ function Decision({initialTrace,onReload,onDecided}){
   const [notice, setNotice] = useState("");
   const request = useRef(null);
   useEffect(() => () => request.current?.abort(), []);
+  const awards = useAwards(current.status === "approved" ? [current.id] : []);
   const trace = displayTrace(current);
   const own = current.author_id === profile.id;
   const eligible = current.status === "pending" && !current.is_hidden && !current.deleted_at && !own && Number.isInteger(current.version) && current.version > 0;
@@ -266,6 +268,7 @@ function Decision({initialTrace,onReload,onDecided}){
   <div className="card mod-decision-card">
     {own && <p role="alert">You cannot review your own submission.</p>}
     {!own && !eligible && !notice && <p className="hint">This Trace is not awaiting a decision.</p>}
+    {current.status === "approved" && <EnergyAward traceId={current.id} title={trace.title} awards={awards} canFlag={!own} />}
     {eligible && <section className="mod-decision" style={{ marginTop: 24 }}>
       <h3>Review decision</h3>
       <p className="hint">Approve publishes the Trace. Request revision returns it to the author. Reject is final.</p>
@@ -309,6 +312,8 @@ export function ModerationHistory(){
   const mine = role === "mod";
   const result = useRemoteData(`moderation/history?limit=${PAGE_SIZE}&offset=${offset}${mine ? "&mine=true" : ""}`, { collection: true });
   const rows = result.data || [];
+  const approvedIds = rows.filter((row) => row.action === "review_trace" && row.to_state === "approved" && row.trace_id).map((row) => row.trace_id);
+  const awards = useAwards(approvedIds);
   return <div className="wrap">
     <Link className="btn ghost sm" to={base}>← Back to queue</Link>
     <div className="vhead"><h2>{mine ? "My decisions" : "Moderation history"}</h2><p>{mine ? "Decisions you saved on Traces and reports, newest first." : "Saved decisions and report resolutions, newest first."}</p></div>
@@ -321,6 +326,7 @@ export function ModerationHistory(){
         <p>{row.action === "review_trace" ? labels[row.to_state] || row.to_state : row.action === "review_report" ? (row.to_state === "resolved" ? "Report resolved: content removed" : "Report dismissed") : row.action.replaceAll("_", " ")}</p>
         <p className="hint">{row.actor?.display_name || "Staff member"} · {new Date(row.created_at).toLocaleString()}</p>
         {row.reason && <p style={{ whiteSpace: "pre-wrap" }}>{row.reason}</p>}
+        {row.action === "review_trace" && row.to_state === "approved" && row.trace_id && <EnergyAward traceId={row.trace_id} title={row.trace?.title} awards={awards} />}
       </div>
     </div>)}</div> : <p className="hint">No moderation history on this page.</p>)}
     <Pagination offset={offset} count={rows.length} size={PAGE_SIZE} onChange={setOffset} loading={result.loading} />

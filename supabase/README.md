@@ -190,3 +190,9 @@ TT_DISPOSABLE_DB=yes DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322
 ```
 
 Its fixtures cannot be removed (the ledger is append-only), so reset that database afterwards (`supabase db reset`).
+
+Apply `migrations/20261111000100_quiz_ready.sql` before enabling the Phase A flags: it adds `get_quiz_ready()` for the dashboard card.
+
+Apply `migrations/20261116000100_revoke_completion_insert.sql` only after the API that calls `complete_tide` (`PUT /api/tides/:id/completion`) is live on every environment using that database. It removes the direct insert grant and policy on `tide_completions`, so a completion can be written only by `complete_tide`, which issues the award in the same transaction. Reads are unchanged. If an older API is still running, lesson completion would fail until it is updated. To undo, grant `insert (user_id, tide_id)` again and recreate the `completions_insert` policy from `20260927000100_tide_completions.sql`.
+
+Apply `migrations/20261118000100_trace_media_copies.sql` before deploying the API and client from egress PR 1b. It adds `thumb_path` and `display_path` to `trace_media` (480 px and 1600 px WebP copies beside the original, which is never changed), `set_trace_media_thumb()` for the author's own editable drafts, lets the Storage read policy cover the copies, and lowers the `trace-media` bucket limit to 8 MB (and the `size_bytes` check, unless an older row is bigger). Then run `scripts/backfill-media-variants.mjs` to make copies for photos uploaded earlier (dry run first). Tests: `tests/media-copies.sql`.

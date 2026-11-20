@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import useRemoteData from "../../hooks/useRemoteData.js";
 import RemoteState, { Pagination } from "../../components/RemoteState.jsx";
 import { InsightsSwitch } from "../../components/StaffSwitches.jsx";
+import EnergyAward, { useAwards } from "../../components/EnergyAward.jsx";
 
 const filters = ["All", "Approved", "Revision", "Rejected", "Kept", "Removed", "Dismissed"];
 function outcome(row) {
@@ -17,6 +18,9 @@ export default function History() {
   const result = useRemoteData(`moderation/history?limit=${PAGE_SIZE + 1}&offset=${offset}${filter === "All" ? "" : `&outcome=${filter.toLowerCase()}`}`, { collection: true });
   const rows = result.data || [];
   const filtered = rows.slice(0, PAGE_SIZE);
+  // Award status for the approved Trace decisions on this page (hidden while Tide Energy is switched off).
+  const awarded = (row) => row.action === "review_trace" && row.to_state === "approved" && Boolean(row.trace_id);
+  const awards = useAwards(filtered.filter(awarded).map((row) => row.trace_id));
   return <div className="wrap">
     <InsightsSwitch />
     <div className="vhead headrow"><div><span className="eyebrow claye">Trace moderation history</span><h2>Every decision, on record</h2><p>Audit saved moderation decisions, with the reviewer, date, and feedback recorded for each action.</p></div><div className="row"><Link className="btn outline sm" to="/admin/review">Review Traces</Link><Link className="btn outline sm" to="/admin/reports">Reports</Link></div></div>
@@ -28,7 +32,7 @@ export default function History() {
       const title = row.trace?.title || row.report?.trace?.title || (row.comment || row.report?.comment ? "Reported comment" : "Reported content");
       const comment = row.comment || row.report?.comment;
       const author = comment ? comment.author : (row.trace || row.report?.trace)?.author;
-      return <div className="lrow" key={row.id}><div className="grow"><div className="t">{title}</div>{(row.trace?.deleted_at || row.report?.trace?.deleted_at) && <p className="hint">Deleted by the author.</p>}<p className="hint">{comment ? "Comment" : "Trace"} by {author?.display_name || "Unavailable member"}</p>{row.report && <p className="hint">Reported by {row.report.reporter?.display_name || "Unavailable member"}</p>}<div className="m">Reviewed by {row.actor?.display_name || "Staff member"} · {new Date(row.created_at).toLocaleString()}</div>{row.reason && <p className="hint admin-history-reason">{row.reason}</p>}</div><span className={`badge ${decision === "Approved" || decision === "Kept" ? "approved" : decision === "Revision" ? "revision" : "removed"}`}>{decision === "Revision" ? "Revision requested" : decision}</span>{row.trace_id && row.action === "review_trace" && <Link className="mini outline" to={`/admin/review/${encodeURIComponent(row.trace_id)}`}>View trace</Link>}</div>;
+      return <div className="lrow" key={row.id}><div className="grow"><div className="t">{title}</div>{(row.trace?.deleted_at || row.report?.trace?.deleted_at) && <p className="hint">Deleted by the author.</p>}<p className="hint">{comment ? "Comment" : "Trace"} by {author?.display_name || "Unavailable member"}</p>{row.report && <p className="hint">Reported by {row.report.reporter?.display_name || "Unavailable member"}</p>}<div className="m">Reviewed by {row.actor?.display_name || "Staff member"} · {new Date(row.created_at).toLocaleString()}</div>{row.reason && <p className="hint admin-history-reason">{row.reason}</p>}{awarded(row) && <EnergyAward traceId={row.trace_id} title={row.trace?.title} awards={awards} />}</div><span className={`badge ${decision === "Approved" || decision === "Kept" ? "approved" : decision === "Revision" ? "revision" : "removed"}`}>{decision === "Revision" ? "Revision requested" : decision}</span>{row.trace_id && row.action === "review_trace" && <Link className="mini outline" to={`/admin/review/${encodeURIComponent(row.trace_id)}`}>View trace</Link>}</div>;
     }) : <p className="hint">No {filter === "All" ? "moderation" : filter.toLowerCase()} decisions on this page.</p>}</div>}
     <Pagination offset={offset} count={filtered.length} hasNext={rows.length > PAGE_SIZE} size={PAGE_SIZE} onChange={setOffset} loading={result.loading || Boolean(result.error)} />
   </div>;

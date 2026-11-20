@@ -40,7 +40,7 @@ function revisionSetup(handler) {
     const custom = handler(url, options);
     if (custom) return custom;
     if (url.includes("/reviews?")) return response([feedback]);
-    if (url.endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/photo.png" });
   });
 }
 

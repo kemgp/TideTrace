@@ -12,6 +12,9 @@ import { countPdfPages } from "../../api/pdfDocument.js";
 import { lessonShape } from "../../components/TideLesson.jsx";
 import { MAX_IMPORT_BYTES, MAX_IMPORT_CHARS, prepareImport } from "../../api/importText.js";
 import LessonImages from "./LessonImages.jsx";
+import QuizEditor from "../../components/QuizEditor.jsx";
+import { energyEnabled } from "../../api/energy.js";
+import { compressIfPossible } from "../../api/compressPhoto.js";
 
 const toFields = (lesson) => ({ title: lesson?.title || "", slug: lesson?.slug || "", body: lesson?.body || "", summary: lesson?.summary || "", category_id: lesson?.category_id || "", paged: Boolean(lesson?.paged) });
 const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -51,13 +54,14 @@ function Editor({ initial }) {
   const [previewPart, setPreviewPart] = useState(1);
   const [importing, setImporting] = useState(null);
   const [importError, setImportError] = useState("");
+  const [quizDirty, setQuizDirty] = useState(false);
   const bodyRef = useRef(null);
   const pictures = useRemoteData(saved ? `tides/${encodeURIComponent(saved.id)}/images` : null, { collection: true, keepPrevious: true });
   const pictureMap = new Map((pictures.data || []).map((image) => [image.id, image]));
   const shape = lessonShape(fields.body);
   const dirty = Object.keys(fields).some(name => fields[name] !== (name === "paged" ? Boolean(saved?.paged) : saved?.[name] || ""));
   const request = useRef(null);
-  const allowNavigation = useUnsavedChanges(dirty || busy || Boolean(assetBusy) || hasPending, { onDiscard: () => request.current?.abort(), pendingRequest: busy });
+  const allowNavigation = useUnsavedChanges(dirty || busy || Boolean(assetBusy) || hasPending || quizDirty, { onDiscard: () => request.current?.abort(), pendingRequest: busy });
   useEffect(() => () => request.current?.abort(), []);
   const change = (event) => {
     const { name, type, checked } = event.target;
@@ -118,8 +122,10 @@ function Editor({ initial }) {
   const inspect = async (kind, file) => {
     const isCover = kind === "cover";
     if (isCover ? !COVER_TYPES.includes(file.type) : file.type !== "application/pdf") return { error: isCover ? "Choose a JPEG, PNG or WebP image." : "Choose a PDF. In PowerPoint, use File, Export, PDF." };
-    if (file.size > (isCover ? 5 : 25) * 1024 * 1024) return { error: `That file is too large. The limit is ${isCover ? 5 : 25} MB.` };
-    if (isCover) return {};
+    // Covers are resized to 1600 px WebP first where the browser can; the 5 MB limit applies to what is uploaded.
+    const prepared = isCover ? await compressIfPossible(file) : file;
+    if (prepared.size > (isCover ? 5 : 25) * 1024 * 1024) return { error: `That file is too large. The limit is ${isCover ? 5 : 25} MB.` };
+    if (isCover) return { file: prepared };
     let pages;
     try { pages = await countPdfPages(file); } catch { return { error: "That PDF could not be read. Export it again and retry." }; }
     return pages >= 1 && pages <= 500 ? { pages } : { error: "Slides can have 1 to 500 pages." };
@@ -137,9 +143,10 @@ function Editor({ initial }) {
     try {
       const checked = await inspect(kind, file);
       if (checked.error) { setAssetError(checked.error); return; }
-      if (!saved) { setPending((old) => ({ ...old, [kind]: { file, pages: checked.pages } })); return; }
+      const upload = checked.file || file;
+      if (!saved) { setPending((old) => ({ ...old, [kind]: { file: upload, pages: checked.pages } })); return; }
       try {
-        setSaved(await send(saved.id, kind, file, checked.pages));
+        setSaved(await send(saved.id, kind, upload, checked.pages));
         showToast(kind === "cover" ? "Cover image saved" : "Slides saved");
       } catch (failure) { setAssetError(failure.message); }
     } finally { setAssetBusy(""); }
@@ -259,6 +266,9 @@ function Editor({ initial }) {
       {assetBusy && <p role="status">{assetBusy === "cover" ? "Uploading cover image…" : "Uploading slides…"}</p>}
       {assetError && <p role="alert" style={{ color: "var(--danger)" }}>{assetError}</p>}
     </Card>
+    {energyEnabled() && (saved
+      ? <QuizEditor tideId={saved.id} tideStatus={saved.status} onDirtyChange={setQuizDirty} />
+      : <Card><h3 style={{ marginTop: 0 }}>Quiz</h3><p className="hint" style={{ margin: 0 }}>Save the lesson once to add a quiz.</p></Card>)}
     {preview && <section aria-label="Lesson preview" style={{ marginTop: 24 }}><h3>Preview - unsaved content</h3><Card><TideLesson title={fields.title} body={fields.body} images={pictureMap} paged={fields.paged && !saved?.slides_path} part={previewPart} onPart={setPreviewPart} /></Card></section>}
   </>;
 }

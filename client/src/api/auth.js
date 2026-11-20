@@ -4,10 +4,11 @@ export const ROLE_HOME = { user: "/user/dashboard", mod: "/moderator/dashboard",
 const UI_ROLES = { user: "user", moderator: "mod", admin: "admin" };
 
 export class ApiError extends Error {
-  constructor(message, code, status) {
+  constructor(message, code, status, details) {
     super(message);
     this.code = code;
     this.status = status;
+    if (details) this.details = details;
   }
 }
 
@@ -29,7 +30,7 @@ export async function authRequest(path, { body, token, method = body === undefin
     let payload;
     try { payload = await response.json(); }
     catch { throw new ApiError("Cannot reach the sign-in service. Make sure the backend is running and try again.", "SERVICE_UNAVAILABLE", response.status); }
-    if (!response.ok) throw new ApiError(payload.error?.message || "The request failed. Please try again.", payload.error?.code, response.status);
+    if (!response.ok) throw new ApiError(payload.error?.message || "The request failed. Please try again.", payload.error?.code, response.status, payload.error?.details);
     if (!Object.hasOwn(payload, "data")) throw new ApiError("The sign-in service returned an unexpected response.", "INVALID_RESPONSE");
     return payload.data;
   } catch (error) {

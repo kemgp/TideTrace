@@ -405,6 +405,11 @@ test("uploads enforce file signatures, draft ownership and generated paths", asy
   assert.match(upload.url.pathname, new RegExp(`/trace-media/${userId}/${traceId}/[0-9a-f-]+\\.png$`));
   assert.equal(upload.headers.get("x-upsert"), "false");
   assert.equal(upload.headers.get("authorization"), "Bearer member-token");
+  // Paths are never reused, so browsers may keep the file for a year.
+  assert.equal(upload.headers.get("cache-control"), "max-age=31536000");
+  // Videos are not compressed, so Trace uploads stop at 8 MB.
+  const video = Buffer.concat([Buffer.from([0, 0, 0, 0]), Buffer.from("ftyp"), Buffer.alloc(8 * 1024 * 1024)]);
+  await bearer(request(app).post(`/api/traces/${traceId}/media`)).set("Content-Type", "video/mp4").send(video).expect(413);
 });
 
 test("submitted evidence cannot be overwritten and attachment retry cannot use another owner", async () => {
@@ -415,14 +420,103 @@ test("submitted evidence cannot be overwritten and attachment retry cannot use a
   assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
 });
 
-test("media links are short lived and signed under caller permissions", async () => {
+const mediaRow = (trace) => ({ object_path: `${userId}/${traceId}/file.png`, mime_type: "image/png", trace: { status: "approved", is_hidden: false, deleted_at: null, ...trace } });
+
+test("public Trace photos get one signed link that is reused for an hour", async () => {
+  let signed = 0;
   const { app, calls } = fixture({ handler: ({ url }) => {
-    if (url.pathname === "/rest/v1/trace_media") return json([{ object_path: `${userId}/${traceId}/file.png` }]);
-    if (url.pathname.startsWith("/storage/v1/object/sign/")) return json({ signedURL: "/object/sign/trace-media/file.png?token=signed" });
+    if (url.pathname === "/rest/v1/trace_media") return json([mediaRow()]);
+    if (url.pathname.startsWith("/storage/v1/object/sign/")) { signed += 1; return json({ signedURL: `/object/sign/trace-media/file.png?token=signed-${signed}` }); }
   } });
-  const response = await bearer(request(app).get(`/api/media/${mediaId}/url`)).expect(200);
-  assert.equal(response.body.data.expires_in, 60);
-  assert.equal(calls[1].body.expiresIn, 60);
+  const first = await bearer(request(app).get(`/api/media/${mediaId}/url`)).expect(200);
+  const second = await request(app).get(`/api/media/${mediaId}/url`).expect(200);
+  assert.equal(first.body.data.url, second.body.data.url);
+  assert.match(first.body.data.url, /token=signed-1$/);
+  assert.equal(signed, 1);
+  assert.equal(calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).body.expiresIn, 3600);
+  assert.ok(second.body.data.expires_in > 15 * 60 && second.body.data.expires_in <= 3600);
+  // The access check still runs on every request; only the link is reused.
+  assert.equal(calls.filter(({ url }) => url.pathname === "/rest/v1/trace_media").length, 2);
+});
+
+test("cards ask for the thumbnail and the Trace page for the display copy, falling back to the original", async () => {
+  const base = `${userId}/${traceId}/file`;
+  for (const [row, size, expected] of [
+    [{ thumb_path: `${base}.thumb.webp`, display_path: `${base}.display.webp` }, "thumb", `${base}.thumb.webp`],
+    [{ thumb_path: null, display_path: `${base}.display.webp` }, "thumb", `${base}.display.webp`],
+    [{ thumb_path: null, display_path: null }, "thumb", `${base}.png`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: `${base}.display.webp` }, "display", `${base}.display.webp`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: null }, "display", `${base}.png`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: `${base}.display.webp` }, undefined, `${base}.display.webp`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: null }, undefined, `${base}.png`],
+  ]) {
+    const { app, calls } = fixture({ handler: ({ url }) => {
+      if (url.pathname === "/rest/v1/trace_media") return json([{ ...mediaRow(), ...row }]);
+      if (url.pathname.startsWith("/storage/v1/object/sign/")) return json({ signedURL: `/object/sign${url.pathname.slice("/storage/v1/object/sign".length)}?token=t` });
+    } });
+    await request(app).get(`/api/media/${mediaId}/url${size ? `?size=${size}` : ""}`).expect(200);
+    assert.equal(calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).url.pathname, `/storage/v1/object/sign/trace-media/${expected}`);
+  }
+  const { app } = fixture();
+  await request(app).get(`/api/media/${mediaId}/url?size=huge`).expect(400);
+});
+
+test("restricted copies are sent through the API as WebP", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/trace_media") return json([{ ...mediaRow({ status: "draft" }), thumb_path: `${userId}/${traceId}/file.thumb.webp` }]);
+    if (url.pathname.startsWith("/storage/v1/object/trace-media/")) return new Response(Buffer.from("RIFF0000WEBP"), { status: 200 });
+  } });
+  const response = await bearer(request(app).get(`/api/media/${mediaId}/file?size=thumb`)).expect(200);
+  assert.equal(response.headers["content-type"], "image/webp");
+  assert.equal(calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/trace-media/")).url.pathname, `/storage/v1/object/trace-media/${userId}/${traceId}/file.thumb.webp`);
+});
+
+test("a thumbnail is stored beside its photo and attached by the database, which checks the author", async () => {
+  const webp = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBP"), Buffer.alloc(8)]);
+  let duplicate = false;
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/trace_media") return json([{ object_path: `${userId}/${traceId}/photo.jpg` }]);
+    if (url.pathname.startsWith("/storage/v1/object/trace-media/")) return duplicate ? json({ statusCode: "409", error: "Duplicate", message: "The resource already exists" }, 400) : json({ Key: "uploaded" });
+    if (url.pathname === "/rest/v1/rpc/set_trace_media_thumb") return json({ id: mediaId, thumb_path: `${userId}/${traceId}/photo.thumb.webp` });
+  } });
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/png").send(webp).expect(415);
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(Buffer.from("not a webp image")).expect(400);
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(Buffer.concat([webp, Buffer.alloc(512 * 1024)])).expect(413);
+  await request(app).post(`/api/media/${mediaId}/thumb`).set("Content-Type", "image/webp").send(webp).expect(401);
+  const saved = await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(webp).expect(201);
+  assert.equal(saved.body.data.thumb_path, `${userId}/${traceId}/photo.thumb.webp`);
+  const upload = calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/trace-media/"));
+  assert.equal(upload.url.pathname, `/storage/v1/object/trace-media/${userId}/${traceId}/photo.thumb.webp`);
+  assert.equal(upload.headers.get("x-upsert"), "false");
+  assert.deepEqual(calls.find(({ url }) => url.pathname === "/rest/v1/rpc/set_trace_media_thumb").body, { p_media_id: mediaId, p_thumb_path: `${userId}/${traceId}/photo.thumb.webp` });
+  duplicate = true;
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(webp).expect(201);
+});
+
+for (const [label, trace] of [["pending", { status: "pending" }], ["draft", { status: "draft" }], ["hidden", { is_hidden: true }], ["revision", { status: "revision_requested" }]]) {
+  test(`${label} Trace photos never get a shareable link`, async () => {
+    const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/trace_media" ? json([mediaRow(trace)]) : undefined });
+    const response = await bearer(request(app).get(`/api/media/${mediaId}/url`)).expect(200);
+    assert.deepEqual(response.body.data, { url: null, private: true });
+    assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+  });
+}
+
+test("restricted photos are sent through the API under the caller's permissions, never cached", async () => {
+  const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 4]);
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/trace_media") return json([mediaRow({ status: "pending" })]);
+    if (url.pathname === `/storage/v1/object/trace-media/${userId}/${traceId}/file.png`) return new Response(bytes, { status: 200, headers: { "Content-Type": "image/png" } });
+  } });
+  const response = await bearer(request(app).get(`/api/media/${mediaId}/file`)).buffer(true).parse((res, done) => { const parts = []; res.on("data", (part) => parts.push(part)); res.on("end", () => done(null, Buffer.concat(parts))); }).expect(200);
+  assert.equal(response.headers["content-type"], "image/png");
+  assert.equal(response.headers["cache-control"], "private, no-store");
+  assert.deepEqual(response.body, bytes);
+  const download = calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/trace-media/"));
+  assert.equal(download.headers.get("authorization"), "Bearer member-token");
+  const hidden = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/trace_media" ? json([]) : undefined });
+  await bearer(request(hidden.app).get(`/api/media/${mediaId}/file`)).expect(404);
+  assert.equal(hidden.calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
 });
 
 test("auth tokens are isolated between requests", async () => {
@@ -1503,17 +1597,20 @@ test("admins can remove a lesson's slides and the file is deleted", async () => 
   assert.deepEqual(calls.find(({ method, url }) => method === "DELETE" && url.pathname === "/storage/v1/object/tide-assets").body.prefixes, [`${tideId}/slides-old.pdf`]);
 });
 
-test("lesson file links are short lived signed URLs, with the page count for slides", async () => {
+test("lesson file links are reused hour-long signed URLs, with the page count for slides", async () => {
   const { app, calls } = fixture({ handler: ({ url }) => {
     if (url.pathname === "/rest/v1/tides") return json([{ slides_path: `${tideId}/slides-a.pdf`, slides_pages: 9, cover_path: `${tideId}/cover-a.png` }]);
     if (url.pathname.startsWith("/storage/v1/object/sign/")) return json({ signedURL: "/object/sign/tide-assets/file?token=signed" });
   } });
   const slides = await request(app).get(`/api/tides/${tideId}/slides`).expect(200);
   assert.equal(slides.body.data.pages, 9);
-  assert.equal(slides.body.data.expires_in, 600);
+  assert.ok(slides.body.data.expires_in > 15 * 60 && slides.body.data.expires_in <= 3600);
   const cover = await request(app).get(`/api/tides/${tideId}/cover`).expect(200);
   assert.equal("pages" in cover.body.data, false);
-  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).every(({ body }) => body.expiresIn === 600), true);
+  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).every(({ body }) => body.expiresIn === 3600), true);
+  const again = await request(app).get(`/api/tides/${tideId}/slides`).expect(200);
+  assert.equal(again.body.data.url, slides.body.data.url);
+  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).length, 2);
   const none = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([{ slides_path: null, slides_pages: null }]) : undefined });
   await request(none.app).get(`/api/tides/${tideId}/slides`).expect(404);
 });
@@ -1749,7 +1846,9 @@ test("Tide Energy is off unless ENERGY_ENABLED is exactly true or false", () => 
 
 test("every Tide Energy route answers 404 while the flag is off, before sign-in and without calling Supabase", async () => {
   const { app, calls } = fixture({ role: "admin" });
-  const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"]];
+  const routes = [["get", "/api/energy"], ["get", "/api/energy?kind=trace"], ["get", "/api/energy/quiz-ready"], ["get", "/api/admin/energy-settings"], ["put", "/api/admin/energy-settings"],
+    ["get", `/api/moderation/energy/awards?trace_ids=${traceId}`], ["post", `/api/moderation/energy/awards/${traceId}/flags`], ["get", "/api/moderation/energy/flags"],
+    ["get", "/api/admin/energy/activity"], ["get", `/api/admin/energy/awards/${traceId}`], ["post", `/api/admin/energy/flags/${traceId}/dismiss`], ["post", `/api/admin/energy/awards/${traceId}/reverse`]];
   for (const [method, path] of routes) {
     const anonymous = await request(app)[method](path).send({ active: true }).expect(404);
     assert.equal(anonymous.body.error.code, "NOT_FOUND");
@@ -1772,10 +1871,147 @@ test("members read their own energy through the database function with a validat
   assert.equal(businessCalls(calls).length, before);
 });
 
+test("members read the quiz-ready card through the database function", async () => {
+  const card = { state: "ready", tide_id: "11111111-1111-4111-8111-111111111111", title: "Mangroves", active: true, earned: null };
+  const { app, calls } = fixture({ appConfig: energyConfig, handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_quiz_ready" ? json(card) : undefined });
+  await request(app).get("/api/energy/quiz-ready").expect(401);
+  const response = await bearer(request(app).get("/api/energy/quiz-ready")).expect(200);
+  assert.deepEqual(response.body.data, card);
+  assert.equal(businessCalls(calls).length, 1);
+  await bearer(request(app).get("/api/energy/quiz-ready?user_id=" + userId)).expect(400);
+  assert.equal(businessCalls(calls).length, 1);
+});
+
 test("suspended members cannot read energy", async () => {
   const { app, calls } = fixture({ appConfig: energyConfig, status: "suspended" });
   await bearer(request(app).get("/api/energy")).expect(403);
   assert.equal(businessCalls(calls).length, 0);
+});
+
+test("only staff read award status, and the Trace list is validated", async () => {
+  const status = { active: true, awards: [{ trace_id: traceId, ledger_id: "22222222-2222-4222-8222-222222222222", amount: 20, reversed: false, open_flag: false, my_flags: [] }] };
+  const handler = ({ url }) => url.pathname === "/rest/v1/rpc/staff_energy_awards" ? json(status) : undefined;
+  const member = fixture({ appConfig: energyConfig, role: "user", handler });
+  await bearer(request(member.app).get(`/api/moderation/energy/awards?trace_ids=${traceId}`)).expect(403);
+  assert.equal(businessCalls(member.calls).length, 0);
+  for (const role of ["moderator", "admin"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler });
+    await request(app).get(`/api/moderation/energy/awards?trace_ids=${traceId}`).expect(401);
+    const response = await bearer(request(app).get(`/api/moderation/energy/awards?trace_ids=${traceId},${traceId}`)).expect(200);
+    assert.deepEqual(response.body.data, status);
+    assert.deepEqual(businessCalls(calls)[0].body, { p_trace_ids: [traceId, traceId] });
+    const before = businessCalls(calls).length;
+    const tooMany = Array.from({ length: 101 }, () => traceId).join(",");
+    for (const query of ["", "trace_ids=", "trace_ids=not-a-uuid", `trace_ids=${tooMany}`, `trace_ids=${traceId}&user_id=${userId}`]) await bearer(request(app).get(`/api/moderation/energy/awards?${query}`)).expect(400);
+    assert.equal(businessCalls(calls).length, before);
+  }
+});
+
+test("staff flag an award with a trimmed reason, and the database decides everything else", async () => {
+  const ledgerId = "22222222-2222-4222-8222-222222222222";
+  const flag = { id: "33333333-3333-4333-8333-333333333333", ledger_id: ledgerId, status: "open", reason: "Looks copied" };
+  const member = fixture({ appConfig: energyConfig, role: "user" });
+  await bearer(request(member.app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "No" }).expect(403);
+  assert.equal(businessCalls(member.calls).length, 0);
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/flag_energy_award" ? json(flag) : undefined });
+  await request(app).post(`/api/moderation/energy/awards/${ledgerId}/flags`).send({ reason: "Looks copied" }).expect(401);
+  const response = await bearer(request(app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "  Looks copied  " }).expect(201);
+  assert.deepEqual(response.body.data, flag);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_ledger_id: ledgerId, p_reason: "Looks copied" });
+  const before = businessCalls(calls).length;
+  const bodies = [{}, { reason: "" }, { reason: "   " }, { reason: "x".repeat(2001) }, { reason: "Fine", amount: 0 }, { reason: "Fine", flagged_by: userId }];
+  for (const body of bodies) await bearer(request(app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send(body).expect(400);
+  await bearer(request(app).post("/api/moderation/energy/awards/not-a-uuid/flags")).send({ reason: "Fine" }).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("a second open flag and a flag on your own award come back as clear errors", async () => {
+  const ledgerId = "22222222-2222-4222-8222-222222222222";
+  const duplicate = fixture({ appConfig: energyConfig, role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/flag_energy_award" ? json({ code: "23505", message: "This award already has an open flag" }, 409) : undefined });
+  const second = await bearer(request(duplicate.app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "Again" }).expect(409);
+  assert.equal(second.body.error.code, "ALREADY_EXISTS");
+  const own = fixture({ appConfig: energyConfig, role: "moderator", handler: ({ url }) => url.pathname === "/rest/v1/rpc/flag_energy_award" ? json({ code: "42501", message: "Cannot flag your own award" }, 403) : undefined });
+  const forbidden = await bearer(request(own.app).post(`/api/moderation/energy/awards/${ledgerId}/flags`)).send({ reason: "Mine" }).expect(403);
+  assert.equal(forbidden.body.error.code, "FORBIDDEN");
+});
+
+test("staff read their own flags with a validated page", async () => {
+  const flags = [{ id: "33333333-3333-4333-8333-333333333333", status: "open", title: "Reef survey" }];
+  const handler = ({ url }) => url.pathname === "/rest/v1/rpc/staff_my_energy_flags" ? json(flags) : undefined;
+  const member = fixture({ appConfig: energyConfig, role: "user", handler });
+  await bearer(request(member.app).get("/api/moderation/energy/flags")).expect(403);
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "moderator", handler });
+  await request(app).get("/api/moderation/energy/flags").expect(401);
+  const response = await bearer(request(app).get("/api/moderation/energy/flags")).expect(200);
+  assert.deepEqual(response.body.data, flags);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_limit: 20, p_offset: 0 });
+  await bearer(request(app).get("/api/moderation/energy/flags?limit=5&offset=10")).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_limit: 5, p_offset: 10 });
+  const before = businessCalls(calls).length;
+  for (const query of ["limit=0", "limit=51", "offset=-1", "status=open"]) await bearer(request(app).get(`/api/moderation/energy/flags?${query}`)).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("only admins read energy activity and award cases, with a validated page", async () => {
+  const activity = { active: true, totals: { open_flags: 1, awards: 3, energy_issued: 45, reversals: 0 }, open_flags: [], awards: [] };
+  const handler = ({ url }) => url.pathname === "/rest/v1/rpc/admin_energy_activity" ? json(activity) : url.pathname === "/rest/v1/rpc/admin_energy_award" ? json({ id: ledgerId, flags: [] }) : undefined;
+  const ledgerId = "22222222-2222-4222-8222-222222222222";
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler });
+    await bearer(request(app).get("/api/admin/energy/activity")).expect(403);
+    await bearer(request(app).get(`/api/admin/energy/awards/${ledgerId}`)).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler });
+  await request(app).get("/api/admin/energy/activity").expect(401);
+  const response = await bearer(request(app).get("/api/admin/energy/activity")).expect(200);
+  assert.deepEqual(response.body.data, activity);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_limit: 20, p_offset: 0, p_kind: null });
+  await bearer(request(app).get("/api/admin/energy/activity?limit=5&offset=10&kind=quiz")).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_limit: 5, p_offset: 10, p_kind: "quiz" });
+  await bearer(request(app).get(`/api/admin/energy/awards/${ledgerId}`)).expect(200);
+  assert.deepEqual(businessCalls(calls)[2].body, { p_ledger_id: ledgerId });
+  const before = businessCalls(calls).length;
+  for (const query of ["kind=everything", "limit=0", "limit=51", "offset=-1", "owner_id=" + userId]) await bearer(request(app).get(`/api/admin/energy/activity?${query}`)).expect(400);
+  await bearer(request(app).get("/api/admin/energy/awards/not-a-uuid")).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("only admins dismiss a flag or reverse an award, each with a trimmed reason and nothing else", async () => {
+  const id = "22222222-2222-4222-8222-222222222222";
+  const handler = ({ url }) => /\/(dismiss_energy_flag|reverse_energy_award)$/.test(url.pathname) ? json({ id, status: "done" }) : undefined;
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler });
+    await bearer(request(app).post(`/api/admin/energy/flags/${id}/dismiss`)).send({ reason: "Fine" }).expect(403);
+    await bearer(request(app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Fine" }).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler });
+  await request(app).post(`/api/admin/energy/awards/${id}/reverse`).send({ reason: "Fine" }).expect(401);
+  await bearer(request(app).post(`/api/admin/energy/flags/${id}/dismiss`)).send({ reason: "  Original photo  " }).expect(200);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_flag_id: id, p_reason: "Original photo" });
+  await bearer(request(app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "  Copied from a website  " }).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_ledger_id: id, p_reason: "Copied from a website" });
+  const before = businessCalls(calls).length;
+  const bodies = [{}, { reason: "" }, { reason: "   " }, { reason: "x".repeat(2001) }, { reason: "Fine", amount: 0 }, { reason: "Fine", owner_id: userId }];
+  for (const body of bodies) {
+    await bearer(request(app).post(`/api/admin/energy/flags/${id}/dismiss`)).send(body).expect(400);
+    await bearer(request(app).post(`/api/admin/energy/awards/${id}/reverse`)).send(body).expect(400);
+  }
+  await bearer(request(app).post("/api/admin/energy/awards/not-a-uuid/reverse")).send({ reason: "Fine" }).expect(400);
+  await bearer(request(app).post("/api/admin/energy/flags/not-a-uuid/dismiss")).send({ reason: "Fine" }).expect(400);
+  assert.equal(businessCalls(calls).length, before);
+});
+
+test("reversing twice, your own award, and an unknown award come back as clear errors", async () => {
+  const id = "22222222-2222-4222-8222-222222222222";
+  const failing = (code, message, status) => fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname.endsWith("/reverse_energy_award") ? json({ code, message }, status) : undefined });
+  const twice = await bearer(request(failing("22023", "This award was already reversed", 400).app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Again" }).expect(400);
+  assert.equal(twice.body.error.code, "INVALID_DATA");
+  const own = await bearer(request(failing("42501", "Cannot reverse your own award", 403).app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Mine" }).expect(403);
+  assert.equal(own.body.error.code, "FORBIDDEN");
+  const missing = await bearer(request(failing("P0002", "Award not found", 404).app).post(`/api/admin/energy/awards/${id}/reverse`)).send({ reason: "Gone" }).expect(404);
+  assert.equal(missing.body.error.code, "NOT_FOUND");
 });
 
 test("only admins read and change the Tide Energy switch", async () => {
@@ -1810,4 +2046,173 @@ test("the database refuses a stray energy setting save and the API reports it", 
   const { app } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/set_energy_active" ? json({ code: "22023", message: "Invalid energy settings" }, 400) : undefined });
   const response = await bearer(request(app).put("/api/admin/energy-settings")).send({ active: true }).expect(400);
   assert.equal(response.body.error.code, "INVALID_DATA");
+});
+
+const quizQuestion = (n) => ({ prompt: `Question ${n}`, options: ["A", "B", "C", "D"], correct: n % 4, explanation: `Because ${n}` });
+const fullQuiz = [1, 2, 3, 4, 5].map(quizQuestion);
+const quizPath = `/api/admin/tides/${tideId}/quiz`;
+
+test("quiz authoring routes answer 404 while the flag is off and leave other admin routes alone", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/tides" ? json([{ id: tideId }]) : undefined });
+  for (const [method, path] of [["get", quizPath], ["put", quizPath], ["post", `${quizPath}/unpublish`]]) {
+    await request(app)[method](path).send({}).expect(404);
+    const signedIn = await bearer(request(app)[method](path)).send({}).expect(404);
+    assert.equal(signedIn.body.error.code, "NOT_FOUND");
+  }
+  assert.equal(calls.length, 0);
+  await bearer(request(app).get(`/api/admin/tides/${tideId}`)).expect(200);
+});
+
+test("only admins reach the quiz authoring routes", async () => {
+  for (const role of ["user", "moderator"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role });
+    await bearer(request(app).get(quizPath)).expect(403);
+    await bearer(request(app).put(quizPath)).send({ version: null, publish: false, questions: [] }).expect(403);
+    await bearer(request(app).post(`${quizPath}/unpublish`)).send({ version: 1 }).expect(403);
+    assert.equal(businessCalls(calls).length, 0);
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_get_tide_quiz" ? json({ exists: false }) : undefined });
+  await request(app).get(quizPath).expect(401);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("the editor loads a quiz with its key through the admin function", async () => {
+  const quiz = { tide_id: tideId, exists: true, status: "draft", version: 2, questions: fullQuiz.map((q, i) => ({ id: `q${i}`, position: i + 1, ...q })) };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_get_tide_quiz" ? json(quiz) : undefined });
+  const response = await bearer(request(app).get(quizPath)).expect(200);
+  assert.deepEqual(response.body.data, quiz);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId });
+  await bearer(request(app).get("/api/admin/tides/not-a-uuid/quiz")).expect(400);
+  assert.equal(businessCalls(calls).length, 1);
+});
+
+test("saving a quiz passes the version, publish choice and questions to the database", async () => {
+  const saved = { tide_id: tideId, exists: true, status: "published", version: 3, questions: [] };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_save_tide_quiz" ? json(saved) : undefined });
+  const response = await bearer(request(app).put(quizPath)).send({ version: 2, publish: true, questions: fullQuiz }).expect(200);
+  assert.deepEqual(response.body.data, saved);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId, p_expected_version: 2, p_questions: fullQuiz, p_publish: true });
+  // A first draft has no version yet, and may be partial or empty.
+  const partial = [{ prompt: "Only a prompt", options: ["", "", "", ""], correct: null, explanation: "" }];
+  await bearer(request(app).put(quizPath)).send({ version: null, publish: false, questions: partial }).expect(200);
+  assert.deepEqual(businessCalls(calls)[1].body, { p_tide_id: tideId, p_expected_version: null, p_questions: partial, p_publish: false });
+  await bearer(request(app).put(quizPath)).send({ version: null, publish: false, questions: [] }).expect(200);
+  assert.deepEqual(businessCalls(calls)[2].body.p_questions, []);
+});
+
+test("quiz saves reject malformed bodies before calling the database", async () => {
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin" });
+  const q = quizQuestion(1);
+  const bodies = [
+    {}, { version: null, publish: false }, { version: null, questions: [] },
+    { version: 0, publish: false, questions: [] }, { version: "2", publish: false, questions: [] }, { version: 1.5, publish: false, questions: [] },
+    { version: null, publish: "yes", questions: [] },
+    { version: null, publish: false, questions: [1, 2, 3, 4, 5, 6].map(quizQuestion) },
+    { version: null, publish: false, questions: [{ ...q, options: ["A", "B", "C"] }] },
+    { version: null, publish: false, questions: [{ ...q, options: ["A", "B", "C", "D", "E"] }] },
+    { version: null, publish: false, questions: [{ ...q, correct: 4 }] },
+    { version: null, publish: false, questions: [{ ...q, correct: -1 }] },
+    { version: null, publish: false, questions: [{ ...q, correct: 1.5 }] },
+    { version: null, publish: false, questions: [{ ...q, correct: "1" }] },
+    { version: null, publish: false, questions: [{ ...q, prompt: "x".repeat(501) }] },
+    { version: null, publish: false, questions: [{ ...q, explanation: "x".repeat(1001) }] },
+    { version: null, publish: false, questions: [{ ...q, options: ["A", "B", "C", 4] }] },
+    { version: null, publish: false, questions: [{ ...q, id: "q1" }] },
+    { version: null, publish: false, questions: [{ prompt: "No options" }] },
+    { version: null, publish: false, questions: [], status: "published" },
+  ];
+  for (const body of bodies) await bearer(request(app).put(quizPath)).send(body).expect(400);
+  await bearer(request(app).put("/api/admin/tides/not-a-uuid/quiz")).send({ version: null, publish: false, questions: [] }).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("quiz saves report a stale version, a missing lesson and rejected content", async () => {
+  const cases = [["40001", 409, "STALE_VERSION"], ["P0002", 404, "NOT_FOUND"], ["22023", 400, "INVALID_DATA"], ["42501", 403, "FORBIDDEN"]];
+  for (const [code, status, apiCode] of cases) {
+    const { app } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_save_tide_quiz" ? json({ code, message: "refused" }, 400) : undefined });
+    const response = await bearer(request(app).put(quizPath)).send({ version: 1, publish: true, questions: fullQuiz }).expect(status);
+    assert.equal(response.body.error.code, apiCode);
+  }
+});
+
+test("unpublishing a quiz sends only the version it was loaded at", async () => {
+  const saved = { tide_id: tideId, exists: true, status: "draft", version: 4, questions: [] };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_unpublish_tide_quiz" ? json(saved) : undefined });
+  const response = await bearer(request(app).post(`${quizPath}/unpublish`)).send({ version: 3 }).expect(200);
+  assert.deepEqual(response.body.data, saved);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId, p_expected_version: 3 });
+  const before = businessCalls(calls).length;
+  for (const body of [{}, { version: 0 }, { version: "3" }, { version: 3, questions: [] }, { version: 3, status: "draft" }]) {
+    await bearer(request(app).post(`${quizPath}/unpublish`)).send(body).expect(400);
+  }
+  assert.equal(businessCalls(calls).length, before);
+  const stale = fixture({ appConfig: energyConfig, role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_unpublish_tide_quiz" ? json({ code: "40001", message: "stale" }, 400) : undefined });
+  await bearer(request(stale.app).post(`${quizPath}/unpublish`)).send({ version: 3 }).expect(409);
+});
+
+const memberQuizPath = `/api/tides/${tideId}/quiz`;
+const attemptsPath = `${memberQuizPath}/attempts`;
+
+test("member quiz routes answer 404 while the flag is off and leave lesson routes alone", async () => {
+  const { app, calls } = fixture({ role: "user" });
+  for (const [method, path] of [["get", memberQuizPath], ["post", attemptsPath]]) {
+    await request(app)[method](path).send({}).expect(404);
+    const signedIn = await bearer(request(app)[method](path)).send({}).expect(404);
+    assert.equal(signedIn.body.error.code, "NOT_FOUND");
+  }
+  assert.equal(calls.length, 0);
+});
+
+test("a signed-in member loads the quiz without its key through the database function", async () => {
+  const quiz = { tide_id: tideId, version: 2, passed: false, retry_after: 0, questions: [{ id: "q1", position: 1, prompt: "Which?", options: ["A", "B", "C", "D"] }] };
+  for (const role of ["user", "moderator", "admin"]) {
+    const { app, calls } = fixture({ appConfig: energyConfig, role, handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_tide_quiz" ? json(quiz) : undefined });
+    const response = await bearer(request(app).get(memberQuizPath)).expect(200);
+    assert.deepEqual(response.body.data, quiz);
+    assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId });
+  }
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "user" });
+  await request(app).get(memberQuizPath).expect(401);
+  await bearer(request(app).get("/api/tides/not-a-uuid/quiz")).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("quiz attempts pass the version and five answers and return only the outcome", async () => {
+  const outcome = { passed: true, first_pass: true, awarded: true, amount: 15, retry_after: 0 };
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "user", handler: ({ url }) => url.pathname === "/rest/v1/rpc/submit_tide_quiz" ? json(outcome) : undefined });
+  const response = await bearer(request(app).post(attemptsPath)).send({ version: 3, answers: [0, 1, 2, 3, 0] }).expect(200);
+  assert.deepEqual(response.body.data, outcome);
+  assert.deepEqual(businessCalls(calls)[0].body, { p_tide_id: tideId, p_version: 3, p_answers: [0, 1, 2, 3, 0] });
+});
+
+test("quiz attempts reject malformed bodies and never accept a score or an owner", async () => {
+  const { app, calls } = fixture({ appConfig: energyConfig, role: "user" });
+  const bodies = [
+    {}, { version: 1 }, { answers: [0, 0, 0, 0, 0] },
+    { version: 0, answers: [0, 0, 0, 0, 0] }, { version: "1", answers: [0, 0, 0, 0, 0] }, { version: 1.5, answers: [0, 0, 0, 0, 0] },
+    { version: 1, answers: [0, 0, 0, 0] }, { version: 1, answers: [0, 0, 0, 0, 0, 0] },
+    { version: 1, answers: [0, 0, 0, 0, 4] }, { version: 1, answers: [0, 0, 0, 0, -1] }, { version: 1, answers: [0, 0, 0, 0, 1.5] },
+    { version: 1, answers: [0, 0, 0, 0, "1"] }, { version: 1, answers: [0, 0, 0, 0, null] },
+    { version: 1, answers: [0, 0, 0, 0, 0], score: 5 }, { version: 1, answers: [0, 0, 0, 0, 0], user_id: tideId },
+  ];
+  for (const body of bodies) await bearer(request(app).post(attemptsPath)).send(body).expect(400);
+  await bearer(request(app).post("/api/tides/not-a-uuid/quiz/attempts")).send({ version: 1, answers: [0, 0, 0, 0, 0] }).expect(400);
+  assert.equal(businessCalls(calls).length, 0);
+});
+
+test("quiz attempts report a changed quiz, a cooldown with seconds left, and missing access", async () => {
+  const attempt = (error) => {
+    const { app } = fixture({ appConfig: energyConfig, role: "user", handler: ({ url }) => url.pathname === "/rest/v1/rpc/submit_tide_quiz" ? json(error, 400) : undefined });
+    return bearer(request(app).post(attemptsPath)).send({ version: 1, answers: [0, 0, 0, 0, 0] });
+  };
+  const stale = await attempt({ code: "40001", message: "Quiz changed." }).expect(409);
+  assert.equal(stale.body.error.code, "STALE_VERSION");
+  const cooling = await attempt({ code: "TT429", message: "Try again in 17 seconds", details: "17" }).expect(429);
+  assert.equal(cooling.body.error.code, "QUIZ_COOLDOWN");
+  assert.deepEqual(cooling.body.error.details, { retry_after: 17 });
+  const noDetail = await attempt({ code: "TT429", message: "Try again" }).expect(429);
+  assert.deepEqual(noDetail.body.error.details, { retry_after: 30 });
+  await attempt({ code: "42501", message: "Complete the lesson before the quiz" }).expect(403);
+  await attempt({ code: "P0002", message: "Quiz is not available" }).expect(404);
+  await attempt({ code: "22023", message: "Answer all five questions" }).expect(400);
 });

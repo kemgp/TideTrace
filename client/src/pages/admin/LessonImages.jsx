@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import { ApiError } from "../../api/auth.js";
+import { compressIfPossible } from "../../api/compressPhoto.js";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -15,11 +16,13 @@ export default function LessonImages({ lessonId, images, loading, error, retry, 
   const add = async () => {
     setMessage("");
     if (!TYPES.includes(file?.type)) { setMessage("Choose a JPEG, PNG or WebP image."); return; }
-    if (file.size > 5 * 1024 * 1024) { setMessage("That file is too large. The limit is 5 MB."); return; }
     if (!alt.trim() || alt.trim().length > 200) { setMessage("Describe the image in up to 200 characters."); return; }
     setBusy("add");
     try {
-      const image = await writeData(`tides/${encodeURIComponent(lessonId)}/images?alt=${encodeURIComponent(alt.trim())}`, { method: "POST", file });
+      // Resized to 1600 px WebP first where the browser can; the 5 MB limit applies to what is uploaded.
+      const prepared = await compressIfPossible(file);
+      if (prepared.size > 5 * 1024 * 1024) { setMessage("That file is too large. The limit is 5 MB."); return; }
+      const image = await writeData(`tides/${encodeURIComponent(lessonId)}/images?alt=${encodeURIComponent(alt.trim())}`, { method: "POST", file: prepared });
       if (!image?.id || typeof image.alt !== "string") throw new ApiError("The upload response could not be verified.", "INVALID_RESPONSE");
       onInsert(image);
       setFile(null); setAlt("");
