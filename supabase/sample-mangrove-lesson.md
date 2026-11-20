@@ -1,4 +1,4 @@
-Mangroves protect the coast, shelter young fish and store carbon in their mud. This lesson shows you how to tell a healthy mangrove stand from a stressed one, and how to turn what you see into a useful trace.
+Mangroves protect the coast, shelter young fish and store carbon in their mud. This lesson shows you how to tell a healthy mangrove stand from a stressed one, and how to record what you see as a useful trace.
 
 ## Why mangroves matter
 Mangroves are trees and shrubs that grow where the sea meets the land, in mud that is flooded by the tide twice a day.

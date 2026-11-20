@@ -1,6 +1,6 @@
 # TideTrace Privacy Policy
 
-**Draft for review — effective date: 15 October 2026**
+**Draft for review — last updated: 21 November 2026**
 
 TideTrace operates a community conservation platform from the Philippines and acts as the personal information controller for the information described in this policy. This policy explains what information we process, why we process it, who may receive it, and how you can exercise your rights under applicable law, including the Philippine Data Privacy Act of 2012.
 
@@ -10,7 +10,9 @@ TideTrace operates a community conservation platform from the Philippines and ac
 
 **Contributions and interactions.** We store Trace titles, descriptions, categories, location names, optional coordinates, uploaded media, submission status, and timestamps. We also process comments, content reports, moderation decisions and feedback, notifications and related preferences, and lesson-completion records. Information you send when requesting assistance may also be retained to resolve your request.
 
-**Location and media.** Location names and map pins are supplied by you. The current map feature lets you choose a pin; it does not require continuous device-location tracking. Images and other uploads may contain identifiable people or embedded metadata, including location information. Do not assume that all metadata is removed before storage or publication.
+**Tide Energy and quizzes.** When Tide Energy is switched on, we keep a record of each award: who earned it, the activity that earned it (an approved Trace, a completed lesson or a first quiz pass), the amount, and the time. Corrections are recorded as separate entries that reverse an award, together with the reason and the administrator who made them. For lesson quizzes we record each attempt's lesson, quiz version, time and whether it passed; we do not store the answers you chose. Moderators may flag an award for review; we keep the flag, the moderator's reason, and the administrator's decision and reason.
+
+**Location and media.** Location names and map pins are supplied by you. The current map feature lets you choose a pin; it does not require continuous device-location tracking. Images and other uploads may contain identifiable people or embedded metadata, including location information. Where your browser supports it, photos are resized and re-encoded before upload, which usually removes embedded metadata, and we keep smaller copies for display. Videos, files uploaded before this change, and photos from browsers that cannot resize them may keep their metadata. Do not assume that all metadata is removed before storage or publication.
 
 **Technical information.** Operating the service involves processing IP addresses, request details, session identifiers, and security events. Hosting and embedded-service providers may also receive browser and device information and maintain their own operational logs. TideTrace uses IP-based request limits to reduce abuse.
 
@@ -23,6 +25,7 @@ We use information to:
 - Create and manage accounts, authenticate users, and support account recovery.
 - Save, review, and publish contributions and support community discussion.
 - Deliver lessons, save completion records, and provide service notifications.
+- Run Tide Energy: record and show points, grade lesson quizzes, prevent duplicate awards and rapid repeated guessing, and review and correct flagged awards.
 - Investigate reports, enforce community rules, maintain audit records, and protect the service.
 - Respond to requests and meet applicable legal obligations.
 - Understand platform activity through internal operational statistics.
@@ -36,6 +39,8 @@ This policy provides notice; reading it or accepting the Terms and Conditions is
 ## 3. What other people can see
 
 Approved, visible Traces can be viewed by the public, including visitors without accounts. Public content may include your display name, profile photo, contribution text, uploaded evidence, location name, and saved coordinates unless the Trace is marked as a sensitive location. Sensitive exact coordinates are restricted to the active author and active moderators/admins; the Trace’s location name, text and media remain public. The setting does not remove locations disclosed in text, photos, embedded media metadata, or previously published copies. Visible comments may also show your display name and profile photo.
+
+Your Tide Energy balance and history are visible to you and to administrators; they are not public. Moderators can see whether an award was issued for a Trace they review and the status of flags they raised. When an award is reversed, you are told the amount and the reason; the flagging moderator is told the outcome. Quiz results are shown only to you.
 
 Drafts and non-public submissions are subject to access controls. Authorized moderators and administrators may access information needed for review, account administration, security, or complaint handling. Email addresses, authentication credentials, reports, and private account records are not intended for public display.
 
@@ -69,7 +74,9 @@ Providers may process information outside the Philippines, depending on the conf
 
 We retain personal information only for as long as reasonably necessary for the purposes described here, including account operation, publication, security, dispute resolution, and legal requirements. Retention depends on the type of record, whether the account or contribution remains active, and any applicable legal obligation.
 
-**Retention schedule: [insert approved periods or specific criteria for accounts, drafts and published content, reports and audit records, support requests, technical logs, unused uploads, and backups].**
+**Retention schedule: [insert approved periods or specific criteria for accounts, drafts and published content, reports and audit records, Tide Energy records (award and reversal entries, quiz attempts and award flags), support requests, technical logs, unused uploads, and backups].**
+
+Tide Energy entries are kept as an audit record: an award is corrected by adding a reversing entry, not by editing or deleting the original. If you ask for erasure, we will explain which of these records we need to keep and for how long, and restrict their use as appropriate.
 
 Signing out, hiding content, or detaching an uploaded attachment does not necessarily erase it from storage. Some removal actions restrict visibility while stored files remain. Account closure and erasure require a separate request as described in Section 12; do not assume an in-app action permanently deletes all data.
 
@@ -77,7 +84,7 @@ When processing a request, we will explain any lawful reason to retain particula
 
 ## 8. Security
 
-TideTrace uses authenticated access, role-based permissions, database access controls, and restricted file access to help protect information. Access links for protected media are time-limited, although approved public evidence can be viewed by visitors. No storage or transmission method is completely secure. Keep your credentials private and use care on shared devices. We will handle security incidents and any required notifications in accordance with applicable law.
+TideTrace uses authenticated access, role-based permissions, database access controls, and restricted file access to help protect information. Media that is not public is sent to authorized users through our service rather than through a shareable link. Links to approved public media expire, typically within an hour, and approved public evidence can be viewed by visitors. No storage or transmission method is completely secure. Keep your credentials private and use care on shared devices. We will handle security incidents and any required notifications in accordance with applicable law.
 
 ## 9. Your choices and rights
 

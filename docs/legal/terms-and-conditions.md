@@ -1,6 +1,6 @@
 # TideTrace Terms and Conditions
 
-**Draft for review — effective date: 15 October 2026**
+**Draft for review — last updated: 21 November 2026**
 
 These Terms and Conditions govern your use of TideTrace, a community conservation platform operated by TideTrace in the Philippines. “TideTrace,” “we,” “us,” and “our” refer to the operator. “You” refers to a person using the platform.
 
@@ -10,13 +10,13 @@ By creating an account or using TideTrace, you agree to these terms. If you do n
 
 ## 2. What TideTrace provides
 
-TideTrace lets people explore community conservation contributions called Traces, submit observations and supporting media, participate in discussions, and access educational content called Tides. Submissions may undergo moderation before publication.
+TideTrace lets people explore community conservation contributions called Traces, submit observations and supporting media, participate in discussions, and access educational content called Tides, including short quizzes. Members may also earn Tide Energy points for some activities (Section 7). Submissions may undergo moderation before publication.
 
 Community observations, map locations, and educational materials may be incomplete, outdated, or inaccurate. Moderation is not scientific certification or official verification. TideTrace is not an emergency reporting service, a navigation service, or a substitute for advice from qualified professionals or relevant authorities. For urgent threats to people, wildlife, or the environment, contact the appropriate local authority directly.
 
 ## 3. Accounts and eligibility
 
-Provide accurate registration information and keep your password and account access secure. Do not impersonate someone else, share another person's account without authorization, or misrepresent your affiliation with an organization. Notify TideTrace as described in Section 12 if you suspect unauthorized access.
+Provide accurate registration information and keep your password and account access secure. Do not impersonate someone else, share another person's account without authorization, or misrepresent your affiliation with an organization. Notify TideTrace as described in Section 13 if you suspect unauthorized access.
 
 You must have legal capacity to accept these terms. If you are under 18, a parent or legal guardian must review and agree to these terms on your behalf and supervise your use. Do not create an account if you cannot meet these requirements.
 
@@ -41,39 +41,49 @@ You grant TideTrace a non-exclusive, royalty-free, worldwide license to store, r
 
 Approved Traces and visible comments may be publicly accessible together with your display name and profile photo. Published Traces may include uploaded media, location names, and precise coordinates you supplied. Only submit information suitable for that audience. Visitors may copy or share public material; TideTrace cannot control copies independently made by others.
 
-The license ends when content is deleted from our active service, except for restricted copies retained as described in the Privacy Policy or as required by law. You may request removal as described in Section 12. Removing an attachment or hiding a post does not necessarily erase all stored copies immediately.
+The license ends when content is deleted from our active service, except for restricted copies retained as described in the Privacy Policy or as required by law. You may request removal as described in Section 13. Removing an attachment or hiding a post does not necessarily erase all stored copies immediately.
 
 ## 6. Moderation and account restrictions
 
 TideTrace may review submissions, request revisions, reject or hide content, restrict features, or suspend access when reasonably necessary to enforce these terms, address harmful activity, protect security, or comply with law. Publication is not guaranteed. Moderators and administrators may review relevant content and account activity for these purposes.
 
-Where practical and legally permitted, we will explain a restriction and provide an opportunity to request review. You may challenge a moderation or account decision as described in Section 12, identifying the affected content or account and the reason for your request.
+Where practical and legally permitted, we will explain a restriction and provide an opportunity to request review. You may challenge a moderation or account decision as described in Section 13, identifying the affected content or account and the reason for your request.
 
-## 7. TideTrace materials and external services
+## 7. Tide Energy and quizzes
+
+Tide Energy is a points program that recognizes participation. When it is switched on, members can earn points once for each eligible activity: a Trace approved for the first time, a completed lesson, and the first pass of a lesson's quiz. The amounts are shown in the app. Awards start from the moment the program is switched on and are not given for earlier activity.
+
+Tide Energy points have no cash value. They are personal to your account and cannot be sold, transferred, exchanged for money, or inherited. Rewards shown in the app are previews only and cannot currently be redeemed. If redemption is offered later, it will be governed by separate rules published at that time.
+
+Answer quizzes yourself. Do not use other accounts, automated tools, or shared answer keys to pass a quiz, and do not submit content only to collect points. Moderators may flag an award for review, and administrators may reverse an award that was issued in error or obtained in breach of these terms. A reversal is recorded with a reason, you will be notified, and the same activity cannot earn points again. You may ask for a reversal to be reviewed as described in Section 13.
+
+We may pause the program, change the activities and amounts, or end it, with reasonable notice through the platform where practical. Pausing stops new awards; points already earned stay on your history unless reversed under this section.
+
+## 8. TideTrace materials and external services
 
 TideTrace's branding, interface, and original materials belong to their respective rights holders. You may use them as needed to access the service. These terms do not grant permission to reuse branding, redistribute protected materials, or imply endorsement without authorization, except as allowed by law or a separate license.
 
 Maps, linked websites, and other external services may have their own terms and privacy policies. Their inclusion does not mean TideTrace endorses all of their content or guarantees their availability.
 
-## 8. Availability and responsibility
+## 9. Availability and responsibility
 
 We aim to provide a useful service, but features may change or be unavailable because of maintenance, technical failures, or other circumstances. To the extent permitted by law, TideTrace is provided as available without a guarantee of uninterrupted service or the accuracy of every contribution.
 
 To the extent permitted by applicable law, TideTrace is not liable for indirect or consequential losses arising from use of the platform. Nothing in these terms excludes liability for fraud, willful misconduct, gross negligence, or any liability or remedy that cannot lawfully be excluded. Your mandatory consumer and data protection rights remain unaffected.
 
-## 9. Ending use
+## 10. Ending use
 
-You may stop using TideTrace at any time and request account closure as described in Section 12. Signing out does not delete your account or contributions. Closure and removal requests are handled under the Privacy Policy and applicable law. Sections concerning ownership, lawful retention, responsibility, and disputes continue where necessary after your use ends.
+You may stop using TideTrace at any time and request account closure as described in Section 13. Signing out does not delete your account or contributions. Closure and removal requests are handled under the Privacy Policy and applicable law. Sections concerning ownership, lawful retention, responsibility, and disputes continue where necessary after your use ends.
 
-## 10. Changes to these terms
+## 11. Changes to these terms
 
 We may update these terms as the service or legal requirements change. We will publish the revised terms with an effective date and provide reasonable notice of material changes through the platform. Where required, we will ask you to accept the revised terms before continued use. Changes do not retrospectively remove rights that have already arisen.
 
-## 11. Governing law and disputes
+## 12. Governing law and disputes
 
 These terms are governed by the laws of the Republic of the Philippines, subject to any mandatory protections that apply to you. Please raise concerns with TideTrace first where practical. Disputes may be brought before courts with jurisdiction under applicable law. Nothing here prevents you from contacting a regulator or exercising a statutory remedy.
 
-## 12. Questions and requests
+## 13. Questions and requests
 
 Questions about these terms, account closure, content removal, or review of a decision should clearly describe the issue, identify the affected account or contribution, and explain the outcome you are requesting. Include only information needed to understand and resolve the request; never share your password or verification codes.
 
