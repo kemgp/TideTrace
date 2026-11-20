@@ -51,7 +51,7 @@ function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
         }
 
         // Public photos reuse a remembered link; restricted ones arrive as a file (see mediaLinks.js).
-        const source=await loadMedia({id:photo.id,owner:profile?.id,read:readData,signal:controller.signal});
+        const source=await loadMedia({id:photo.id,size:"thumb",owner:profile?.id,read:readData,signal:controller.signal});
 
         if(controller.signal.aborted){source.revoke?.();return;}
         revoke=source.revoke;
@@ -86,7 +86,7 @@ function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
           fetchPriority={priority?"high":"auto"}
           // Hidden (over the shimmer) until fully downloaded and decoded, so it appears whole instead of painting top to bottom.
           onLoad={(event)=>{const image=event.currentTarget;(image.decode?image.decode().catch(()=>{}):Promise.resolve()).then(()=>setLoaded(true));}}
-          onError={()=>{forgetMedia(profile?.id,photoId);setUrl("");setStatus("unavailable");}}
+          onError={()=>{forgetMedia(profile?.id,photoId,"thumb");setUrl("");setStatus("unavailable");}}
           style={{opacity:loaded?1:0,transition:"opacity .25s ease"}}
         />
       </div>

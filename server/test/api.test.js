@@ -439,6 +439,60 @@ test("public Trace photos get one signed link that is reused for an hour", async
   assert.equal(calls.filter(({ url }) => url.pathname === "/rest/v1/trace_media").length, 2);
 });
 
+test("cards ask for the thumbnail and the Trace page for the display copy, falling back to the original", async () => {
+  const base = `${userId}/${traceId}/file`;
+  for (const [row, size, expected] of [
+    [{ thumb_path: `${base}.thumb.webp`, display_path: `${base}.display.webp` }, "thumb", `${base}.thumb.webp`],
+    [{ thumb_path: null, display_path: `${base}.display.webp` }, "thumb", `${base}.display.webp`],
+    [{ thumb_path: null, display_path: null }, "thumb", `${base}.png`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: `${base}.display.webp` }, "display", `${base}.display.webp`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: null }, "display", `${base}.png`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: `${base}.display.webp` }, undefined, `${base}.display.webp`],
+    [{ thumb_path: `${base}.thumb.webp`, display_path: null }, undefined, `${base}.png`],
+  ]) {
+    const { app, calls } = fixture({ handler: ({ url }) => {
+      if (url.pathname === "/rest/v1/trace_media") return json([{ ...mediaRow(), ...row }]);
+      if (url.pathname.startsWith("/storage/v1/object/sign/")) return json({ signedURL: `/object/sign${url.pathname.slice("/storage/v1/object/sign".length)}?token=t` });
+    } });
+    await request(app).get(`/api/media/${mediaId}/url${size ? `?size=${size}` : ""}`).expect(200);
+    assert.equal(calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/sign/")).url.pathname, `/storage/v1/object/sign/trace-media/${expected}`);
+  }
+  const { app } = fixture();
+  await request(app).get(`/api/media/${mediaId}/url?size=huge`).expect(400);
+});
+
+test("restricted copies are sent through the API as WebP", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/trace_media") return json([{ ...mediaRow({ status: "draft" }), thumb_path: `${userId}/${traceId}/file.thumb.webp` }]);
+    if (url.pathname.startsWith("/storage/v1/object/trace-media/")) return new Response(Buffer.from("RIFF0000WEBP"), { status: 200 });
+  } });
+  const response = await bearer(request(app).get(`/api/media/${mediaId}/file?size=thumb`)).expect(200);
+  assert.equal(response.headers["content-type"], "image/webp");
+  assert.equal(calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/trace-media/")).url.pathname, `/storage/v1/object/trace-media/${userId}/${traceId}/file.thumb.webp`);
+});
+
+test("a thumbnail is stored beside its photo and attached by the database, which checks the author", async () => {
+  const webp = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBP"), Buffer.alloc(8)]);
+  let duplicate = false;
+  const { app, calls } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/trace_media") return json([{ object_path: `${userId}/${traceId}/photo.jpg` }]);
+    if (url.pathname.startsWith("/storage/v1/object/trace-media/")) return duplicate ? json({ statusCode: "409", error: "Duplicate", message: "The resource already exists" }, 400) : json({ Key: "uploaded" });
+    if (url.pathname === "/rest/v1/rpc/set_trace_media_thumb") return json({ id: mediaId, thumb_path: `${userId}/${traceId}/photo.thumb.webp` });
+  } });
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/png").send(webp).expect(415);
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(Buffer.from("not a webp image")).expect(400);
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(Buffer.concat([webp, Buffer.alloc(512 * 1024)])).expect(413);
+  await request(app).post(`/api/media/${mediaId}/thumb`).set("Content-Type", "image/webp").send(webp).expect(401);
+  const saved = await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(webp).expect(201);
+  assert.equal(saved.body.data.thumb_path, `${userId}/${traceId}/photo.thumb.webp`);
+  const upload = calls.find(({ url }) => url.pathname.startsWith("/storage/v1/object/trace-media/"));
+  assert.equal(upload.url.pathname, `/storage/v1/object/trace-media/${userId}/${traceId}/photo.thumb.webp`);
+  assert.equal(upload.headers.get("x-upsert"), "false");
+  assert.deepEqual(calls.find(({ url }) => url.pathname === "/rest/v1/rpc/set_trace_media_thumb").body, { p_media_id: mediaId, p_thumb_path: `${userId}/${traceId}/photo.thumb.webp` });
+  duplicate = true;
+  await bearer(request(app).post(`/api/media/${mediaId}/thumb`)).set("Content-Type", "image/webp").send(webp).expect(201);
+});
+
 for (const [label, trace] of [["pending", { status: "pending" }], ["draft", { status: "draft" }], ["hidden", { is_hidden: true }], ["revision", { status: "revision_requested" }]]) {
   test(`${label} Trace photos never get a shareable link`, async () => {
     const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/trace_media" ? json([mediaRow(trace)]) : undefined });

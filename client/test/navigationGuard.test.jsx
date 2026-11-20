@@ -34,7 +34,7 @@ function api(handler = () => undefined, role = "user") {
     if (url === "/api/categories") return ok([category]);
     if (url === detail) return ok(trace());
     if (url === "/api/admin/tides/lesson") return ok(lesson());
-    if (url.endsWith("/url")) return ok({ url: "https://example.test/photo.png" });
+    if (url.split("?")[0].endsWith("/url")) return ok({ url: "https://example.test/photo.png" });
     return ok([]);
   });
   vi.stubGlobal("fetch", calls);

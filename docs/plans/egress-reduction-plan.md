@@ -1,6 +1,6 @@
 # Egress reduction plan
 
-Written 2026-11-16. Status: PR 1a built on `feature/reduce-egress` (17 Nov): E1, E2, the 8 MB cap and restricted photos sent through the API. PR 1b (E3) next. Do Phase 0 and Phase 1 before Phase A step 8 (release to `main`).
+Written 2026-11-16. Status: PR 1a merged into `staging` and checked (17 to 18 Nov). PR 1b (E3, thumbnails and backfill, plus compressing every photo) built on `feature/egress-thumbnails`. Phase 2 (cleanup) not started.
 
 ## Why
 
@@ -14,7 +14,7 @@ Written 2026-11-16. Status: PR 1a built on `feature/reduce-egress` (17 Nov): E1,
 ## Findings from production (17 Nov)
 
 - `tide-assets` is not the problem: every lesson cover, image and PDF is under 231 kB.
-- `trace-media` holds about 33 MB attached to Traces. The large files are Trace photos uploaded 24 to 30 Sep, before browser compression existed (2 to 13 MB each). Uploads since 9 Oct are 230 to 430 kB.
+- `trace-media` holds about 33 MB attached to Traces. The large files are Trace photos of 2 to 13 MB. Correction (18 Nov): photos were only compressed in the browser when Data Saver was on, so large originals kept arriving; PR 1b compresses every photo.
 - Only two large photos are public (approved, not hidden): "Fish" (a member's, about 2.9 MB) and "TEst" (a test Trace, about 2.9 MB). The rest are pending, rejected, draft or hidden, so only their author and staff load them.
 - The largest file (13 MB) is an orphan: no Trace uses it. It costs storage, not egress.
 - Public photos load on the landing page strip (`useRecentTraces`, up to 10 photos for every visitor, signed out included), the Traces list, the map and Trace pages, with a new link every time.

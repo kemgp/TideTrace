@@ -14,7 +14,7 @@ export default function TraceThumb({ trace }) {
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0], [trace.trace_media]);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const { url } = useMediaSource(photo?.id, { skip });
+  const { url } = useMediaSource(photo?.id, { skip, size: "thumb" });
   useEffect(() => { setLoaded(false); setFailed(false); }, [url]);
   return <span className="contrib-thumb" aria-hidden="true" style={{ "--thumb-color": traceColor(trace.category) }}>
     {url && !failed && <img src={url} alt="" referrerPolicy="no-referrer" decoding="async"

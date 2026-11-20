@@ -1,9 +1,21 @@
-# TideTrace — Handoff (updated 2026-11-17, feature/reduce-egress branch)
+# TideTrace — Handoff (updated 2026-11-18, feature/egress-thumbnails branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
 
 
+
+
+### 2026-11-18: Egress PR 1b (thumbnails, display copies, compress every photo), not yet run on the Mac
+
+PR 1a is merged into `staging` and passed its three staging checks (photos from memory cache on the second view, draft photos shown from `blob:` addresses, a 7 MB lesson cover stored as a 256 kB WebP).
+
+- Found while building: Trace photos were only compressed when Data Saver was on; everyone else uploaded the original. With PR 1a's 8 MB cap, a large phone photo would have been refused. PR 1b now resizes every Trace photo to 1600 px WebP before upload (`client/src/api/photoUpload.js`, used by `TracePhotos` and `TraceDraftForm`), and refuses a photo still over 8 MB with a clear message.
+- Migration `supabase/migrations/20261118000100_trace_media_copies.sql`: `trace_media.thumb_path` and `display_path` (named `<name>.thumb.webp` / `<name>.display.webp` beside the original, enforced by a check), `set_trace_media_thumb()` (author, editable draft, WebP up to 512 KB, no version bump), Storage read policy covers the copies, `trace-media` bucket limit 8 MB, `size_bytes` check 8 MB unless an older row is bigger. Tests: `supabase/tests/media-copies.sql` (wired into `local-check.mjs`; all SQL checks pass). `staging-setup.sql` regenerated.
+- Server: `POST /api/media/:id/thumb` (WebP up to 512 KB, stored beside the photo, then attached). `GET /api/media/:id/url|file?size=thumb` sends the thumbnail; without `size` the display copy; each falls back to the original. 186 server tests pass.
+- Client: after a photo is saved the browser sends a 480 px thumbnail (best effort). Cards, list icons and the landing strip ask for `?size=thumb`; the Trace page gets the display copy. Test mocks that matched `endsWith("/url")` now ignore the query.
+- `scripts/backfill-media-variants.mjs`: makes the copies for older photos. Dry run by default (reads the database only), `--apply` to write; service role key from the environment, never printed; originals untouched.
+- Release (step 8) additions: apply this migration to production before deploying, then run the backfill on production (dry run, then `--apply`).
 
 ### 2026-11-17: Egress PR 1a (reuse photo links, restricted photos through the API), not yet run on the Mac
 

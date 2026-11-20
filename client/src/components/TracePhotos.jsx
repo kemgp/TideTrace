@@ -1,6 +1,7 @@
 import TracePhotoSelector from "./TracePhotoSelector.jsx";
 import { compressPhoto } from "../api/compressPhoto.js";
 import useMediaSource from "../hooks/useMediaSource.js";
+import { addThumbnail, prepareTracePhoto } from "../api/photoUpload.js";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import SubmitTrace from "./SubmitTrace.jsx";
 import { ApiError } from "../api/auth.js";
@@ -130,14 +131,19 @@ export default function TracePhotos({ trace, contribution = false, hero = false,
     setError("");
     setNotice("");
     let uploaded = false;
+    let sent = null;
     try {
       let saved = attachment && source.trace_media.find((item) => item.object_path === attachment);
-      if (!saved) saved = attachment
-        ? await writeData(`traces/${encodeURIComponent(trace.id)}/media/attach`, { method: "POST", body: { object_path: attachment }, signal })
-        : await writeData(`traces/${encodeURIComponent(trace.id)}/media`, { method: "POST", file, signal });
+      if (!saved && attachment) saved = await writeData(`traces/${encodeURIComponent(trace.id)}/media/attach`, { method: "POST", body: { object_path: attachment }, signal });
+      else if (!saved) {
+        sent = await prepareTracePhoto(file, { dataSaver: Boolean(profile.data_saver) });
+        saved = await writeData(`traces/${encodeURIComponent(trace.id)}/media`, { method: "POST", file: sent, signal });
+      }
       if (signal.aborted) return;
       if (!saved?.id || saved.trace_id !== trace.id || !TYPES.includes(saved.mime_type)) throw new ApiError("Upload response could not be verified.", "INVALID_RESPONSE");
       uploaded = true;
+      if (sent) await addThumbnail(writeData, saved.id, sent, signal);
+      if (signal.aborted) return;
       // Attachment changes bump the Trace version. Reload instead of retaining stale fields/version.
       if (saved.object_path) setAttachment(saved.object_path);
       const latest = await refresh(signal, source.version);
