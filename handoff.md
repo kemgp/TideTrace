@@ -1,10 +1,16 @@
-# TideTrace — Handoff (updated 2026-11-18, feature/egress-thumbnails branch)
+# TideTrace — Handoff (updated 2026-11-20, staging branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
 
 
 
+
+
+### 2026-11-20: Release checklist for Phase A step 8
+
+- Egress PR 1b merged into `staging` and checked there (small card images, sharp Trace page, new uploads get thumbnails; staging backfill 4 photos, 0 failed).
+- `docs/plans/phase-a-release.md`: the step 8 checklist. Production gets Phase A with Tide Energy off plus both egress PRs: check production's migrations, apply the missing ones (`tide_energy` if absent, `quiz_ready`, `revoke_completion_insert`, `trace_media_copies`), run the photo backfill, merge `staging` into `main`, smoke test, rollback notes. Turning energy on is a separate later step and needs the legal pages updated first.
 
 ### 2026-11-18: Egress PR 1b (thumbnails, display copies, compress every photo), not yet run on the Mac
 
