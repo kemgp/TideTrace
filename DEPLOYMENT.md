@@ -93,7 +93,7 @@ Staging variables (never reuse production values or keys):
 
 1. Branch from staging: `git checkout staging && git pull origin staging && git checkout -b feature/short-name`.
 2. Build and test locally (`npm run dev`, `npm run dev:server`, `npm test`, `npm run build`).
-3. Open a pull request into `staging`. Merging deploys staging on Vercel and Render.
+3. Open a pull request into `staging`. GitHub Actions (`.github/workflows/ci.yml`) runs the server tests, client tests, client build and SQL checks; merge only when both checks are green. Merging deploys staging on Vercel and Render.
 4. Test on the staging site with staging data: auth emails, login, refresh, password recovery, photo upload, submission, and review by a second staff account.
 5. Release with a pull request from `staging` into `main`. Merging deploys production.
 6. After any hotfix on `main`, merge `main` back into `staging`.

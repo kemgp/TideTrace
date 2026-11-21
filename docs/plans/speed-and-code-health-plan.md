@@ -66,7 +66,7 @@ Before S1, record on production with the browser network panel: time to first ph
 
 ## Part 2: Code health
 
-**C1. Continuous integration (do first).**
+**C1. Continuous integration (do first).** Built 21 Nov 2026: `.github/workflows/ci.yml`.
 - `.github/workflows/ci.yml`: on every pull request, Node 22, `npm ci`, `npm test`, `npm run build`. Linux runners install their own `node_modules`, so the "tests must run on the Mac" limit stops applying to pull requests.
 - Second job: `node supabase/tests/local-check.mjs` with PGlite.
 - Then protect `main` and `staging`: require the checks.

@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-20, staging branch)
+# TideTrace — Handoff (updated 2026-11-21, ci/github-actions branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -6,6 +6,13 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
+
+
+### 2026-11-21: Release done; CI added
+
+- Phase A released to production (step 8) with both egress PRs; Tide Energy then switched on in production (flags on, legal pages updated in `docs/legal/`). Production backfill: 20 photos, 0 failed.
+- `.github/workflows/ci.yml`: on every pull request into `staging` or `main` (and pushes to them), GitHub runs `npm ci`, server tests, client tests and the client build ("App tests and build"), plus all migrations and SQL checks on PGlite ("SQL checks"). Branch protection in GitHub should require both checks before merging.
+- Next: egress Phase 2 (storage cleanup), then speed item S1 (photo links sent with each list).
 
 ### 2026-11-20: Release checklist for Phase A step 8
 
