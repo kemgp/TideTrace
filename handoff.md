@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-21, ci/github-actions branch)
+# TideTrace — Handoff (updated 2026-11-21, feature/storage-cleanup branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -7,6 +7,16 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
+
+
+### 2026-11-21: Egress Phase 2 (removed photos are deleted), not yet run on the Mac
+
+- Production orphan check (21 Nov): no unreferenced files in `trace-media`, so the one-off cleanup script (C2) was not written. Rerun the orphan query from `docs/plans/egress-reduction-plan.md` every month or two.
+- Migration `supabase/migrations/20261121000100_removed_trace_media.sql`: removing a photo records its original, thumbnail and display copy in `private.retired_trace_media` with `delete_after`: now for a never-submitted draft; for a Trace in revision, unset until the final decision (approved or rejected, set by a trigger on `traces.status`), then 30 days (`private.removed_photo_keep()`). Staff list and view kept photos (`staff_removed_trace_media`, Storage read policy). Only the author deletes due files (`removed_trace_media_due`, delete policy). Removed paths cannot be attached again (`attach_trace_media` replaced with that check). Tests: `supabase/tests/removed-photos.sql` (wired into `local-check.mjs`); `access-control.sql` adjusted for the new behaviour. All SQL checks pass. `staging-setup.sql` regenerated.
+- Server: `server/src/removedPhotos.js`; `DELETE /api/media/:id` deletes due files after the removal (best effort); `POST /api/contributions/photo-cleanup` also deletes due files; staff routes `GET /api/moderation/traces/:id/removed-photos` and `…/removed-photos/:mediaId/file?size=thumb` (sent as files, `private, no-store`). 189 server tests pass.
+- Client: `client/src/components/RemovedPhotos.jsx` shows "Removed during revision" in the staff case view (`ReviewTraces`). Test: `client/test/removedPhotos.test.jsx`.
+- Privacy policy section 7 now says what happens to removed photos.
+- Release: apply the migration to staging before merging, and to production before the next release.
 
 ### 2026-11-21: Release done; CI added
 

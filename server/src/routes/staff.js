@@ -11,6 +11,23 @@ const reportSelect = "*,reporter:profiles!reports_reporter_id_fkey(id,display_na
 export function staffRoutes(gateway) {
   const router = Router();
   router.use(authenticate(gateway, { roles: ["moderator", "admin"] }));
+  // Photos the author removed while revising this Trace. Kept for staff until 30 days after the final decision.
+  const removedPhotos = (req) => result(req.db.rpc("staff_removed_trace_media", { p_trace_id: uuid.parse(req.params.id) }));
+  router.get("/traces/:id/removed-photos", async (req, res) => {
+    z.object({}).strict().parse(req.query);
+    res.json({ data: (await removedPhotos(req)).map((row) => ({ id: row.media_id, mime_type: row.mime_type, removed_at: row.retired_at, keep_until: row.delete_after })) });
+  });
+  router.get("/traces/:id/removed-photos/:mediaId/file", async (req, res) => {
+    const { size } = z.object({ size: z.enum(["thumb"]).optional() }).strict().parse(req.query);
+    const mediaId = uuid.parse(req.params.mediaId);
+    const row = (await removedPhotos(req)).find((item) => item.media_id === mediaId);
+    if (!row) throw new HttpError(404, "NOT_FOUND", "Record not found.");
+    const path = size === "thumb" && row.thumb_path ? row.thumb_path : row.object_path;
+    // Downloaded with the staff member's token: the Storage policy checks the photo is still kept.
+    const file = await result(req.db.storage.from("trace-media").download(path));
+    res.set({ "Content-Type": path === row.object_path ? row.mime_type : "image/webp", "Content-Disposition": "inline", "Cache-Control": "private, no-store" });
+    res.send(Buffer.from(await file.arrayBuffer()));
+  });
   router.get("/analytics", async (req, res) => {
     z.object({}).strict().parse(req.query);
     res.json({ data: await result(req.db.rpc("get_staff_analytics")) });

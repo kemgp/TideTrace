@@ -4,6 +4,7 @@ import { authenticate } from "../middleware.js";
 import { HttpError, first, result, upstreamError } from "../errors.js";
 import { coordinatePair, draft, page, paginate, report, text, uuid, version } from "../validation.js";
 import { withAuthorPhotos } from "../profilePhotos.js";
+import { deleteDueRemovedPhotos } from "../removedPhotos.js";
 import { withPrivateLocation } from "../traceLocations.js";
 
 export const reviewSelect = "id,from_state,to_state,reason,created_at";
@@ -226,6 +227,8 @@ export function contentRoutes(gateway) {
   router.post("/traces/:id/photo-cleanup", member, (req, res) => deleteTrace(req, res, true));
   // Finishes any interrupted photo removal for all of the caller's deleted Traces.
   router.post("/contributions/photo-cleanup", member, async (req, res) => {
+    // Also removed photos that are now due (a failed earlier attempt, or 30 days after a decision).
+    await deleteDueRemovedPhotos(req.db);
     const pending = () => result(req.db.rpc("deleted_trace_media_pending"));
     await removeStoredPhotos(req.db, await pending(), pending);
     res.sendStatus(204);
