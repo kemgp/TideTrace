@@ -1,0 +1,52 @@
+# Checks every pull request into staging or main, and every push to them.
+# GitHub installs the packages on its own Linux machines, so this does not depend on the Mac's node_modules.
+name: CI
+
+on:
+  pull_request:
+    branches: [staging, main]
+  push:
+    branches: [staging, main]
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install packages
+        run: npm ci
+      - name: Server tests
+        run: npm test --workspace=server
+      - name: Client tests
+        run: npm test --workspace=client
+      - name: Client build
+        run: npm run build --workspace=client
+
+  database:
+    name: SQL checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The same in-memory PostgreSQL (PGlite) the Mac uses, installed outside the project.
+      - name: Install PGlite
+        run: npm install --prefix "$RUNNER_TEMP/pglite" --no-save --no-package-lock @electric-sql/pglite@0.5.16
+      - name: Migrations and SQL checks
+        run: node supabase/tests/local-check.mjs "$RUNNER_TEMP/pglite/node_modules/@electric-sql/pglite/dist/index.js"
