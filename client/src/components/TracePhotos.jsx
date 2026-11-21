@@ -46,22 +46,25 @@ function SavedPhoto({ media, index, hero = false, active = true, alt, onUrl, onE
   const deferred = profile?.data_saver && !requested;
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState("");
+  const [failedUrl, setFailedUrl] = useState("");
+  const [failMessage, setFailMessage] = useState("");
   // Public photos reuse a remembered link; restricted ones arrive as a file (see mediaLinks.js).
   const source = useMediaSource(media.id, { skip: deferred, attempt });
+  const failed = failedUrl && failedUrl === source.url ? failMessage : "";
   const url = failed ? "" : source.url;
   const error = failed || source.error;
-  useEffect(() => { setLoaded(false); setFailed(""); }, [source.url, attempt]);
+  useEffect(() => { setLoaded(false); }, [source.url]);
+  const markFailed = (message) => { setFailedUrl(source.url); setFailMessage(message); };
   useEffect(() => { if (url) onUrl?.(media.id, url); }, [url, media.id, onUrl]);
   const label = alt || media.alt_text || `Trace photo ${index + 1}`;
   const video = media.mime_type === "video/mp4";
   if (deferred) return <button type="button" className="btn outline sm" onClick={() => setRequested(true)}>Load {video ? "video" : "photo"} {index + 1}</button>;
   return <>
-    {error ? <div><p role="alert">Photo {index + 1}: {error}</p><button className="btn outline sm" onClick={() => setAttempt((value) => value + 1)}>Reload photo {index + 1}</button></div>
-      : url ? video ? <video src={url} controls preload="none" onError={() => setFailed("Video could not load. Reload it to get a fresh link.")} aria-label={`Trace video ${index + 1}`} style={{ width: "100%", maxHeight: 320 }} /> : <>{hero && <span className="trace-detail__backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(url)})`, opacity: loaded ? 0.55 : 0 }} />}{hero && active && <button type="button" className="trace-detail__expand" aria-label={`View photo ${index + 1} larger`} onClick={() => onExpand?.(media.id)}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6 M9 21H3v-6 M21 3l-7 7 M3 21l7-7" /></svg></button>}<img src={url} alt={label} referrerPolicy="no-referrer" decoding="async"
+    {error ? <div><p role="alert">Photo {index + 1}: {error}</p><button className="btn outline sm" onClick={() => { setFailedUrl(""); setAttempt((value) => value + 1); }}>Reload photo {index + 1}</button></div>
+      : url ? video ? <video src={url} controls preload="none" onError={() => markFailed("Video could not load. Reload it to get a fresh link.")} aria-label={`Trace video ${index + 1}`} style={{ width: "100%", maxHeight: 320 }} /> : <>{hero && <span className="trace-detail__backdrop" aria-hidden="true" style={{ backgroundImage: `url(${JSON.stringify(url)})`, opacity: loaded ? 0.55 : 0 }} />}{hero && active && <button type="button" className="trace-detail__expand" aria-label={`View photo ${index + 1} larger`} onClick={() => onExpand?.(media.id)}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6 M9 21H3v-6 M21 3l-7 7 M3 21l7-7" /></svg></button>}<img src={url} alt={label} referrerPolicy="no-referrer" decoding="async"
           // Stay invisible until fully downloaded and decoded, so the photo appears at once instead of painting top to bottom.
           onLoad={(event) => { const image = event.currentTarget; (image.decode ? image.decode().catch(() => {}) : Promise.resolve()).then(() => setLoaded(true)); }}
-          onError={() => setFailed("Preview could not load. Reload it to get a fresh link.")}
+          onError={() => markFailed("Preview could not load. Reload it to get a fresh link.")}
           style={{ display: "block", width: "100%", maxHeight: hero ? 420 : 320, objectFit: "contain", borderRadius: 8, position: "relative", ...(hero ? { opacity: loaded ? 1 : 0, transition: "opacity .25s ease" } : null) }} />
         {hero && !loaded && <p role="status" className="photo-loading">Loading photo {index + 1}…</p>}</>
         : <p role="status" className={hero ? "photo-loading" : undefined}>Loading photo {index + 1}…</p>}

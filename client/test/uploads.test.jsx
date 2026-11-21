@@ -143,10 +143,16 @@ it("refreshes a failed preview with a new signed URL", async () => {
     if (url.split("?")[0].endsWith("/url")) return response({ url: `https://project.supabase.co/photo.png?attempt=${++attempt}` });
   });
   open(`/user/contributions/${trace().id}`);
-  const image = await screen.findByAltText("Trace photo 1");
-  const previous = image.src;
-  fireEvent.error(image);
-  fireEvent.click(await screen.findByRole("button", { name: "Reload photo 1" }));
+  await screen.findByAltText("Trace photo 1");
+  // The link can be fetched again while the page settles (for example when the profile loads),
+  // so keep failing whichever image is shown until the error and its reload button appear.
+  let previous = "";
+  await waitFor(() => {
+    const image = screen.queryByAltText("Trace photo 1");
+    if (image) { previous = image.src; fireEvent.error(image); }
+    expect(screen.getByRole("button", { name: "Reload photo 1" })).toBeTruthy();
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Reload photo 1" }));
   expect((await screen.findByAltText("Trace photo 1")).src).not.toBe(previous);
   expect(calls.mock.calls.some(([url]) => url.endsWith("/url"))).toBe(true);
 });

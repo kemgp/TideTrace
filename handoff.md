@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-21, feature/storage-cleanup branch)
+# TideTrace — Handoff (updated 2026-11-22, fix/photo-reload-flake branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -8,6 +8,12 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
+
+### 2026-11-22: Flaky photo reload test fixed, not yet run on the Mac
+
+- CI failed once on `staging` after the Phase 2 merge: `uploads.test.jsx` "refreshes a failed preview with a new signed URL" could not find "Reload photo 1". The photo link can be fetched again while the page settles (StrictMode, profile load), which replaced the failed link and hid the error.
+- `TracePhotos.jsx` (SavedPhoto): a load error now belongs to the link that failed (`failedUrl`); a new link clears it, and "Reload photo" clears it explicitly. The test now keeps failing whichever image is shown until the reload button appears.
+- Next: merge into `staging`, check CI is green, then release Phase 2 to production (migration first).
 
 ### 2026-11-21: Egress Phase 2 (removed photos are deleted), not yet run on the Mac
 
