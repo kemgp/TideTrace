@@ -62,6 +62,9 @@ values('trace-media',auth.uid()::text||'/'||current_setting('test.video_trace_id
 select public.attach_trace_media(current_setting('test.video_trace_id')::uuid,auth.uid()::text||'/'||current_setting('test.video_trace_id')||'/clip.mp4');
 select tidetrace_test.reject($q$select public.submit_trace(current_setting('test.video_trace_id')::uuid,2)$q$);
 select public.detach_trace_media(id) from public.trace_media where trace_id=current_setting('test.video_trace_id')::uuid;
+-- A removed draft upload stays visible only to its author until the Storage API deletes it (simulated here).
+select tidetrace_test.assert_ok((select count(*)=1 from public.removed_trace_media_due() where object_path like '%/clip.mp4'),'Detached draft upload is due for deletion');
+delete from storage.objects where name like '%/clip.mp4';
 select tidetrace_test.assert_ok((select count(*)=0 from storage.objects where name like '%/clip.mp4'),'Detached uploads are no longer accessible');
 select set_config('test.trace_id',id::text,true) from public.save_trace_draft(null,null,'Coastal debris','Plastic along the coast',current_setting('test.category_id')::uuid,'Brgy. Lawis',null,null);
 select tidetrace_test.reject($q$update public.traces set status='approved' where id=current_setting('test.trace_id')::uuid$q$,'42501');

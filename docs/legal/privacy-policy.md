@@ -78,7 +78,7 @@ We retain personal information only for as long as reasonably necessary for the 
 
 Tide Energy entries are kept as an audit record: an award is corrected by adding a reversing entry, not by editing or deleting the original. If you ask for erasure, we will explain which of these records we need to keep and for how long, and restrict their use as appropriate.
 
-Signing out, hiding content, or detaching an uploaded attachment does not necessarily erase it from storage. Some removal actions restrict visibility while stored files remain. Account closure and erasure require a separate request as described in Section 12; do not assume an in-app action permanently deletes all data.
+Signing out or hiding content does not erase it from storage. When you remove a photo from a draft you have not yet submitted, the photo and its copies are deleted from storage, usually at once and otherwise the next time you open your contributions. When you remove a photo while revising a submitted Trace, moderators already reviewed it, so we keep it visible only to moderators and administrators until 30 days after the Trace's final decision, and then delete it in the same way. Deleting a Trace deletes its photos. Account closure and erasure require a separate request as described in Section 12; do not assume an in-app action permanently deletes all data.
 
 When processing a request, we will explain any lawful reason to retain particular records and restrict their use as appropriate. Backup copies may remain until their scheduled expiry. Copies independently retained by other people are outside our direct control.
 

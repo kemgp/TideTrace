@@ -98,6 +98,8 @@ try {
   console.log('PASS: dashboard quiz-ready card: ready and done states, three day window, reversals and privacy.');
   await db.exec(await readFile(new URL('./media-copies.sql', import.meta.url), 'utf8'));
   console.log('PASS: Trace photo copies: owner-only thumbnails, naming, size limits and read access that follows the original.');
+  await db.exec(await readFile(new URL('./removed-photos.sql', import.meta.url), 'utf8'));
+  console.log('PASS: removed Trace photos: drafts deleted at once, revision photos kept for staff until 30 days after the decision, author-only deletion.');
   // energy-concurrency.sh needs several real connections, so it runs separately against a disposable database.
   // Bootstrap remains SQL-editor-only and rejects a second bootstrap.
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values('20000000-0000-0000-0000-000000000001','bootstrap@example.invalid','{}');`);

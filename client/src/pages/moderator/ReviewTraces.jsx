@@ -16,6 +16,7 @@ import EnergyAward, { useAwards } from "../../components/EnergyAward.jsx";
 import TraceLocationPrivacy from "../../components/TraceLocationPrivacy.jsx";
 import TraceMap from "../../components/TraceMap.jsx";
 import TracePhotos from "../../components/TracePhotos.jsx";
+import RemovedPhotos from "../../components/RemovedPhotos.jsx";
 import { categoryLabel } from "./TraceMarker.jsx";
 import { ReviewSwitch } from "../../components/StaffSwitches.jsx";
 import { AuthorCard, QueueBadges, ConfirmDialog, REVIEW_REASONS, ReasonPicker, shortcutBlocked, useReasonTemplates, waitLabel, waitTone } from "./modTools.jsx";
@@ -246,7 +247,7 @@ function Decision({initialTrace,onReload,onDecided}){
     {held && <div className="mod-callout mod-callout--hold" role="status"><p><strong>On hold for an admin.</strong> {current.hold.reason}{current.hold.holder?.display_name ? ` (held by ${current.hold.holder.display_name})` : ""}</p>{role === "admin" && <button type="button" className="btn outline sm" disabled={busy} onClick={release}>Release hold</button>}</div>}
   <div className="card mod-review-detail mod-case">
     {current.deleted_at && <p className="hint">Deleted by the author.</p>}
-    {!current.deleted_at && <div className="mod-case__photos trace-detail__card--public"><TracePhotos trace={current} hero /></div>}
+    {!current.deleted_at && <div className="mod-case__photos trace-detail__card--public"><TracePhotos trace={current} hero /><RemovedPhotos traceId={current.id} /></div>}
     <div className="mod-case__body">
       <div className="mod-case__meta">
         <span className="mod-case__author"><AuthorAvatar authorId={current.author_id} name={trace.author} url={current.author?.avatar_url} /><b>{trace.author}</b>{current.submitted_at && <span> · submitted {new Date(current.submitted_at).toLocaleDateString()}</span>}</span>
