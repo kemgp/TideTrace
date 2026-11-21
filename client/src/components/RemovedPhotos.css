@@ -1,0 +1,12 @@
+/* Staff case view: photos removed during a revision. */
+.removed-photos{display:grid;gap:8px;margin-top:16px}
+.removed-photos h3{font-size:1rem;margin:0}
+.removed-photos .hint{margin:0}
+.removed-photos__list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.removed-photos__item{display:grid;gap:6px}
+.removed-photos__frame{aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center}
+.removed-photos__frame img{width:100%;height:100%;object-fit:cover;display:block}
+.removed-photos__empty{font-size:var(--fs-meta);color:var(--soft)}
+.removed-photos__meta{margin:0;font-size:var(--fs-meta);color:var(--soft)}
+html.dark-mode .removed-photos__frame{background:var(--d-surface-2);border-color:var(--d-border)}
+html.dark-mode .removed-photos__empty,html.dark-mode .removed-photos__meta{color:var(--d-muted)}

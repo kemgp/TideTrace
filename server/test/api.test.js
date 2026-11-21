@@ -685,8 +685,55 @@ test("attachment retry uses the existing object and removal calls the guarded de
   } });
   await bearer(request(app).post(`/api/traces/${traceId}/media/attach`)).send({ object_path: objectPath }).expect(201);
   await bearer(request(app).delete(`/api/media/${mediaId}`)).expect(204);
-  assert.deepEqual(businessCalls(calls).map(({ body }) => body), [{ p_trace_id: traceId, p_object_path: objectPath, p_sort_order: 0 }, { p_media_id: mediaId }]);
+  const rpcs = businessCalls(calls).filter(({ url }) => url.pathname.startsWith("/rest/v1/rpc/"));
+  assert.deepEqual(rpcs.slice(0, 2).map(({ body }) => body), [{ p_trace_id: traceId, p_object_path: objectPath, p_sort_order: 0 }, { p_media_id: mediaId }]);
+  // Nothing is due in this fixture, so nothing is deleted from Storage.
   assert.equal(calls.some(({ url }) => url.pathname.startsWith("/storage/")), false);
+});
+
+test("removing a photo deletes its due files with the author's token, and a Storage failure does not undo the removal", async () => {
+  const due = [`${userId}/${traceId}/photo.webp`, `${userId}/${traceId}/photo.thumb.webp`];
+  for (const failing of [false, true]) {
+    const { app, calls } = fixture({ handler: ({ url, method }) => {
+      if (url.pathname.endsWith("/detach_trace_media")) return json(null, 204);
+      if (url.pathname.endsWith("/removed_trace_media_due")) return json(due.map((object_path) => ({ object_path })));
+      if (url.pathname === "/storage/v1/object/trace-media" && method === "DELETE") return failing ? json({ message: "Storage unavailable" }, 503) : json(due.map((name) => ({ name })));
+    } });
+    await bearer(request(app).delete(`/api/media/${mediaId}`)).expect(204);
+    const removal = calls.find(({ url, method }) => url.pathname === "/storage/v1/object/trace-media" && method === "DELETE");
+    assert.deepEqual(removal.body.prefixes, due);
+    assert.equal(removal.headers.get("authorization"), "Bearer member-token");
+  }
+});
+
+test("opening My Contributions also deletes removed photos that have become due", async () => {
+  const due = [`${userId}/${traceId}/kept.webp`];
+  const { app, calls } = fixture({ handler: ({ url, method }) => {
+    if (url.pathname.endsWith("/removed_trace_media_due")) return json(due.map((object_path) => ({ object_path })));
+    if (url.pathname.endsWith("/deleted_trace_media_pending")) return json([]);
+    if (url.pathname === "/storage/v1/object/trace-media" && method === "DELETE") return json(due.map((name) => ({ name })));
+  } });
+  await bearer(request(app).post("/api/contributions/photo-cleanup")).expect(204);
+  assert.deepEqual(calls.find(({ url, method }) => url.pathname === "/storage/v1/object/trace-media" && method === "DELETE").body.prefixes, due);
+});
+
+test("staff list and view photos removed during a revision; members cannot", async () => {
+  const removedId = "40000000-0000-4000-8000-000000000009";
+  const row = { media_id: removedId, object_path: `${userId}/${traceId}/old.jpg`, thumb_path: `${userId}/${traceId}/old.thumb.webp`, mime_type: "image/jpeg", retired_at: "2026-11-20T10:00:00Z", delete_after: null };
+  const { app, calls, state } = fixture({ role: "moderator", handler: ({ url }) => {
+    if (url.pathname.endsWith("/staff_removed_trace_media")) return json([row]);
+    if (url.pathname.startsWith("/storage/v1/object/trace-media/")) return new Response(Buffer.from("RIFF0000WEBP"), { status: 200 });
+  } });
+  const list = await bearer(request(app).get(`/api/moderation/traces/${traceId}/removed-photos`)).expect(200);
+  assert.deepEqual(list.body.data, [{ id: removedId, mime_type: "image/jpeg", removed_at: "2026-11-20T10:00:00Z", keep_until: null }]);
+  assert.equal(list.body.data[0].object_path, undefined);
+  const thumb = await bearer(request(app).get(`/api/moderation/traces/${traceId}/removed-photos/${removedId}/file?size=thumb`)).expect(200);
+  assert.equal(thumb.headers["content-type"], "image/webp");
+  assert.equal(thumb.headers["cache-control"], "private, no-store");
+  assert.equal(calls.filter(({ url }) => url.pathname.startsWith("/storage/v1/object/trace-media/")).at(-1).url.pathname, `/storage/v1/object/trace-media/${row.thumb_path}`);
+  await bearer(request(app).get(`/api/moderation/traces/${traceId}/removed-photos/${mediaId}/file`)).expect(404);
+  state.role = "user";
+  await bearer(request(app).get(`/api/moderation/traces/${traceId}/removed-photos`)).expect(403);
 });
 
 test("removal rejects unauthenticated callers and preserves database permission errors", async () => {

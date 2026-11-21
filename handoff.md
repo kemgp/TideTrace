@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-20, staging branch)
+# TideTrace — Handoff (updated 2026-11-22, fix/photo-reload-flake branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -6,6 +6,29 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
+
+
+
+### 2026-11-22: Flaky photo reload test fixed, not yet run on the Mac
+
+- CI failed once on `staging` after the Phase 2 merge: `uploads.test.jsx` "refreshes a failed preview with a new signed URL" could not find "Reload photo 1". The photo link can be fetched again while the page settles (StrictMode, profile load), which replaced the failed link and hid the error.
+- `TracePhotos.jsx` (SavedPhoto): a load error now belongs to the link that failed (`failedUrl`); a new link clears it, and "Reload photo" clears it explicitly. The test now keeps failing whichever image is shown until the reload button appears.
+- Next: merge into `staging`, check CI is green, then release Phase 2 to production (migration first).
+
+### 2026-11-21: Egress Phase 2 (removed photos are deleted), not yet run on the Mac
+
+- Production orphan check (21 Nov): no unreferenced files in `trace-media`, so the one-off cleanup script (C2) was not written. Rerun the orphan query from `docs/plans/egress-reduction-plan.md` every month or two.
+- Migration `supabase/migrations/20261121000100_removed_trace_media.sql`: removing a photo records its original, thumbnail and display copy in `private.retired_trace_media` with `delete_after`: now for a never-submitted draft; for a Trace in revision, unset until the final decision (approved or rejected, set by a trigger on `traces.status`), then 30 days (`private.removed_photo_keep()`). Staff list and view kept photos (`staff_removed_trace_media`, Storage read policy). Only the author deletes due files (`removed_trace_media_due`, delete policy). Removed paths cannot be attached again (`attach_trace_media` replaced with that check). Tests: `supabase/tests/removed-photos.sql` (wired into `local-check.mjs`); `access-control.sql` adjusted for the new behaviour. All SQL checks pass. `staging-setup.sql` regenerated.
+- Server: `server/src/removedPhotos.js`; `DELETE /api/media/:id` deletes due files after the removal (best effort); `POST /api/contributions/photo-cleanup` also deletes due files; staff routes `GET /api/moderation/traces/:id/removed-photos` and `…/removed-photos/:mediaId/file?size=thumb` (sent as files, `private, no-store`). 189 server tests pass.
+- Client: `client/src/components/RemovedPhotos.jsx` shows "Removed during revision" in the staff case view (`ReviewTraces`). Test: `client/test/removedPhotos.test.jsx`.
+- Privacy policy section 7 now says what happens to removed photos.
+- Release: apply the migration to staging before merging, and to production before the next release.
+
+### 2026-11-21: Release done; CI added
+
+- Phase A released to production (step 8) with both egress PRs; Tide Energy then switched on in production (flags on, legal pages updated in `docs/legal/`). Production backfill: 20 photos, 0 failed.
+- `.github/workflows/ci.yml`: on every pull request into `staging` or `main` (and pushes to them), GitHub runs `npm ci`, server tests, client tests and the client build ("App tests and build"), plus all migrations and SQL checks on PGlite ("SQL checks"). Branch protection in GitHub should require both checks before merging.
+- Next: egress Phase 2 (storage cleanup), then speed item S1 (photo links sent with each list).
 
 ### 2026-11-20: Release checklist for Phase A step 8
 

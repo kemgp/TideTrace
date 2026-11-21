@@ -1,6 +1,6 @@
 # Egress reduction plan
 
-Written 2026-11-16. Status: PR 1a merged into `staging` and checked (17 to 18 Nov). PR 1b (E3, thumbnails and backfill, plus compressing every photo) built on `feature/egress-thumbnails`. Phase 2 (cleanup) not started.
+Written 2026-11-16. Status: PR 1a and 1b released to production (20 to 21 Nov). Phase 2 (C1) built on `feature/storage-cleanup` (21 Nov): removed draft photos deleted at once, photos removed during a revision kept for staff until 30 days after the final decision, deleted when the author opens My Contributions. C2 not needed: production had no orphans on 21 Nov; rerun the orphan query every month or two.
 
 ## Why
 

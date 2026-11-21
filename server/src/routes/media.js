@@ -6,6 +6,7 @@ import { authenticate } from "../middleware.js";
 import { HttpError, first, result, upstreamError } from "../errors.js";
 import { uuid } from "../validation.js";
 import { cleanupProfilePhotos } from "../profilePhotos.js";
+import { deleteDueRemovedPhotos } from "../removedPhotos.js";
 
 const formats = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "video/mp4": "mp4" };
 // Every upload gets a new random path and is never overwritten, so browsers may keep it for a year.
@@ -81,6 +82,8 @@ export function mediaRoutes(gateway) {
   });
   router.delete("/media/:id", member, async (req, res) => {
     await result(req.db.rpc("detach_trace_media", { p_media_id: uuid.parse(req.params.id) }));
+    // A photo removed from a never-submitted draft is due at once; one removed during a revision is kept for staff.
+    await deleteDueRemovedPhotos(req.db);
     res.sendStatus(204);
   });
   // Table RLS and the Storage SELECT policy decide who may see a file (public, owner or staff).
