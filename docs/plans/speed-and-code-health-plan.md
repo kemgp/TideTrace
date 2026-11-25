@@ -23,6 +23,7 @@ Each step is one branch from `staging` and one pull request, in the order given.
 ### Steps
 
 **S1. Send photo links with the list (largest visible win).**
+- Built 25 Nov 2026 on `feature/speed-s1-photo-links` (see `handoff.md`). Uses the E1 link cache and the thumbnail and display copies. The moderation list is left out: its photos are restricted and stay on `/media/:id/file`.
 - Server: in `content.js`, sign Trace photo paths in one batch with `createSignedUrls`, the way `withCoverUrls` already does for lesson covers, and add `url` to each `trace_media` row on `GET /traces`, `/traces/:id`, `/traces/:id/related`, `/contributions` and the moderation list.
 - Use a one hour expiry. Supabase cannot sign the same link twice, so reuse links from the server-side cache in `egress-reduction-plan.md` (E1) instead of rounding.
 - Client: `TraceCard`, `TraceThumb` and `useRecentTraces` use the supplied `url` and fall back to `media/:id/url` only when it is missing.

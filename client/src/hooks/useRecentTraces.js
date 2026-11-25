@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getData } from "../api/data.js";
 import { PHOTO_TYPES } from "../api/photos.js";
-import { loadMedia } from "../api/mediaLinks.js";
+import { loadMedia, suppliedLink } from "../api/mediaLinks.js";
 
 const SHOWN = 10;
 const MIN_TILES = 4;
@@ -15,7 +15,7 @@ export function pickTiles(rows) {
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0];
     if (!photo?.id) return [];
     return [{ id: trace.id, title: trace.title || "Untitled trace", category: trace.category?.name || "",
-      place: trace.location_name || "", photoId: photo.id }];
+      place: trace.location_name || "", photoId: photo.id, link: suppliedLink(photo, "thumb") }];
   }).slice(0, SHOWN);
 }
 
@@ -29,9 +29,10 @@ export default function useRecentTraces(active) {
       try {
         const picked = pickTiles(await getData("traces?limit=24", { signal: controller.signal }));
         // Only public photos appear here, so each is a remembered, reusable link (never a file to revoke).
-        const urls = await Promise.all(picked.map(tile => loadMedia({ id: tile.photoId, size: "thumb", read: getData, signal: controller.signal })
+        // The list sends that link with each photo; a request is made only for one that came without it.
+        const urls = await Promise.all(picked.map(tile => loadMedia({ id: tile.photoId, size: "thumb", supplied: tile.link, read: getData, signal: controller.signal })
           .then(media => media.revoke ? (media.revoke(), "") : media.url).catch(() => "")));
-        const tiles = picked.map((tile, i) => ({ ...tile, url: urls[i] })).filter(tile => tile.url);
+        const tiles = picked.map(({ link, ...tile }, i) => ({ ...tile, url: urls[i] })).filter(tile => tile.url);
         if (alive) setState({ status: tiles.length >= MIN_TILES ? "ready" : "empty", tiles });
       } catch { if (alive) setState({ status: "empty", tiles: [] }); }
     })();

@@ -9,23 +9,43 @@
 //
 // Restricted photos (draft, pending, held, hidden) never get a shareable link. The API sends the file itself
 // and we show it from a blob: address that only works in this tab. Callers must call `revoke` when done.
+//
+// Lists and Trace pages usually arrive with the link already on each public photo (`thumb_url` or
+// `display_url`, see server/src/traceMedia.js). Pass it as `supplied` (from `suppliedLink`) and no request
+// is made. A retry should not pass it, so a link that stopped working is replaced by a fresh one.
 const links = new Map(); // `${owner}:${id}` -> { url, until }
 const MARGIN_MS = 60 * 1000;
 const MAX_LINKS = 500;
 
 const keyFor = (owner, id, size) => `${owner || "anon"}:${id}:${size || "display"}`;
+const isLink = (url) => typeof url === "string" && /^https?:\/\//.test(url);
 
-export async function loadMedia({ id, owner, read, signal, size }) {
+function remember(key, url, expiresIn) {
+  const until = Date.now() + (Number(expiresIn) || 0) * 1000 - MARGIN_MS;
+  if (until <= Date.now()) return false;
+  links.delete(key);
+  links.set(key, { url, until });
+  while (links.size > MAX_LINKS) links.delete(links.keys().next().value);
+  return true;
+}
+
+// The link a list or Trace page sent with this photo for `size` ("thumb", or leave out for the display copy),
+// or null when there is none (restricted photo, older response, Storage could not sign it).
+export function suppliedLink(media, size) {
+  const url = size === "thumb" ? media?.thumb_url : media?.display_url;
+  return isLink(url) ? { url, expires_in: media.link_expires_in } : null;
+}
+
+export async function loadMedia({ id, owner, read, signal, size, supplied }) {
   const key = keyFor(owner, id, size);
   const query = size ? `?size=${size}` : "";
   const saved = links.get(key);
   if (saved && saved.until > Date.now()) return { url: saved.url, revoke: null };
   links.delete(key);
+  if (isLink(supplied?.url) && remember(key, supplied.url, supplied.expires_in)) return { url: supplied.url, revoke: null };
   const data = await read(`media/${encodeURIComponent(id)}/url${query}`, { signal });
-  if (data?.url && /^https?:\/\//.test(data.url)) {
-    const seconds = Number(data.expires_in) || 0;
-    links.set(key, { url: data.url, until: Date.now() + seconds * 1000 - MARGIN_MS });
-    while (links.size > MAX_LINKS) links.delete(links.keys().next().value);
+  if (isLink(data?.url)) {
+    remember(key, data.url, data.expires_in);
     return { url: data.url, revoke: null };
   }
   if (data?.private) {

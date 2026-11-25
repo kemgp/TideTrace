@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
-import { forgetAllMedia, forgetMedia, loadMedia } from "../src/api/mediaLinks.js";
+import { forgetAllMedia, forgetMedia, loadMedia, suppliedLink } from "../src/api/mediaLinks.js";
 import { requestData } from "../src/api/data.js";
 import { compressIfPossible } from "../src/api/compressPhoto.js";
 
@@ -134,4 +134,24 @@ it("compresses every Trace photo before upload and adds a thumbnail after it is 
   expect(await prepareTracePhoto(original, { dataSaver: true })).toBe(original);
   // A failed thumbnail upload never breaks the photo upload.
   await expect(addThumbnail(vi.fn(async () => { throw new Error("offline"); }), mediaId, sent)).resolves.toBeUndefined();
+});
+
+it("uses the link a list sent with the photo instead of asking the API, and keeps it for the session", async () => {
+  forgetAllMedia();
+  const read = vi.fn(async () => ({ url: "https://project.supabase.co/fresh.webp?token=2", expires_in: 3600 }));
+  const photo = { id: mediaId, mime_type: "image/jpeg", link_expires_in: 3000,
+    thumb_url: "https://project.supabase.co/a.thumb.webp?token=1", display_url: "https://project.supabase.co/a.display.webp?token=1" };
+  expect(suppliedLink(photo, "thumb")).toEqual({ url: photo.thumb_url, expires_in: 3000 });
+  expect(suppliedLink(photo)).toEqual({ url: photo.display_url, expires_in: 3000 });
+  expect(suppliedLink({ id: mediaId, mime_type: "image/jpeg" }, "thumb")).toBeNull();
+  expect(suppliedLink({ thumb_url: "javascript:alert(1)", link_expires_in: 3000 }, "thumb")).toBeNull();
+  expect(suppliedLink(undefined)).toBeNull();
+  expect(await loadMedia({ id: mediaId, owner: "member-a", size: "thumb", supplied: suppliedLink(photo, "thumb"), read })).toEqual({ url: photo.thumb_url, revoke: null });
+  expect(await loadMedia({ id: mediaId, owner: "member-a", size: "thumb", read })).toEqual({ url: photo.thumb_url, revoke: null });
+  expect(read).not.toHaveBeenCalled();
+  // A link about to expire is not kept; the API is asked instead.
+  forgetMedia("member-a", mediaId, "thumb");
+  const fresh = await loadMedia({ id: mediaId, owner: "member-a", size: "thumb", supplied: { url: photo.thumb_url, expires_in: 30 }, read });
+  expect(fresh.url).toBe("https://project.supabase.co/fresh.webp?token=2");
+  expect(read.mock.calls.map(([path]) => path)).toEqual([`media/${mediaId}/url?size=thumb`]);
 });
