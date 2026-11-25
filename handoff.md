@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-22, fix/photo-reload-flake branch)
+# TideTrace — Handoff (updated 2026-11-22, staging = main after Phase 2 release)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -9,7 +9,13 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
-### 2026-11-22: Flaky photo reload test fixed, not yet run on the Mac
+### 2026-11-22: Egress Phase 2 released to production
+
+- Fix PR #65 merged into `staging` with CI green. Phase 2 migration applied to production, `staging` merged into `main`, smoke test passed.
+- The "Supabase Preview" check on pull requests is always skipped (Supabase GitHub app, preview branches need the Pro plan). Not a required check; ignore it.
+- Next session: speed S1 (thumbnail links sent with each list), see `docs/plans/speed-and-code-health-plan.md`. Feed mockup stays shelved.
+
+### 2026-11-22: Flaky photo reload test fixed (PR #65)
 
 - CI failed once on `staging` after the Phase 2 merge: `uploads.test.jsx` "refreshes a failed preview with a new signed URL" could not find "Reload photo 1". The photo link can be fetched again while the page settles (StrictMode, profile load), which replaced the failed link and hid the error.
 - `TracePhotos.jsx` (SavedPhoto): a load error now belongs to the link that failed (`failedUrl`); a new link clears it, and "Reload photo" clears it explicitly. The test now keeps failing whichever image is shown until the reload button appears.

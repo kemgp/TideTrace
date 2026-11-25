@@ -69,6 +69,8 @@ it("links the hero to the attention list, which shows revisions before drafts wi
   setup({ totals: summary({ drafts: 1, needs_revision: 1 }), revisions: [row("r", "revision_requested", { reviewer_note: "Add a clearer photo", revision_requested_at: waiting })], drafts: [row("d", "draft")] });
   const fix = await screen.findByRole("link", { name: "Fix 1 revision →" });
   const section = await screen.findByRole("region", { name: "Needs your attention" });
+  // The hero can show before the list finishes loading (the list still shows its skeleton), so wait for the rows.
+  await within(section).findByRole("link", { name: "Revise: Trace r" });
   const links = within(section).getAllByRole("link");
   expect(links.map((link) => link.getAttribute("href"))).toEqual(["/user/contributions/r/edit", "/user/contributions/d/edit"]);
   expect(within(section).getByRole("link", { name: "Revise: Trace r" })).toBeTruthy();
