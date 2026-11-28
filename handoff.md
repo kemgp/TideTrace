@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; S1 and S2 merged into staging; preflight fix on a branch)
+# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; S1, S2 and the preflight fix merged; S3 on a branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -9,7 +9,17 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
-### 2026-11-28: Preflight cache fix, `fix/preflight-cache`, uncommitted, client tests NOT run
+### 2026-11-28: Speed S3 (shared read cache in the browser), `feature/speed-s3-read-cache`, uncommitted, client tests NOT run
+
+- New `client/src/api/readCache.js`, used by `readData` in `AppContext.jsx` for every read except files (`as: "blob"`). Identical reads for the same account and path at the same time share one request; one caller leaving (its signal aborts) does not cancel it for the others. The last answer per account and path is kept for five minutes (`peekRead`), capped at 200 entries. `maxAge` lets a caller reuse a recent answer.
+- Every `writeData` call (success or failure) drops the account's copies (`invalidateReads`), and a read that was running at that moment is not kept. Copies are cleared on sign-out, when no account is signed in, and when the app starts.
+- `useRemoteData`: coming back to a path read in the last five minutes shows that answer at once (`refreshing: true`, not `loading`) while it is read again. It is only used when it passes the same shape check as a fresh answer.
+- `useDashboard`: the shape check is now `validDashboard`. Mounting and the 30 second timer pass `maxAge: 10000`, so the dashboard, staff switches, Tides progress and usage share one request. Focus and visibility still always ask again. A component that mounts later shows the totals at once from the copy.
+- Changed from the plan: poll timings are unchanged. The dashboard keeps its 30 second refresh (a test requires it, and moderators rely on fresh counts), but instances now share it. The 20 second unread-count check stays because Tide Energy notices need it (the plan's own exception; energy is on in production).
+- Tests: new `client/test/readCache.test.js`, and a new case in `dashboard.test.jsx` (the dashboard page asks for its totals once under StrictMode). Everything parses, and the cache logic was checked in Node; vitest was not run (macOS `node_modules`). Watch CI for tests that navigate away and back and expect a loading state or old data to be gone at once: a cached answer now shows first.
+- Check after deploy: move Dashboard, Traces, Tides, My Contributions and back within a few minutes. Pages should show their content at once, and `dashboard` should be requested once per page change, not once per widget.
+
+### 2026-11-28: Preflight cache fix, merged into `staging` (PR #73)
 
 - After S2 was deployed, staging sent `Access-Control-Max-Age: 600`, but Chrome still sent a preflight before every API call. Cause: `requestData` (`client/src/api/data.js`) and `authRequest` (`client/src/api/auth.js`) passed `cache: "no-store"` to `fetch`, and with that mode Chrome and Firefox skip the CORS preflight cache.
 - Fix: the `cache` option is removed from both. The API already sends `Cache-Control: no-store` on every answer, so the browser still keeps no API data. This is also needed for S4 (short caching of public data).

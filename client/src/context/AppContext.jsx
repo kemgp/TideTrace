@@ -2,6 +2,7 @@ import React,{createContext,useCallback,useContext,useEffect,useMemo,useRef,useS
 import {ApiError,authRequest} from "../api/auth.js";
 import {createSessionManager} from "../api/session.js";
 import {getData,requestData} from "../api/data.js";
+import {clearReads,invalidateReads,sharedRead} from "../api/readCache.js";
 import useNotifications from "../hooks/useNotifications.js";
 import useToastQueue from "../hooks/useToastQueue.js";
 import {
@@ -23,7 +24,8 @@ const ROLE_NAMES={
 };
 
 export function AppProvider({children}){
-  const [sessions]=useState(createSessionManager);
+  // A new app starts with no shared read copies (see readCache.js).
+  const [sessions]=useState(()=>{clearReads();return createSessionManager();});
   const {account,ready:sessionReady,error:sessionError,notice:sessionNotice}=useSyncExternalStore(sessions.subscribe,sessions.getSnapshot);
   const {authenticate,clearSession,retrySession}=sessions;
   const getCurrentAccount=useCallback(()=>sessions.getSnapshot().account,[sessions]);
@@ -79,6 +81,7 @@ export function AppProvider({children}){
   const resendConfirmation=useCallback((email)=>authRequest("resend",{body:{email}}),[]);
 
   const logout=useCallback(async()=>{
+    clearReads();
     try{
       await sessions.logout();
     }catch(error){
@@ -88,7 +91,7 @@ export function AppProvider({children}){
     }
   },[sessions,showToast]);
 
-  const readData=useCallback(async(path,{signal,as}={})=>{
+  const loadData=useCallback(async(path,{signal,as}={})=>{
     const owner=sessions.getSnapshot().account?.profile.id;
     let current=sessions.getSnapshot().account;
 
@@ -130,6 +133,17 @@ export function AppProvider({children}){
     return data;
   },[sessions]);
 
+  // Reads for the signed-in account go through the shared read cache: identical reads share one request, and
+  // `maxAge` (milliseconds) reuses a recent answer. Files (`as`) are always fetched on their own.
+  const readData=useCallback((path,{signal,as,maxAge}={})=>{
+    const owner=sessions.getSnapshot().account?.profile.id;
+    if(as||!owner)return loadData(path,{signal,as});
+    return sharedRead(owner,path,()=>loadData(path),{signal,maxAge});
+  },[sessions,loadData]);
+
+  // Signing out, or another account signing in, drops every shared read copy.
+  useEffect(()=>{if(!profile?.id)clearReads();},[profile?.id]);
+
   const writeData=useCallback(async(path,{method,body,file,signal})=>{
     const owner=sessions.getSnapshot().account?.profile.id;
     let current=sessions.getSnapshot().account;
@@ -154,6 +168,9 @@ export function AppProvider({children}){
     }catch(error){
       if(error.status===401||error.status===403)await sessions.retrySession();
       throw error;
+    }finally{
+      // Whatever was saved may change any list or total, so later reads ask the server again.
+      invalidateReads(owner);
     }
 
     if(signal?.aborted||sessions.getSnapshot().account?.profile.id!==owner){

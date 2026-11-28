@@ -38,6 +38,7 @@ Each step is one branch from `staging` and one pull request, in the order given.
 - Check: server timing for a signed-in request drops from three upstream calls to one on a warm cache. Add tests for expiry, a changed token and a suspended profile.
 
 **S3. One shared read cache in the client.**
+- Built 28 Nov 2026 on `feature/speed-s3-read-cache` (see `handoff.md`). Changed from the plan: the polls keep their timing. The dashboard's 30 second timer reuses an answer under 10 seconds old, so instances share it. The 20 second unread check stays because Tide Energy notices are on in production.
 - Add a small cache inside `readData` (or a `useCachedData` hook): one in-flight request per path, last result reused while a refresh runs, cleared on sign-out and after any write to a related path.
 - Move `useDashboard` and `useNotifications` onto it so four components share one request.
 - Slow the polls: unread count to 60 seconds, dashboard refresh on focus only. Keep the 20 second check only while Tide Energy notices need it, or replace it with Supabase Realtime later.
