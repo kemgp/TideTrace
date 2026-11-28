@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; S1 to S3 and the preflight fix merged; S4 on a branch)
+# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; speed S1 to S4 merged and checked on staging; next C2)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -9,12 +9,15 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
-### 2026-11-28: Speed S4 (short caching of public data), `feature/speed-s4-public-caching`, uncommitted, client tests NOT run
+### 2026-11-28: Speed S4 (short caching of public data), merged into `staging` (PR #75)
 
+- Checked on staging (bundle `index-DmnW5Cw1.js`). Signed out: `community-summary` and `traces?limit=24` came from the browser cache on a repeat visit within a minute ("(disk cache)", 1 ms); that repeat visit transferred 264 bytes with no API calls. `traces?limit=24` sends `public, max-age=60` and `Cf-Cache-Status: DYNAMIC` (Cloudflare in front of Render keeps no copy). Signed in: moving between pages with the app's own links for about 45 seconds made one `categories` request out of 109. A full page load starts the in-memory copy empty, so it asks again (expected).
+- The landing strip needs at least 4 approved, non-sensitive Traces with a photo (`MIN_TILES` in `useRecentTraces.js`); rebuilt staging has one, so the strip stays hidden there, though `traces?limit=24` is still requested.
+- Known: after the minute is up, `traces?limit=24` comes back as a full 200, not a 304, because each photo's `link_expires_in` counts down, so the ETag changes. Harmless; a fixed expiry time instead would allow 304s if it ever matters.
+- Next in the plan: C2 (formatter and linter) while no other branch is open. Check Supabase usage before 7 Dec.
 - Server (`server/src/routes/content.js`, `cacheBriefly`): `GET /community-summary` sends `Cache-Control: private, max-age=60`; the signed-out `GET /traces` list sends `public, max-age=60`. Both add `Vary: Authorization`. The header is set only right before a successful answer, so errors stay `no-store`. The signed-in Trace list stays `no-store` (with `Vary: Authorization`). Documented in `DEPLOYMENT.md`.
 - Categories: not cached by the server. `useRemoteData` accepts `maxAge`, and the category lists in the archive, Tides, the Trace forms and the lesson editor pass `SLOW_CHANGING_MS` (60 seconds, `client/src/api/readCache.js`). Any save in the tab drops the copy, so an admin's category edit shows at once there. The checks made right before submitting a Trace (`SubmitTrace`, `TraceDraftForm`) still read categories fresh.
 - Tests: 206 server tests pass (3 new at the end of `api.test.js`: community totals, the signed-out and signed-in Trace list, categories and dashboard stay `no-store`). Client files parse, but vitest was not run (macOS `node_modules`).
-- Check after deploy: on the landing page signed out, reload within a minute: `community-summary` and `traces?limit=24` show "(disk cache)" or "(memory cache)". Signed in, moving between Traces and Tides within a minute requests `categories` once.
 - Region (decided 28 Nov): Render is in Singapore, production Supabase in Seoul, staging in Tokyo, so every API call crosses to another region. Not moving now (egress quota until 7 Dec; production would be a full migration). After 7 Dec: rebuild staging in Singapore as a trial and compare with the 28 Nov staging timings (`dashboard` 219 to 259 ms, `notifications` 217 to 272 ms, `unread-count` 227 to 350 ms). Neither Supabase nor Render can change a project's region in place.
 
 ### 2026-11-28: Speed S3 (shared read cache in the browser), merged into `staging` (PR #74)
