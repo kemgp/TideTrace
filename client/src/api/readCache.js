@@ -13,6 +13,9 @@ import { ApiError } from "./auth.js";
 // Files (`as: "blob"`) never come through here. Keys include the account id, so one account never sees
 // another account's answers.
 const PEEK_MS = 5 * 60 * 1000;
+// For lists that rarely change (categories): reuse an answer for a minute instead of asking on every page.
+// A save in this tab still drops it at once (invalidateReads), so an admin's own edit shows straight away.
+export const SLOW_CHANGING_MS = 60 * 1000;
 const MAX_ENTRIES = 200;
 const entries = new Map(); // key -> { data, at }
 const inflight = new Map(); // key -> promise

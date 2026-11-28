@@ -5,6 +5,7 @@ import RemoteState from "./RemoteState.jsx";
 import { traceValidation, hasAttachedPhoto } from "../api/traceValidation.js";
 import { ApiError } from "../api/auth.js";
 import useToast from "../hooks/useToast.js";
+import { SLOW_CHANGING_MS } from "../api/readCache.js";
 
 const editable = (trace, owner) => trace.author_id === owner && ["draft", "revision_requested"].includes(trace.status) && !trace.is_hidden && !trace.deleted_at;
 
@@ -12,7 +13,7 @@ const editable = (trace, owner) => trace.author_id === owner && ["draft", "revis
 export default function SubmitTrace({ trace, onChange, photosBlocked, hasSelectedPhoto = false, preparePhoto, operationLock, onLockedChange, onPendingChange, onValidation }) {
   const { readData, writeData, profile } = useApp();
   const toast = useToast();
-  const categories = useRemoteData("categories", { collection: true });
+  const categories = useRemoteData("categories", { collection: true, maxAge: SLOW_CHANGING_MS });
   const [attempted, setAttempted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState("Checking Trace…");

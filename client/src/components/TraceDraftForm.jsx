@@ -17,6 +17,7 @@ import { PHOTO_TYPES, photoError } from "../api/photos.js";
 import { flushSync } from "react-dom";
 import PageHeader from "./PageHeader.jsx";
 import { useUnsavedChanges } from "./NavigationGuard.jsx";
+import { SLOW_CHANGING_MS } from "../api/readCache.js";
 
 const FIELD_IDS = { title: "draft-title", description: "draft-description", category_id: "draft-category", location_name: "draft-location" };
 const draftFields = (trace) => ({ title: trace?.title || "", category_id: trace?.category_id || "", location_name: trace?.location_name || "", description: trace?.description || "", is_sensitive: trace?.is_sensitive ?? false, latitude: trace?.latitude ?? null, longitude: trace?.longitude ?? null });
@@ -26,7 +27,7 @@ export default function TraceDraftForm({ trace = null, onReload, initialLocation
   const navigate = useNavigate();
   const revision = trace?.status === "revision_requested";
   const saveLabel = revision ? "Save changes" : "Save draft";
-  const categories = useRemoteData("categories", { collection: true });
+  const categories = useRemoteData("categories", { collection: true, maxAge: SLOW_CHANGING_MS });
   const [fields, setFields] = useState(() => ({ ...draftFields(trace), ...(!trace && initialLocation ? initialLocation : {}) }));
   const [savedFields, setSavedFields] = useState(() => draftFields(trace));
   const [activeStep, setActiveStep] = useState("story");

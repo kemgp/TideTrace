@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; S1, S2 and the preflight fix merged; S3 on a branch)
+# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; S1 to S3 and the preflight fix merged; S4 on a branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -9,7 +9,17 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
-### 2026-11-28: Speed S3 (shared read cache in the browser), `feature/speed-s3-read-cache`, uncommitted, client tests NOT run
+### 2026-11-28: Speed S4 (short caching of public data), `feature/speed-s4-public-caching`, uncommitted, client tests NOT run
+
+- Server (`server/src/routes/content.js`, `cacheBriefly`): `GET /community-summary` sends `Cache-Control: private, max-age=60`; the signed-out `GET /traces` list sends `public, max-age=60`. Both add `Vary: Authorization`. The header is set only right before a successful answer, so errors stay `no-store`. The signed-in Trace list stays `no-store` (with `Vary: Authorization`). Documented in `DEPLOYMENT.md`.
+- Categories: not cached by the server. `useRemoteData` accepts `maxAge`, and the category lists in the archive, Tides, the Trace forms and the lesson editor pass `SLOW_CHANGING_MS` (60 seconds, `client/src/api/readCache.js`). Any save in the tab drops the copy, so an admin's category edit shows at once there. The checks made right before submitting a Trace (`SubmitTrace`, `TraceDraftForm`) still read categories fresh.
+- Tests: 206 server tests pass (3 new at the end of `api.test.js`: community totals, the signed-out and signed-in Trace list, categories and dashboard stay `no-store`). Client files parse, but vitest was not run (macOS `node_modules`).
+- Check after deploy: on the landing page signed out, reload within a minute: `community-summary` and `traces?limit=24` show "(disk cache)" or "(memory cache)". Signed in, moving between Traces and Tides within a minute requests `categories` once.
+- Region (decided 28 Nov): Render is in Singapore, production Supabase in Seoul, staging in Tokyo, so every API call crosses to another region. Not moving now (egress quota until 7 Dec; production would be a full migration). After 7 Dec: rebuild staging in Singapore as a trial and compare with the 28 Nov staging timings (`dashboard` 219 to 259 ms, `notifications` 217 to 272 ms, `unread-count` 227 to 350 ms). Neither Supabase nor Render can change a project's region in place.
+
+### 2026-11-28: Speed S3 (shared read cache in the browser), merged into `staging` (PR #74)
+
+- Checked on staging after the frontend redeployed (bundle `index-CwlQ3jXS.js`): no preflights for addresses already used, one `dashboard` request per page change, no cancelled requests. Right after the merge, staging still served the old bundle (`index-DWovJ3Eo.js`) for a while; if the bundle name does not change after a merge, check Vercel's Deployments for the `staging` branch.
 
 - New `client/src/api/readCache.js`, used by `readData` in `AppContext.jsx` for every read except files (`as: "blob"`). Identical reads for the same account and path at the same time share one request; one caller leaving (its signal aborts) does not cancel it for the others. The last answer per account and path is kept for five minutes (`peekRead`), capped at 200 entries. `maxAge` lets a caller reuse a recent answer.
 - Every `writeData` call (success or failure) drops the account's copies (`invalidateReads`), and a read that was running at that moment is not kept. Copies are cleared on sign-out, when no account is signed in, and when the app starts.
