@@ -14,9 +14,12 @@ export async function requestData(path, { token, signal, method = "GET", body, f
   if (signal?.aborted) abort();
   const timeout = setTimeout(abort, file ? 120000 : 20000);
   try {
+    // No `cache` option on purpose: `cache: "no-store"` also makes Chrome and Firefox skip the CORS preflight
+    // cache, so every call would wait for an extra OPTIONS request. The API sends `Cache-Control: no-store`
+    // on its answers, so the browser still keeps none of them.
     const response = await fetch(apiUrl(path), {
       method, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(file ? { "Content-Type": file.type } : body !== undefined ? { "Content-Type": "application/json" } : {}) },
-      ...(file ? { body: file } : body !== undefined ? { body: JSON.stringify(body) } : {}), signal: controller.signal, cache: "no-store",
+      ...(file ? { body: file } : body !== undefined ? { body: JSON.stringify(body) } : {}), signal: controller.signal,
     });
     if (response.status === 204 && response.ok) return null;
     if (as === "blob" && response.ok) return await response.blob();

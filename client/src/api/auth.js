@@ -23,8 +23,8 @@ export async function authRequest(path, { body, token, method = body === undefin
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
+      // No `cache` option: see requestData in data.js (it would disable the CORS preflight cache).
       signal: controller.signal,
-      cache: "no-store",
     });
     if (response.status === 204) return null;
     let payload;
