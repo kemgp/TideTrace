@@ -2355,3 +2355,59 @@ test("an author's own approved Trace page gets display links; a Trace in revisio
     assert.equal(signedPaths(calls).length, linked ? 1 : 0);
   }
 });
+
+// Speed S2: member reads reuse the sign-in check for up to 30 seconds; staff routes and writes never do.
+const signInChecks = (calls) => ({
+  user: calls.filter(({ url }) => url.pathname === "/auth/v1/user").length,
+  profile: calls.filter(({ url }) => url.pathname === "/rest/v1/rpc/get_my_profile").length,
+});
+
+test("member reads reuse the sign-in check; another token or a failed check asks Supabase again", async () => {
+  const { app, calls } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_dashboard_summary" ? json({}) : undefined });
+  await bearer(request(app).get("/api/dashboard")).expect(200);
+  await bearer(request(app).get("/api/dashboard")).expect(200);
+  await bearer(request(app).get("/api/auth/me")).expect(200);
+  assert.deepEqual(signInChecks(calls), { user: 1, profile: 1 });
+  await bearer(request(app).get("/api/dashboard"), "other-token").expect(200);
+  assert.deepEqual(signInChecks(calls), { user: 2, profile: 2 });
+  await bearer(request(app).get("/api/dashboard"), "expired").expect(401);
+  await bearer(request(app).get("/api/dashboard"), "expired").expect(401);
+  assert.equal(signInChecks(calls).user, 4);
+});
+
+test("staff and admin routes check the role on every request", async () => {
+  const { app, calls } = fixture({ role: "admin", handler: ({ url }) => url.pathname === "/rest/v1/rpc/admin_list_profiles" ? json([]) : undefined });
+  await bearer(request(app).get("/api/admin/users")).expect(200);
+  await bearer(request(app).get("/api/admin/users")).expect(200);
+  assert.deepEqual(signInChecks(calls), { user: 2, profile: 2 });
+});
+
+test("a suspended account cannot write even right after a cached read, and the next read checks again", async () => {
+  const { app, calls, state } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_dashboard_summary" ? json({}) : undefined });
+  await bearer(request(app).get("/api/dashboard")).expect(200);
+  state.status = "suspended";
+  const write = await bearer(request(app).delete(`/api/traces/${traceId}`)).expect(403);
+  assert.equal(write.body.error.code, "ACCOUNT_SUSPENDED");
+  const read = await bearer(request(app).get("/api/dashboard")).expect(403);
+  assert.equal(read.body.error.code, "ACCOUNT_SUSPENDED");
+  assert.deepEqual(signInChecks(calls), { user: 3, profile: 3 });
+  assert.equal(businessCalls(calls).filter(({ url }) => url.pathname === "/rest/v1/rpc/delete_own_trace").length, 0);
+});
+
+test("a saved name shows on the next /me, not after the cache runs out", async () => {
+  let name = "Member";
+  const { app } = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/rpc/get_my_profile") return json([{ id: userId, display_name: name, role: "user", status: "active" }]);
+    if (url.pathname === "/rest/v1/profiles") { name = "Updated Name"; return json([{ id: userId, display_name: name }]); }
+  } });
+  assert.equal((await bearer(request(app).get("/api/auth/me")).expect(200)).body.data.display_name, "Member");
+  await bearer(request(app).patch("/api/profile")).send({ display_name: "Updated Name" }).expect(200);
+  assert.equal((await bearer(request(app).get("/api/auth/me")).expect(200)).body.data.display_name, "Updated Name");
+});
+
+test("the browser may keep the CORS preflight answer for 10 minutes", async () => {
+  const { app } = fixture();
+  const response = await request(app).options("/api/dashboard").set("Origin", "http://localhost:5173").set("Access-Control-Request-Method", "GET").expect(204);
+  assert.equal(response.headers["access-control-max-age"], "600");
+  assert.equal(response.headers["access-control-allow-origin"], "http://localhost:5173");
+});

@@ -31,6 +31,7 @@ Each step is one branch from `staging` and one pull request, in the order given.
 - Check: opening the archive makes one API call, not seven. Hidden and deleted Traces still return no link (existing storage rules).
 
 **S2. Stop repeating the sign-in check.**
+- Built 28 Nov 2026 on `feature/speed-s2-auth-cache` (see `handoff.md`). Changed from the plan: staff and admin routes always check fresh, so losing a role still takes effect on the next request; only member reads reuse the check. Also sends `Access-Control-Max-Age: 600` so the CORS preflight is not repeated before every call.
 - Server: cache the result of `authenticate` (user id and profile) in memory for 30 seconds, keyed by a hash of the token, with a size cap. Never cache failures.
 - Row-level security still checks every query, so a suspended account loses data access at once; only the API-level 403 can lag by up to 30 seconds. State this in `DEPLOYMENT.md`.
 - Later option: verify the token signature locally with Supabase signing keys. Read the current Supabase documentation before choosing this.

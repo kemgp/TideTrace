@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; speed S1 merged into staging)
+# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; S1 merged into staging; S2 on a branch)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -8,6 +8,15 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
+
+### 2026-11-28: Speed S2 (reuse the sign-in check) and preflight caching, `feature/speed-s2-auth-cache`, uncommitted
+
+- S1 checked on the rebuilt staging: the archive loads with one `traces` call and no `media/:id/url` requests; the card photo is the WebP copy, served from the browser cache.
+- The same check showed a CORS preflight before every API call (76 to 109 ms each), because the API is on another origin and requests carry `Authorization`. Fixed here: `security()` in `server/src/middleware.js` sends `Access-Control-Max-Age: 600`.
+- New `server/src/sessionCache.js` (`gateway.sessions`, one per app): the sign-in result (`{ id, email }` and the profile) keyed by a SHA-256 hash of the token, 30 seconds at most and never past the token's `exp`, capped at 2,000 entries. `authenticate` reuses it only for GET and HEAD on routes without `roles`. Staff and admin routes and all writes check fresh. A write drops the caller's entry when it finishes, so `/me` shows a saved name, photo or Data Saver setting at once. Failures are never stored.
+- Changed from the plan: the plan cached every route. Two existing tests ("role changes take effect on the next request" and the removed-photos staff test) require a lost role to apply at once, so role-limited routes stay uncached. Remaining lag: a suspended member's reads can still get API answers for up to 30 seconds; they cannot write, and RLS still applies. Written in `DEPLOYMENT.md`.
+- Tests: 203 server tests pass (new `server/test/sessionCache.test.js`, plus 5 cases at the end of `api.test.js`). No client changes.
+- Next: push from the Mac's terminal, PR into `staging`, CI. Then on staging, open the Network tab: after the first load, member pages should show no preflight rows for 10 minutes, and repeated reads should be faster. The plan's option to verify tokens locally with Supabase signing keys is not started (read the current Supabase docs first).
 
 ### 2026-11-28: Staging Supabase project deleted and rebuilt
 
