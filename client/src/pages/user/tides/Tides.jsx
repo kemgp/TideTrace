@@ -7,6 +7,7 @@ import TideCard from "../../../components/TideCard.jsx";
 import TidesProgress from "../../../components/TidesProgress.jsx";
 import PageHeader from "../../../components/PageHeader.jsx";
 import "../../../components/TideFilters.css";
+import { SLOW_CHANGING_MS } from "../../../api/readCache.js";
 
 const PROGRESS = [["", "All lessons"], ["incomplete", "Incomplete"], ["completed", "Completed"]];
 
@@ -26,7 +27,7 @@ export default function Tides() {
     }, 300);
     return () => clearTimeout(timer);
   }, [typed]);
-  const topics = useRemoteData("categories", { collection: true });
+  const topics = useRemoteData("categories", { collection: true, maxAge: SLOW_CHANGING_MS });
   const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
   if (topic) params.set("category_id", topic);
   if (progress) params.set("progress", progress);

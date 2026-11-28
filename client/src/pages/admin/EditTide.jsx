@@ -15,6 +15,7 @@ import LessonImages from "./LessonImages.jsx";
 import QuizEditor from "../../components/QuizEditor.jsx";
 import { energyEnabled } from "../../api/energy.js";
 import { compressIfPossible } from "../../api/compressPhoto.js";
+import { SLOW_CHANGING_MS } from "../../api/readCache.js";
 
 const toFields = (lesson) => ({ title: lesson?.title || "", slug: lesson?.slug || "", body: lesson?.body || "", summary: lesson?.summary || "", category_id: lesson?.category_id || "", paged: Boolean(lesson?.paged) });
 const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -40,7 +41,7 @@ function Editor({ initial }) {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(initial);
   const [fields, setFields] = useState(() => toFields(initial));
-  const topics = useRemoteData("categories", { collection: true });
+  const topics = useRemoteData("categories", { collection: true, maxAge: SLOW_CHANGING_MS });
   const [assetBusy, setAssetBusy] = useState("");
   const [assetError, setAssetError] = useState("");
   const [pending, setPending] = useState({ cover: null, slides: null });

@@ -7,7 +7,8 @@ import { peekRead } from "../api/readCache.js";
 // lists the user filters or pages through, never for records identified by the path.
 // Coming back to a path read in the last five minutes shows that answer at once (refreshing: true) while it is
 // read again (see api/readCache.js); the copy is for this exact path and account only.
-export default function useRemoteData(path, { collection = false, keepPrevious = false, object = false } = {}) {
+// maxAge (milliseconds): reuse an answer younger than this instead of asking again, for lists that rarely change.
+export default function useRemoteData(path, { collection = false, keepPrevious = false, object = false, maxAge = 0 } = {}) {
   const valid = (data) => collection ? Array.isArray(data) : Boolean(data) && typeof data === "object" && (object || Boolean(data.id));
   const { readData, profile } = useApp();
   const [attempt, setAttempt] = useState(0);
@@ -17,14 +18,14 @@ export default function useRemoteData(path, { collection = false, keepPrevious =
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-    if (path) readData(path, { signal: controller.signal }).then((data) => {
+    if (path) readData(path, { signal: controller.signal, maxAge }).then((data) => {
       if (!valid(data)) throw new Error("The service returned an unexpected response. Please try again.");
       if (active) { if (keepPrevious) last.current = { profileId: profile?.id, data }; setResult({ key, data, error: "" }); }
     }).catch((error) => {
       if (active) setResult({ key, data: null, error: error.status === 404 || error.status === 400 ? "This record could not be found." : error.message, notFound: error.status === 404 || error.status === 400 });
     });
     return () => { active = false; controller.abort(); };
-  }, [key, path, readData, collection, object]);
+  }, [key, path, readData, collection, object, maxAge]);
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
   const current = result?.key === key;
   const reuse = !current && keepPrevious && Boolean(last.current) && last.current.profileId === profile?.id;

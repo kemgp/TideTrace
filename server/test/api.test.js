@@ -2411,3 +2411,39 @@ test("the browser may keep the CORS preflight answer for 10 minutes", async () =
   assert.equal(response.headers["access-control-max-age"], "600");
   assert.equal(response.headers["access-control-allow-origin"], "http://localhost:5173");
 });
+
+// Speed S4: public answers that change slowly may be kept by the browser for 60 seconds; everything else stays no-store.
+const summaryRow = { id: "community", as_of: "2026-11-28T00:00:00Z", published_traces: 3, contributors: 2, published_tides: 1, tides_completed: 0 };
+
+test("community totals may be kept privately for a minute, signed in or out; a failure is never kept", async () => {
+  const { app } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_community_summary" ? json(summaryRow) : undefined });
+  for (const call of [request(app).get("/api/community-summary"), bearer(request(app).get("/api/community-summary"))]) {
+    const response = await call.expect(200);
+    assert.equal(response.headers["cache-control"], "private, max-age=60");
+    assert.match(response.headers.vary, /Authorization/);
+  }
+  const failing = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/rpc/get_community_summary" ? json({ message: "down" }, 503) : undefined });
+  const failed = await request(failing.app).get("/api/community-summary");
+  assert.ok(failed.status >= 500);
+  assert.equal(failed.headers["cache-control"], "no-store");
+});
+
+test("the signed-out Trace list may be kept publicly for a minute; signed in it is never kept", async () => {
+  const { app } = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json([]) : undefined });
+  const visitor = await request(app).get("/api/traces?limit=24").expect(200);
+  assert.equal(visitor.headers["cache-control"], "public, max-age=60");
+  assert.match(visitor.headers.vary, /Authorization/);
+  const member = await bearer(request(app).get("/api/traces?limit=24")).expect(200);
+  assert.equal(member.headers["cache-control"], "no-store");
+  assert.match(member.headers.vary, /Authorization/);
+  const failing = fixture({ handler: ({ url }) => url.pathname === "/rest/v1/traces" ? json({ message: "down" }, 503) : undefined });
+  const failed = await request(failing.app).get("/api/traces?limit=24");
+  assert.ok(failed.status >= 500);
+  assert.equal(failed.headers["cache-control"], "no-store");
+});
+
+test("other reads, including categories, stay no-store", async () => {
+  const { app } = fixture({ handler: ({ url }) => ["/rest/v1/categories", "/rest/v1/rpc/get_dashboard_summary"].includes(url.pathname) ? json(url.pathname.endsWith("categories") ? [] : {}) : undefined });
+  assert.equal((await request(app).get("/api/categories").expect(200)).headers["cache-control"], "no-store");
+  assert.equal((await bearer(request(app).get("/api/dashboard")).expect(200)).headers["cache-control"], "no-store");
+});

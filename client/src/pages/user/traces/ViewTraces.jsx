@@ -10,9 +10,10 @@ import TraceCard from "../../../components/TraceCard.jsx";
 import CommunityMap from "../../../components/CommunityMap.jsx";
 import Button from "../../../components/Button.jsx";
 import PageHeader from "../../../components/PageHeader.jsx";
+import { SLOW_CHANGING_MS } from "../../../api/readCache.js";
 
 export default function ViewTraces() {
-  const categoriesResult = useRemoteData("categories", { collection: true });
+  const categoriesResult = useRemoteData("categories", { collection: true, maxAge: SLOW_CHANGING_MS });
   const categories = categoriesResult.data || [];
   const [params, setParams] = useSearchParams();
   const location = useLocation();

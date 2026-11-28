@@ -42,6 +42,12 @@ The cache is per instance, like the rate-limit counters. The API also sends
 `Access-Control-Max-Age: 600`, so browsers repeat the CORS preflight at most
 every 10 minutes.
 
+Only two API answers may be kept by browsers (`Cache-Control`, 60 seconds):
+`GET /api/community-summary` (`private`) and the signed-out `GET /api/traces`
+list used by the landing page (`public`). Both send `Vary: Authorization`.
+Every other answer, including errors and the signed-in Trace list, is
+`no-store`. Do not add `Cache-Control` to answers that depend on the caller.
+
 ## Vercel frontend
 
 Import the same repository. Use repository root `./`, Vite preset, Node 22.x,

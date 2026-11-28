@@ -46,13 +46,25 @@ export async function withReviewerNotes(db, rows) {
   });
 }
 
+// Speed plan S4: a few answers are the same for everyone and change slowly, so the browser may keep them for a minute
+// instead of the API's default `no-store` (set in security()). Call this only right before a successful answer, so an
+// error is never kept. `Vary: Authorization` keeps a copy fetched signed out (or with one sign-in) from being reused for
+// another. `private` keeps shared caches out; `public` is only for answers that are the same for every visitor.
+export const SHORT_CACHE_SECONDS = 60;
+function cacheBriefly(res, scope) {
+  res.vary("Authorization");
+  res.set("Cache-Control", `${scope}, max-age=${SHORT_CACHE_SECONDS}`);
+}
+
 export function contentRoutes(gateway) {
   const router = Router();
   const member = authenticate(gateway);
   const send = (res, data, status = 200) => res.status(status).json({ data });
   router.get("/community-summary", async (req, res) => {
     z.object({}).strict().parse(req.query);
-    send(res, await result(req.db.rpc("get_community_summary")));
+    const summary = await result(req.db.rpc("get_community_summary"));
+    cacheBriefly(res, "private");
+    send(res, summary);
   });
   router.get("/dashboard", member, async (req, res) => {
     z.object({}).strict().parse(req.query);
@@ -67,7 +79,11 @@ export function contentRoutes(gateway) {
       .order("published_at", { ascending: false }).order("id");
     if (query.category_id) feed = feed.eq("category_id", query.category_id);
     const rows = await result(paginate(feed, query));
-    send(res, await withTraceLinks(req.db, gateway.links, rows, "thumb"));
+    const listed = await withTraceLinks(req.db, gateway.links, rows, "thumb");
+    // Signed out (the landing page strip), the list is the same for every visitor. Signed in it stays `no-store`.
+    if (req.token) res.vary("Authorization");
+    else cacheBriefly(res, "public");
+    send(res, listed);
   });
   router.get("/traces/map", async (req, res) => {
     const number = (min, max) => z.string().trim().min(1).pipe(z.coerce.number().min(min).max(max));

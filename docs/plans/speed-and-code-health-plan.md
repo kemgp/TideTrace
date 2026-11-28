@@ -45,6 +45,7 @@ Each step is one branch from `staging` and one pull request, in the order given.
 - Check: moving Dashboard, Traces, Tides, Contributions and back makes each list request once; pages paint from the cache first.
 
 **S4. Allow short caching where the data is public.**
+- Built 28 Nov 2026 on `feature/speed-s4-public-caching` (see `handoff.md`). Changed from the plan: `categories` stays `no-store` on the server and is reused for 60 seconds by the browser's in-memory read cache instead, so a save in the same tab clears it at once.
 - `Cache-Control: private, max-age=60` for `categories` and `community-summary`; `public, max-age=60` for the signed-out trace list used by the landing page. Everything else stays `no-store`.
 
 **S5. Smaller downloads.**
