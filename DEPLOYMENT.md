@@ -29,6 +29,19 @@ the hop count if adding a CDN/proxy or another path to the server. Do not enable
 unconditional proxy trust. Rate-limit counters are per instance, so start with
 one backend instance; multiple instances require a shared rate-limit store.
 
+Sign-in checks are reused for member reads. Each signed-in request needs the
+caller's Supabase user and TideTrace profile. For GET requests on member routes
+the API keeps that result in memory for up to 30 seconds (`server/src/sessionCache.js`,
+keyed by a hash of the token, never past the token's expiry). Staff and admin
+routes and every write check with Supabase each time, and a write drops the
+caller's cached check. Failed checks are never kept. Consequence: after an admin
+suspends an account, that account's member reads can still get API answers for
+up to 30 seconds. It cannot write, and row-level security still checks every
+database query. Losing a staff or admin role takes effect on the next request.
+The cache is per instance, like the rate-limit counters. The API also sends
+`Access-Control-Max-Age: 600`, so browsers repeat the CORS preflight at most
+every 10 minutes.
+
 ## Vercel frontend
 
 Import the same repository. Use repository root `./`, Vite preset, Node 22.x,
