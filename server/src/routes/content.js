@@ -6,6 +6,7 @@ import { coordinatePair, draft, page, paginate, report, text, uuid, version } fr
 import { withAuthorPhotos } from "../profilePhotos.js";
 import { deleteDueRemovedPhotos } from "../removedPhotos.js";
 import { withPrivateLocation } from "../traceLocations.js";
+import { withPhotoLinks } from "../traceMedia.js";
 
 export const reviewSelect = "id,from_state,to_state,reason,created_at";
 export const traceSelect = "*,category:categories(id,name),author:profiles!traces_author_id_fkey(id,display_name,avatar_path),trace_media(*)";
@@ -19,6 +20,13 @@ async function withCoverUrls(db, links, rows) {
   try { urls = await links.many(db, "tide-assets", paths); }
   catch { /* fall back to the colour block */ }
   return rows.map((row) => ({ ...row, image_url: urls.get(row.cover_path) || null }));
+}
+
+// Trace rows carry two kinds of signed link: the author's photo and the Trace's own photos (see traceMedia.js
+// for which size). Both are signed at the same time, one Storage call each at most, none when cached.
+async function withTraceLinks(db, links, rows, size) {
+  const [authors, photos] = await Promise.all([withAuthorPhotos(db, links, rows), withPhotoLinks(db, links, rows, { size })]);
+  return authors.map((row, index) => photos[index] === rows[index] ? row : { ...row, trace_media: photos[index].trace_media });
 }
 
 // A revision request carries the reviewer's note. The list adds the latest one (and when it was sent) to each
@@ -58,7 +66,8 @@ export function contentRoutes(gateway) {
     let feed = (query.q ? req.db.rpc("search_public_traces", { p_query: query.q }).select(traceSelect) : publicTraces(req.db))
       .order("published_at", { ascending: false }).order("id");
     if (query.category_id) feed = feed.eq("category_id", query.category_id);
-    send(res, await withAuthorPhotos(req.db, gateway.links, await result(paginate(feed, query))));
+    const rows = await result(paginate(feed, query));
+    send(res, await withTraceLinks(req.db, gateway.links, rows, "thumb"));
   });
   router.get("/traces/map", async (req, res) => {
     const number = (min, max) => z.string().trim().min(1).pipe(z.coerce.number().min(min).max(max));
@@ -88,12 +97,12 @@ export function contentRoutes(gateway) {
     const trace = first(await result(publicTraces(req.db).eq("id", id).limit(1)));
     const rows = await result(publicTraces(req.db).eq("category_id", trace.category_id).neq("id", id)
       .order("published_at", { ascending: false }).order("id").limit(3));
-    send(res, await withAuthorPhotos(req.db, gateway.links, rows));
+    send(res, await withTraceLinks(req.db, gateway.links, rows, "thumb"));
   });
   router.get("/traces/:id", async (req, res) => {
     // Always a public detail; private submissions have a separate member route.
     const row = first(await result(publicTraces(req.db).eq("id", uuid.parse(req.params.id)).limit(1)));
-    send(res, (await withAuthorPhotos(req.db, gateway.links, [row]))[0]);
+    send(res, (await withTraceLinks(req.db, gateway.links, [row], "display"))[0]);
   });
   router.get("/traces/:id/comments", async (req, res) => {
     const id = uuid.parse(req.params.id);
@@ -181,11 +190,13 @@ export function contentRoutes(gateway) {
     contributions = contributions.eq("is_hidden", query.status === "removed");
     if (query.status && query.status !== "removed") contributions = contributions.eq("status", query.status);
     const rows = await result(paginate(contributions.order("created_at", { ascending: false }).order("id"), query));
-    send(res, await withReviewerNotes(req.db, await withAuthorPhotos(req.db, gateway.links, rows)));
+    const withPhotos = await withTraceLinks(req.db, gateway.links, rows, "thumb");
+    send(res, await withReviewerNotes(req.db, withPhotos));
   });
   router.get("/contributions/:id", member, async (req, res) => {
     const row = first(await result(req.db.from("traces").select(traceSelect).eq("author_id", req.user.id).is("deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
-    send(res, await withPrivateLocation(req.db, (await withAuthorPhotos(req.db, gateway.links, [row]))[0]));
+    const [withPhotos] = await withTraceLinks(req.db, gateway.links, [row], "display");
+    send(res, await withPrivateLocation(req.db, withPhotos));
   });
   router.get("/contributions/:id/reviews", member, async (req, res) => {
     const id = uuid.parse(req.params.id);

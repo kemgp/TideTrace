@@ -64,6 +64,11 @@ export function createSignedLinks({ seconds = LINK_SECONDS, minRemainingMs = MIN
       }
       return urls;
     },
+    // Seconds left on a link handed out by one() or many(), so a response can say how long it stays valid.
+    expiresIn(bucket, path) {
+      const entry = entries.get(key(bucket, path));
+      return entry ? remaining(entry) : 0;
+    },
     get size() { return entries.size; },
   };
 }

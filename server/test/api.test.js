@@ -2263,3 +2263,95 @@ test("quiz attempts report a changed quiz, a cooldown with seconds left, and mis
   await attempt({ code: "P0002", message: "Quiz is not available" }).expect(404);
   await attempt({ code: "22023", message: "Answer all five questions" }).expect(400);
 });
+
+// Speed S1: lists and Trace pages send photo links with their rows, so cards need no /media/:id/url call each.
+const otherTraceId = "20000000-0000-4000-8000-000000000002";
+const mediaFile = (id, sort_order, extra = {}) => {
+  const base = `${userId}/${id.slice(-4)}/photo-${sort_order}`;
+  return { id, trace_id: traceId, object_path: `${base}.jpg`, mime_type: "image/jpeg", sort_order,
+    thumb_path: `${base}.thumb.webp`, display_path: `${base}.display.webp`, ...extra };
+};
+const traceRow = (id, status, trace_media, extra = {}) => ({ id, status, is_hidden: false, deleted_at: null, author_id: userId,
+  author: { id: userId, display_name: "Member", avatar_path: null }, trace_media, ...extra });
+const signBatch = (url, body) => url.pathname === "/storage/v1/object/sign/trace-media"
+  ? json(body.paths.map((path) => ({ path, signedURL: `/object/sign/trace-media/${path}?token=t`, error: null }))) : undefined;
+const signedPaths = (calls) => calls.filter(({ url }) => url.pathname === "/storage/v1/object/sign/trace-media").map(({ body }) => body.paths);
+
+test("the archive sends each Trace's first photo as a thumbnail link, signed in one storage call and reused", async () => {
+  const later = mediaFile("40000000-0000-4000-8000-00000000000a", 1);
+  const firstPhoto = mediaFile("40000000-0000-4000-8000-00000000000b", 0);
+  const video = { ...mediaFile("40000000-0000-4000-8000-00000000000c", -1), mime_type: "video/mp4", object_path: `${userId}/v.mp4`, thumb_path: null, display_path: null };
+  const noThumb = mediaFile("40000000-0000-4000-8000-00000000000d", 0, { thumb_path: null });
+  const rows = [traceRow(traceId, "approved", [later, video, firstPhoto]), traceRow(otherTraceId, "approved", [noThumb]),
+    traceRow("20000000-0000-4000-8000-000000000003", "approved", [])];
+  const { app, calls } = fixture({ handler: ({ url, body }) => url.pathname === "/rest/v1/traces" ? json(rows) : signBatch(url, body) });
+  const response = await request(app).get("/api/traces").expect(200);
+  assert.deepEqual(signedPaths(calls), [[firstPhoto.thumb_path, noThumb.display_path]]);
+  const [first, second, empty] = response.body.data;
+  const linked = first.trace_media.find((item) => item.id === firstPhoto.id);
+  assert.match(linked.thumb_url, new RegExp(`${firstPhoto.thumb_path}\\?token=t$`));
+  assert.ok(linked.link_expires_in > 15 * 60 && linked.link_expires_in <= 3600);
+  assert.equal(linked.display_url, undefined);
+  for (const item of first.trace_media.filter((item) => item.id !== firstPhoto.id)) assert.equal(item.thumb_url, undefined);
+  assert.match(second.trace_media[0].thumb_url, /photo-0\.display\.webp\?token=t$/);
+  assert.deepEqual(empty.trace_media, []);
+  assert.equal(calls.some(({ url }) => url.pathname === "/rest/v1/trace_media"), false);
+  await request(app).get("/api/traces").expect(200);
+  assert.equal(signedPaths(calls).length, 1);
+});
+
+test("related Traces get thumbnail links too", async () => {
+  const photo = mediaFile("40000000-0000-4000-8000-00000000000e", 0);
+  const { app, calls } = fixture({ handler: ({ url, body }) => url.pathname === "/rest/v1/traces"
+    ? json(url.searchParams.get("id")?.startsWith("eq.") ? [traceRow(traceId, "approved", [], { category_id: categoryId })] : [traceRow(otherTraceId, "approved", [photo])])
+    : signBatch(url, body) });
+  const response = await request(app).get(`/api/traces/${traceId}/related`).expect(200);
+  assert.deepEqual(signedPaths(calls), [[photo.thumb_path]]);
+  assert.match(response.body.data[0].trace_media[0].thumb_url, /token=t$/);
+});
+
+test("My Contributions links photos of approved Traces only; drafts and pending ones still go through the API", async () => {
+  const approved = mediaFile("40000000-0000-4000-8000-000000000011", 0);
+  const pending = mediaFile("40000000-0000-4000-8000-000000000012", 0);
+  const draftPhoto = mediaFile("40000000-0000-4000-8000-000000000013", 0);
+  const rows = [traceRow(traceId, "approved", [approved]), traceRow(otherTraceId, "pending", [pending]),
+    traceRow("20000000-0000-4000-8000-000000000003", "draft", [draftPhoto])];
+  const { app, calls } = fixture({ handler: ({ url, body }) => url.pathname === "/rest/v1/traces" ? json(rows) : signBatch(url, body) });
+  const response = await bearer(request(app).get("/api/contributions")).expect(200);
+  assert.deepEqual(signedPaths(calls), [[approved.thumb_path]]);
+  assert.match(response.body.data[0].trace_media[0].thumb_url, /token=t$/);
+  assert.deepEqual(response.body.data[1].trace_media, [pending]);
+  assert.deepEqual(response.body.data[2].trace_media, [draftPhoto]);
+});
+
+test("the Trace page gets a display link for every file, and a signing failure still returns the Trace", async () => {
+  const photo = mediaFile("40000000-0000-4000-8000-000000000021", 0);
+  const original = mediaFile("40000000-0000-4000-8000-000000000022", 1, { thumb_path: null, display_path: null });
+  const row = traceRow(traceId, "approved", [photo, original]);
+  const { app, calls } = fixture({ handler: ({ url, body }) => url.pathname === "/rest/v1/traces" ? json([row]) : signBatch(url, body) });
+  const response = await request(app).get(`/api/traces/${traceId}`).expect(200);
+  assert.deepEqual(signedPaths(calls), [[photo.display_path, original.object_path]]);
+  const [first, second] = response.body.data.trace_media;
+  assert.match(first.display_url, /photo-0\.display\.webp\?token=t$/);
+  assert.match(second.display_url, /photo-1\.jpg\?token=t$/);
+  assert.equal(first.thumb_url, undefined);
+  const failing = fixture({ handler: ({ url }) => {
+    if (url.pathname === "/rest/v1/traces") return json([row]);
+    if (url.pathname === "/storage/v1/object/sign/trace-media") return json({ message: "Storage down" }, 503);
+  } });
+  const fallback = await request(failing.app).get(`/api/traces/${traceId}`).expect(200);
+  assert.deepEqual(fallback.body.data.trace_media, [photo, original]);
+});
+
+test("an author's own approved Trace page gets display links; a Trace in revision gets none", async () => {
+  const photo = mediaFile("40000000-0000-4000-8000-000000000031", 0);
+  for (const [status, linked] of [["approved", true], ["revision_requested", false]]) {
+    const { app, calls } = fixture({ handler: ({ url, body }) => {
+      if (url.pathname === "/rest/v1/traces") return json([traceRow(traceId, status, [photo])]);
+      return signBatch(url, body);
+    } });
+    const response = await bearer(request(app).get(`/api/contributions/${traceId}`)).expect(200);
+    assert.equal(Boolean(response.body.data.trace_media[0].display_url), linked);
+    assert.equal(signedPaths(calls).length, linked ? 1 : 0);
+  }
+});

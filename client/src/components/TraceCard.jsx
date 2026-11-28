@@ -4,7 +4,7 @@ import TraceStatusBadge from "./TraceStatusBadge.jsx";
 import AdminIcon from "./AdminIcon.jsx";
 import {useApp} from "../context/AppContext.jsx";
 import {PHOTO_TYPES} from "../api/photos.js";
-import {forgetMedia,loadMedia} from "../api/mediaLinks.js";
+import {forgetMedia,loadMedia,suppliedLink} from "../api/mediaLinks.js";
 import AuthorAvatar from "./AuthorAvatar.jsx";
 import {relativeTime} from "../api/relativeTime.js";
 
@@ -50,8 +50,8 @@ function TraceCardPhoto({trace,priority=false,detailPath="traces"}){
           return;
         }
 
-        // Public photos reuse a remembered link; restricted ones arrive as a file (see mediaLinks.js).
-        const source=await loadMedia({id:photo.id,size:"thumb",owner:profile?.id,read:readData,signal:controller.signal});
+        // Public photos use the link sent with the list or a remembered one; restricted ones arrive as a file (see mediaLinks.js).
+        const source=await loadMedia({id:photo.id,size:"thumb",supplied:suppliedLink(photo,"thumb"),owner:profile?.id,read:readData,signal:controller.signal});
 
         if(controller.signal.aborted){source.revoke?.();return;}
         revoke=source.revoke;

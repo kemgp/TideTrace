@@ -58,3 +58,14 @@ test("buckets are kept apart, the cache has a size cap and failures are not cach
   await links.one(db, "trace-media", "broken.png");
   assert.equal(state.single, 6);
 });
+
+test("expiresIn reports the seconds left on a cached link, and 0 for one never signed", async () => {
+  let clock = 0;
+  const links = createSignedLinks({ now: () => clock });
+  const { db } = storage();
+  await links.many(db, "trace-media", ["a.webp"]);
+  clock = 10 * 60 * 1000;
+  assert.equal(links.expiresIn("trace-media", "a.webp"), 50 * 60);
+  assert.equal(links.expiresIn("trace-media", "other.webp"), 0);
+  assert.equal(links.expiresIn("tide-assets", "a.webp"), 0);
+});

@@ -7,6 +7,7 @@ import { HttpError, first, result, upstreamError } from "../errors.js";
 import { uuid } from "../validation.js";
 import { cleanupProfilePhotos } from "../profilePhotos.js";
 import { deleteDueRemovedPhotos } from "../removedPhotos.js";
+import { isPublicTrace, pickMediaFile } from "../traceMedia.js";
 
 const formats = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "video/mp4": "mp4" };
 // Every upload gets a new random path and is never overwritten, so browsers may keep it for a year.
@@ -90,19 +91,15 @@ export function mediaRoutes(gateway) {
   const readableMedia = async (req) => first(await result(req.db.from("trace_media")
     .select("object_path,mime_type,thumb_path,display_path,trace:traces!inner(status,is_hidden,deleted_at)")
     .is("trace.deleted_at", null).eq("id", uuid.parse(req.params.id)).limit(1)));
-  // Which file to send: ?size=thumb (cards, lists) is the 480 px copy; otherwise (the Trace page) the 1600 px
-  // display copy. Each falls back to the next larger file that exists, ending at the original. Copies are made
-  // at upload or by scripts/backfill-media-variants.mjs; the original itself is never changed.
+  // Which file to send (?size=thumb or the display copy) and who gets a link: see traceMedia.js.
   const sizeQuery = z.object({ size: z.enum(["thumb", "display"]).optional() }).strict();
-  const pick = (media, size) => {
-    const path = size === "thumb" ? media.thumb_path || media.display_path || media.object_path
-      : media.display_path || media.object_path;
-    return { path, type: path === media.object_path ? media.mime_type : "image/webp" };
-  };
-  const isPublic = (media) => media.trace?.status === "approved" && media.trace?.is_hidden === false && !media.trace?.deleted_at;
+  const pick = pickMediaFile;
+  const isPublic = (media) => isPublicTrace(media.trace);
   // Photos of approved, visible Traces get a signed link that stays the same for up to an hour, so the
   // browser reuses the download. Anything else (draft, pending, held, hidden) gets no link at all:
   // the client fetches the file itself from /media/:id/file, so nothing shareable leaves the API.
+  // Lists and Trace pages usually send these links with their rows already (withPhotoLinks); this route
+  // covers retries and photos that arrived without one.
   router.get("/media/:id/url", async (req, res) => {
     const { size } = sizeQuery.parse(req.query);
     const media = await readableMedia(req);

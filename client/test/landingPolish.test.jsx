@@ -145,3 +145,13 @@ it("adds a shadow after scrolling and highlights the section being read", () => 
   expect(within(nav).getByRole("link", { name: "Features" }).getAttribute("aria-current")).toBeNull();
   section.remove();
 });
+
+it("shows the strip from the links sent with the list, with no request per photo", async () => {
+  visibleObserver(); matchMedia(true);
+  const rows = [1, 2, 3, 4].map(n => trace(n, { trace_media: [photo(`sent${n}`, { thumb_url: `https://img.test/sent${n}.thumb.webp`, link_expires_in: 3000 })] }));
+  api.getData.mockImplementation(async path => path.startsWith("traces") ? rows : { url: "https://img.test/asked", expires_in: 3600 });
+  render(<MemoryRouter><RecentTraces reduced href="/register" label="Join to see the full archive" /></MemoryRouter>);
+  await waitFor(() => expect(screen.getAllByRole("img")).toHaveLength(4));
+  expect(screen.getAllByRole("img").map(image => image.getAttribute("src"))).toEqual(rows.map(row => row.trace_media[0].thumb_url));
+  expect(api.getData.mock.calls.map(([path]) => path)).toEqual(["traces?limit=24"]);
+});

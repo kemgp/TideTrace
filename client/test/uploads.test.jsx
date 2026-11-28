@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { MemoryRouter } from "./router.jsx";
 import App from "../src/App.jsx";
 import { SESSION_KEY } from "../src/api/session.js";
+import { forgetAllMedia } from "../src/api/mediaLinks.js";
 
 const category = { id: "30000000-0000-4000-8000-000000000001", name: "Seagrass" };
 const profile = { id: "current-user", display_name: "Actual Member", email: "member@example.test", status: "active", role: "user" };
@@ -584,4 +585,25 @@ it.each(["logout", "navigate"])("cancels an attachment-only recovery on %s", asy
   expect(screen.queryByText(/Your details and photo are saved/)).toBeNull();
   expect(calls.mock.calls.filter(([url]) => url === upload)).toHaveLength(1);
   expect(calls.mock.calls.some(([url]) => url === submit)).toBe(false);
+});
+
+it("shows a photo from the link sent with the Trace, and asks the API only when reloading", async () => {
+  forgetAllMedia();
+  const linked = { ...photo, id: "40000000-0000-4000-8000-000000000099", link_expires_in: 3000,
+    display_url: "https://project.supabase.co/linked.display.webp?token=sent" };
+  const calls = setup((url) => {
+    if (url === detail) return response(trace({ status: "approved", published_at: "2026-09-23T12:00:00Z", trace_media: [linked] }));
+    if (url.split("?")[0].endsWith("/url")) return response({ url: "https://project.supabase.co/linked.display.webp?token=fresh", expires_in: 3600 });
+  });
+  open(`/user/contributions/${trace().id}`);
+  expect((await screen.findByAltText("Trace photo 1")).getAttribute("src")).toBe(linked.display_url);
+  expect(calls.mock.calls.some(([url]) => url.startsWith("/api/media/"))).toBe(false);
+  await waitFor(() => {
+    const image = screen.queryByAltText("Trace photo 1");
+    if (image) fireEvent.error(image);
+    expect(screen.getByRole("button", { name: "Reload photo 1" })).toBeTruthy();
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Reload photo 1" }));
+  expect((await screen.findByAltText("Trace photo 1")).getAttribute("src")).toMatch(/token=fresh$/);
+  expect(calls.mock.calls.some(([url]) => url === `/api/media/${linked.id}/url`)).toBe(true);
 });

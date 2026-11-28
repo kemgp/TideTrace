@@ -1,6 +1,7 @@
 import TracePhotoSelector from "./TracePhotoSelector.jsx";
 import { compressPhoto } from "../api/compressPhoto.js";
 import useMediaSource from "../hooks/useMediaSource.js";
+import { suppliedLink } from "../api/mediaLinks.js";
 import { addThumbnail, prepareTracePhoto } from "../api/photoUpload.js";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import SubmitTrace from "./SubmitTrace.jsx";
@@ -49,7 +50,7 @@ function SavedPhoto({ media, index, hero = false, active = true, alt, onUrl, onE
   const [failedUrl, setFailedUrl] = useState("");
   const [failMessage, setFailMessage] = useState("");
   // Public photos reuse a remembered link; restricted ones arrive as a file (see mediaLinks.js).
-  const source = useMediaSource(media.id, { skip: deferred, attempt });
+  const source = useMediaSource(media.id, { skip: deferred, attempt, link: suppliedLink(media) });
   const failed = failedUrl && failedUrl === source.url ? failMessage : "";
   const url = failed ? "" : source.url;
   const error = failed || source.error;
