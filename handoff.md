@@ -1,4 +1,4 @@
-# TideTrace — Handoff (updated 2026-11-25, speed S1 on a branch; staging = main after Phase 2 release)
+# TideTrace — Handoff (updated 2026-11-28, staging rebuilt; speed S1 merged into staging)
 
 Current state of the project, what was changed in the latest session, and what is left.
 
@@ -9,14 +9,30 @@ Current state of the project, what was changed in the latest session, and what i
 
 
 
-### 2026-11-25: Speed S1 (photo links sent with lists), `feature/speed-s1-photo-links`, uncommitted, client tests NOT run
+### 2026-11-28: Staging Supabase project deleted and rebuilt
+
+- On 25 Nov a teammate deleted the whole staging Supabase project. There were no backups (Free plan), so all staging data, test accounts and uploaded photos are gone. Production was not affected.
+- New project: `TidetTrace-staging`, ref `uiqjlyfdiswltfhtzehi`, region `ap-northeast-1` (Tokyo), same organization. Production is `TideTrace Database` in `ap-northeast-2` (Seoul).
+- Schema: `supabase/staging-setup.sql` (all 29 migrations, up to `20261121000100_removed_trace_media.sql`) was run on the empty project. Checked 28 Nov: 21 public tables and the 6 categories are present.
+- Render staging: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` now point at the new project. Checked 28 Nov: `/api/health` and `/api/ready` are OK, and the `/api/ready` query shows in the new project's API logs. Vercel needed no change.
+- Auth email: custom SMTP is set up with Brevo (`smtp-relay.brevo.com`, port 587, its own SMTP key, not production's). Sender is `tidetraceapp@gmail.com`. The first sign-up failed because Brevo was not configured yet; after that, confirmation emails arrive. The confirmation subject on staging is "Be a Ripple of Change".
+- The user finished the rest of the rebuild (first admin, seed accounts, Auth URL configuration, email templates). This session did not check those steps.
+- Deleting a user: `profiles.id` references `auth.users` with `on delete restrict`, so deleting a user in Authentication › Users fails with `profiles_id_fkey`. Delete the `public.profiles` row first in the SQL Editor (only works while the account owns nothing), then the user.
+- Follow-ups:
+  - Set the teammate's Supabase organization role to Developer so they can't delete a project again.
+  - The organization went over its quota last billing cycle, and projects will be restricted from 7 Dec if it stays over. Staging now shares that quota, so check usage before then.
+  - Production also sends from the Gmail address. Brevo cannot authenticate free addresses (it may replace the sender with `@brevosend.com`, and mail can land in spam). Move to an own domain authenticated in Brevo.
+  - Run the staging smoke test: sign in, refresh, password recovery, photo upload, submit, and review with a second staff account.
+
+### 2026-11-25: Speed S1 (photo links sent with lists), `feature/speed-s1-photo-links` (`f73f53b`), merged into `staging`
 
 - Server: new `server/src/traceMedia.js` holds the size choice (`pickMediaFile`) and the public rule (`isPublicTrace`), now shared with `media/:id/url`, plus `withPhotoLinks`. `GET /traces`, `/traces/:id/related` and `/contributions` add `thumb_url` and `link_expires_in` to the first photo of each approved, visible Trace. `GET /traces/:id` and `/contributions/:id` add `display_url` to every file. Links come from the existing cache (`gateway.links`, new `expiresIn()`) in one batch Storage call, signed in parallel with author photos (`withTraceLinks` in `content.js`). Restricted Traces get no link (egress rule unchanged). If signing fails, the rows are returned without links.
 - Not changed: the moderation list, reports and staff case view. Those Traces are pending or held, so their photos still come through `/media/:id/file`.
 - Client: `mediaLinks.js` gets `suppliedLink()` and `loadMedia({ supplied })`. `TraceCard`, `TraceThumb`, `TracePhotos` and the landing strip use the supplied link. `TracePhotos` uses it on the first try only, so "Reload photo" asks the API for a new link. Rows without links fall back to `media/:id/url` as before.
 - Tests: 195 server tests pass (6 new: archive, related, contributions, Trace page with signing failure, author's own page, `expiresIn`). New client cases in `mediaLinks.test.jsx`, `uploads.test.jsx` and `landingPolish.test.jsx` parse and the cache logic was checked in Node, but vitest was not run (macOS `node_modules`).
 - Not measured yet: the "before" numbers from the speed plan ("How to measure") can still be taken on production until this is released.
-- Next: `npm test` and `npm run build` on the Mac (or CI on the PR), commit, PR into `staging`, then check on staging that opening the archive makes one API call with no `media/:id/url` requests. Then S2.
+- Pushed from the Mac's own terminal and merged into `staging` by the user. The session VM cannot reach GitHub (its proxy refuses it), so pushes go through the Mac's terminal.
+- Next: on staging, check that opening the archive makes one API call with no `media/:id/url` requests (needs an approved Trace with a photo on the rebuilt staging). Then S2.
 
 ### 2026-11-22: Egress Phase 2 released to production
 
