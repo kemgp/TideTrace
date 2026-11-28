@@ -91,3 +91,11 @@ it("offers retry on failure and ignores pending totals after logout", async () =
   await act(async () => finish(ok(summary())));
   expect(screen.queryByRole("region", { name: "Dashboard totals" })).toBeNull();
 });
+
+it("asks for the totals once when the page and its widgets mount together", async () => {
+  const calls = setup(); open("/user/dashboard");
+  const region = await screen.findByRole("region", { name: "Dashboard totals" });
+  await waitFor(() => expect(within(region).getByText("Total Traces").closest(".stat").textContent).toContain("52"));
+  await act(async () => {});
+  expect(calls.mock.calls.filter(([url]) => url === "/api/dashboard")).toHaveLength(1);
+});
