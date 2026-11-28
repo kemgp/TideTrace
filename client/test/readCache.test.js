@@ -52,3 +52,11 @@ it("a save drops this account's copies, and a read already running when it happe
   clearReads();
   expect(peekRead("member-b", "contributions")).toBeUndefined();
 });
+
+it("starts the request before returning, like a plain read, so a click's request is sent at once", async () => {
+  const load = vi.fn(async () => []);
+  const read = sharedRead("member-a", "tides?progress=incomplete", load);
+  expect(load).toHaveBeenCalledTimes(1);
+  await read;
+  await expect(sharedRead("member-a", "broken", () => { throw new Error("sync failure"); })).rejects.toThrow("sync failure");
+});

@@ -48,7 +48,10 @@ export function sharedRead(owner, path, load, { signal, maxAge } = {}) {
   let promise = inflight.get(key);
   if (!promise) {
     const started = generation;
-    promise = Promise.resolve().then(load).then((data) => {
+    // Start the request now, as a plain read would, so `fetch` is called before this returns.
+    let request;
+    try { request = Promise.resolve(load()); } catch (error) { request = Promise.reject(error); }
+    promise = request.then((data) => {
       if (generation === started) remember(key, data);
       return data;
     }).finally(() => { if (inflight.get(key) === promise) inflight.delete(key); });
